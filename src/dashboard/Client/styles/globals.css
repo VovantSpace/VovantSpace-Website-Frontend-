@@ -1,0 +1,176 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 3.9%;
+    --primary: 0 0% 9%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 0 0% 96.1%;
+    --secondary-foreground: 0 0% 9%;
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45.1%;
+    --accent: 0 0% 96.1%;
+    --accent-foreground: 0 0% 9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 89.8%;
+    --input: 0 0% 89.8%;
+    --ring: 0 0% 3.9%;
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+    --radius: 0.5rem;
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+:root {
+  --dashboard-bg: #F2F9F7;       
+  --dashboard-theme-color2: #E5F3EF; 
+  --dash-green:#175047;
+  --dashboard-theme-text: #000000;   
+  --dashboard-button-bg: #175047;
+  --dashboard-button-text: #31473A;
+  --dashboard-border-color:rgb(121, 161, 138);
+}
+
+.dark {
+  --dashboard-bg: #000000;           
+  --dashboard-theme-color2: #1a281f;  
+  --dashboard-theme-text: white;     
+  --dashboard-button-text: #000000;
+}
+
+.dashtextgreen{
+  color:var(--dash-green) !important;
+
+}
+.dashbggreen{
+  background-color:var(--dash-green) !important;
+
+}
+
+.dashbg{
+  background-color:var(--dashboard-bg) !important;
+}
+
+.secondbg{
+  background-color:var( --dashboard-theme-color2) !important;
+}
+.dashtext{
+  color:var(--dashboard-theme-text) !important;
+}
+.dashborder{
+  border-color: var(--dashboard-border-color);
+}
+
+.dashbutton{
+background-color: var(--dashboard-button-bg);
+}
+.dashbuttontext{
+background-color: var(--dashboard-button-text);
+}
+
+
+.prose {
+  @apply text-gray-900 dark:text-gray-200;
+}
+
+.prose h1, .prose h2, .prose h3 {
+  @apply dark:text-white;
+}
+
+.prose ul {
+  @apply list-disc pl-6;
+}
+
+.prose a {
+  @apply text-[#00bf8f] hover:underline;
+}
+
+.ProseMirror:focus {
+  @apply outline-none;
+}
+
+.ProseMirror {
+  @apply min-h-[200px] p-3;
+}
+
+.ProseMirror p.is-editor-empty:first-child::before {
+  @apply text-gray-400 dark:text-gray-500 content-[attr(data-placeholder)] float-left h-0 pointer-events-none italic;
+}
+
+.ProseMirror code {
+  @apply bg-gray-100 dark:bg-gray-800 px-1.5 py-1 rounded text-sm;
+}
+
+.ProseMirror pre {
+  @apply bg-gray-800 text-gray-100 p-4 rounded-lg overflow-x-auto;
+}
+
+.ProseMirror blockquote {
+  @apply border-l-4 border-gray-300 dark:border-gray-600 pl-4 my-2 italic;
+}
+
+.ProseMirror ul,
+.ProseMirror ol {
+  @apply pl-6;
+}
+
+.ProseMirror ul {
+  @apply list-disc;
+}
+
+.ProseMirror ol {
+  @apply list-decimal;
+}
+
+
+code{
+  background-color:#1f2937!important;
+  font-style: bold;
+}
+
+
+.dropdown-white button{
+  background-color: white;
+  color: black;
+}
+
+.ProseMirror h1 { @apply text-4xl font-bold my-4; }
+.ProseMirror h2 { @apply text-3xl font-bold my-3; }
+.ProseMirror h3 { @apply text-2xl font-bold my-2; }
+.ProseMirror p { @apply my-2; }

@@ -1,0 +1,44 @@
+.outline-text {
+    color: transparent;
+    -webkit-text-stroke: 2px #ffffff;
+  }
+
+
+  @media only screen and (max-width: 770px) {
+    .leading-h1 {
+        line-height: 45px !important;  
+    }
+}
+
+:root{
+  --theme-color:#31473A;
+}
+
+.themetext{
+  color:var(--theme-color) !important;
+}
+
+.themebg{
+  background-color:var(--theme-color) !important;
+}
+
+.themeborder{
+  border-color:var(--theme-color)  !important;
+}
+
+
+.swiper-button-prev:after, .swiper-rtl .swiper-button-next:after,.swiper-button-next:after, .swiper-rtl .swiper-button-prev:after {
+  color: #31473A;
+}
+
+select option:checked,
+select option:hover {
+    box-shadow: 0 0 10px 100px #a9e8b9 inset;
+}
+
+
+select:focus > option:checked { 
+    background: #a9e8b9 !important;
+}
+
+
