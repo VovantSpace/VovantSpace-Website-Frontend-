@@ -5,7 +5,7 @@ import {FaGoogle, FaGithub, FaLock, FaEnvelope} from 'react-icons/fa';
 import {BsArrowRight} from 'react-icons/bs';
 import Loginimg from './assets/login.jpeg';
 import {Link} from 'react-router-dom';
-import {useAppContext} from "@/context/AppContext.js";
+import {useAppContext} from "@/context/AppContext.jsx";
 import {useState} from "react";
 import {useNavigate} from 'react-router-dom'
 

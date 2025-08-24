@@ -16,7 +16,7 @@ import ProblemSolverRouting from './dashboard/ProblemSolver/ProblemSolverRouting
 import AdvisorRouting from './dashboard/Advisor/AdvisorRouting';
 import ClientRouting from './dashboard/Client/ClientRouting';
 import Forget from './Forget';
-import {AppProvider} from './context/AppContext.js'
+import {AppProvider} from './context/AppContext.jsx'
 
 const root = createRoot(document.getElementById('root'));
 
