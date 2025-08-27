@@ -5,11 +5,8 @@ import { Link } from 'react-router-dom';
 import * as Yup from 'yup';
 import
 {
-    FaGoogle, FaGithub, FaUser, FaBuilding, FaGlobe, FaLock,
-    FaIndustry, FaLink, FaGraduationCap, FaBriefcase, FaHandshake,FaLightbulb, FaUsers
+    FaGraduationCap, FaHandshake,FaLightbulb, FaUsers
 } from 'react-icons/fa';
-import { BsArrowRight, BsChevronRight } from 'react-icons/bs';
-import Navbar from './components/Navbar';
 import Innovator from './components/signup/Innovator';
 import ProblemSolver from './components/signup/ProblemSolver';
 import Advisor from './components/signup/Advisor';
