@@ -56,7 +56,7 @@ export const AppProvider = ({children}) => {
         try {
             setIsLoading(true);
 
-            const response = await axios.post(backendUrl +'/api/user/login', {email, password})
+            const response = await axios.post(backendUrl + '/api/user/login', {email, password})
 
             if (response.data.success) {
                 const userData = response.data.user;
@@ -138,6 +138,51 @@ export const AppProvider = ({children}) => {
         delete axios.defaults.headers.common['Authorization']
     }
 
+    // API for google and github login
+    const oauthLogin = async (provider, code) => {
+        try {
+            setIsLoading(true);
+
+            const response = await fetch(`${backendUrl}/api/auth/oauth/${provider}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({code}),
+            })
+
+            const result = await response.json();
+
+            if (result.success) {
+                // Store token in localstorage
+                localStorage.setItem('token', result.token);
+
+                // update context state
+                setUser(result.user);
+
+
+                return {
+                    success: true,
+                    user: result.user,
+                    message: result.message || 'OAuth login successful'
+                }
+            } else {
+                return {
+                    success: false,
+                    message: result.message || `${provider} authentication failed. Please try again.`
+                }
+            }
+        } catch (error) {
+            console.error(`${provider} OAuth error:`, error)
+            return {
+                success: false,
+                message: 'Network error occured during authentication. Please try again.'
+            }
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
     const value = {
         user,
         token,
@@ -145,7 +190,8 @@ export const AppProvider = ({children}) => {
         isAuthenticated,
         login,
         logout,
-        signup
+        signup,
+        oauthLogin
     }
 
     return (
