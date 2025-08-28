@@ -8,22 +8,24 @@ import {Link} from 'react-router-dom';
 import {useAppContext} from "@/context/AppContext.jsx";
 import {useState} from "react";
 import {useNavigate} from 'react-router-dom'
+import {initiateOauthFlow} from "@/utils/oauthUtils.js";
 
 const Login = () => {
 
     const {login, isLoading} = useAppContext()
     const navigate = useNavigate()
     const [errorMessage, setErrorMessage] = useState(null)
+    const [oauthLoading, setOauthLoading] = useState(null)
 
     // Function to get dashboard route based on user role
     const getDashboardRoute = (role) => {
         switch (role) {
             case 'innovator':
                 return '/dashboard/innovator';
-                case 'problem-solver':
+            case 'problem-solver':
             case 'problemsolver':
             case 'ps':
-                return  '/dashboard/ps';
+                return '/dashboard/ps';
             case 'advisor':
                 return '/dashboard/advisor';
             case 'client':
@@ -63,6 +65,31 @@ const Login = () => {
         }
     });
 
+    // Handle Oauth Login
+    const handleOauthLogin = async (provider) => {
+        try {
+            setOauthLoading(provider)
+            setErrorMessage('')
+
+            // Check if auth is configured
+            const clientId = provider === 'google'
+                ? import.meta.env.VITE_GOOGLE_CLIENT_ID
+                : import.meta.env.VITE_GITHUB_CLIENT_ID;
+
+            if (!clientId) {
+                setErrorMessage(`${provider === 'google' ? 'Google' : 'Github'} authentication is not configured. Please contact support.`)
+                setOauthLoading(null)
+                return;
+            }
+
+            initiateOauthFlow(provider)
+        } catch (error) {
+            console.error(`${provider} Oauth login error:`, error)
+            setErrorMessage(`Failed to initial ${provider === 'google' ? 'Google' : 'Github'} login. Please try again.`)
+            setOauthLoading(null)
+        }
+    }
+
     return (
         <div className='themebg'>
 
@@ -93,28 +120,56 @@ const Login = () => {
 
                         <div className="space-y-4 w-full">
                             <button
-                                className="w-full flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 p-3 rounded-lg transition-all">
-                                <FaGoogle className="text-xl"/> Continue with Google
+                                onClick={() => handleOauthLogin('google')}
+                                disabled={isLoading || oauthLoading}
+                                className={'w-full flex items-center justify-center gap-2 p-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-all disabled:opacity-50 disabled:cursor-allowed'}
+                            >
+                                {oauthLoading === 'google' ? (
+                                    <>
+                                        <div
+                                            className={'animate-spin rounded-full h-4 w-4 border-b-2 border-gray-700'}></div>
+                                        Connecting to Google...
+                                    </>
+                                ) : (
+                                    <>
+                                        <FaGoogle className="text-xl"/> Continue with Google
+                                    </>
+                                )}
                             </button>
                             <button
-                                className="w-full flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 p-3 rounded-lg transition-all">
-                                <FaGithub className="text-xl"/> Continue with GitHub
+                                onClick={() => handleOauthLogin('github')}
+                                disabled={isLoading || oauthLoading}
+                                className={'w-full flex items-center justify-center p-3 gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-all disabled:opacity-50 disabled:cursor-allowed'}
+                            >
+                                {oauthLoading === 'github' ? (
+                                    <>
+                                        <div
+                                            className={'animate-spin rounded-full h-4 w-4 border-b-2 border-gray-700'}></div>
+                                        Connecting to Github...
+                                    </>
+
+                                ) : (
+                                    <>
+                                        <FaGithub className="text-xl"/> Continue with Github
+                                    </>
+                                )}
                             </button>
                         </div>
+
+                        {/*Error message*/}
+                        {errorMessage ? (
+                            <div
+                                className={'w-full mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg'}
+                            >
+                                {errorMessage}
+                            </div>
+                        ) : null}
 
                         <div className="my-8 flex items-center w-full">
                             <div className="flex-1 border-t border-gray-300"></div>
                             <span className="px-4 text-gray-500">Or</span>
                             <div className="flex-1 border-t border-gray-300"></div>
                         </div>
-
-                        {/*Error message*/}
-                        {errorMessage ? (
-                            <div
-                                className={'w-full mb-4 p-3 bg-red-100 border border-read-400 text-red-400 rounded-lg'}>
-                                {errorMessage}
-                            </div>
-                        ) : null}
 
                         <form onSubmit={formik.handleSubmit} className="space-y-3 w-full">
                             <div>
@@ -140,9 +195,6 @@ const Login = () => {
                             <div className='mb-4'>
                                 <div className='flex justify-between items-center'>
                                     <label className="block text-gray-700 mb-2">Password</label>
-                                    {/* <div className=" ">
-                                    <a href="#" className="themetext hover:underline">Forgot password?</a>
-                                </div> */}
                                 </div>
                                 <div className="relative">
                                     <FaLock
