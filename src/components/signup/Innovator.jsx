@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { FaGoogle, FaGithub, FaBuilding, FaIndustry, FaInfoCircle, FaLink, FaLinkedin } from 'react-icons/fa';
 import DetailsForm from './DetailsForm';
 import { Link } from 'react-router-dom';
@@ -7,20 +8,26 @@ import StickyCardContainer from './StickyCardContainer';
 const customTheme = (theme) => ({
     ...theme,
     colors: {
-      ...theme.colors,
-      primary: '#31473A',     
-      primary25: '#a9e8b9',   
-      neutralBorder: '#31473A', 
+        ...theme.colors,
+        primary: '#31473A',
+        primary25: '#a9e8b9',
+        neutralBorder: '#31473A',
     },
-  });
-  
-const Innovator = () =>
-{
+});
+
+const Innovator = ({ formik, INDUSTRIES, isLoading }) => {
     return (
         <div className="flex flex-col lg:flex-row gap-8 p-4 mx-auto">
             {/* Main Form Container - Takes full available width */}
             <div className="flex-1 space-y-8 !max-w-[28rem]">
-                <DetailsForm />
+                <DetailsForm formik={formik} />
+
+                {/* Debug info - remove in production */}
+                <div className="mb-4 p-2 bg-gray-100 rounded text-xs">
+                    <div>Organization: {formik.values.organization || 'empty'}</div>
+                    <div>Industry: {formik.values.industry || 'empty'}</div>
+                    <div>Agree Terms: {formik.values.agreeTerms ? 'true' : 'false'}</div>
+                </div>
 
                 {/* Professional Details Section */}
                 <div className="w-full">
@@ -29,7 +36,7 @@ const Innovator = () =>
                         {/* Organization Name */}
                         <div>
                             <label className="block text-gray-700 mb-2" htmlFor="organization-name">
-                                Organization Name (Optional)
+                                Organization Name
                             </label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -39,9 +46,16 @@ const Innovator = () =>
                                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#31473A]"
                                     type="text"
                                     id="organization-name"
+                                    name="organization"
                                     placeholder='Organization Name'
+                                    value={formik.values.organization || ''}
+                                    onChange={formik.handleChange}
+                                    onBlur={formik.handleBlur}
                                 />
                             </div>
+                            {formik.touched.organization && formik.errors.organization && (
+                                <div className="text-red-500 text-sm mt-1">{formik.errors.organization}</div>
+                            )}
                         </div>
 
                         {/* Industry Dropdown */}
@@ -56,28 +70,32 @@ const Innovator = () =>
                                 <select
                                     className="w-full pl-10 pr-4 py-3 border border-[#31473A] rounded-lg text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-[#31473A] hover:border-[#31473A]"
                                     id="industry"
-                                    placeholder="Select"
-                              
-                                 
+                                    name="industry"
+                                    value={formik.values.industry || ''}
+                                    onChange={formik.handleChange}
+                                    onBlur={formik.handleBlur}
                                 >
-                                    <option>Technology</option>
-                                    <option >Business & Finance</option>
-                                    <option >Healthcare</option>
-                                    <option >Education</option>
-                                    <option >Engineering</option>
-                                    <option >Manufacturing</option>
-                                    <option >Energy & Sustainability</option>
-                                    <option >Media & Entertainment</option>
-                                    <option >Retail & E-Commerce</option>
-                                    <option >Transportation</option>
-                                    <option >Agriculture</option>
-                                    <option >Real Estate</option>
-                                    <option >Social Impact</option>
-                                    <option >Government & Public Policy</option>
-                                    <option >Other</option>
-
+                                    <option value="">Select Industry</option>
+                                    <option value="Technology">Technology</option>
+                                    <option value="Business & Finance">Business & Finance</option>
+                                    <option value="Healthcare">Healthcare</option>
+                                    <option value="Education">Education</option>
+                                    <option value="Engineering">Engineering</option>
+                                    <option value="Manufacturing">Manufacturing</option>
+                                    <option value="Energy & Sustainability">Energy & Sustainability</option>
+                                    <option value="Media & Entertainment">Media & Entertainment</option>
+                                    <option value="Retail & E-Commerce">Retail & E-Commerce</option>
+                                    <option value="Transportation">Transportation</option>
+                                    <option value="Agriculture">Agriculture</option>
+                                    <option value="Real Estate">Real Estate</option>
+                                    <option value="Social Impact">Social Impact</option>
+                                    <option value="Government & Public Policy">Government & Public Policy</option>
+                                    <option value="Other">Other</option>
                                 </select>
                             </div>
+                            {formik.errors.industry && formik.touched.industry && (
+                                <p className="text-red-500 text-sm mt-1">{formik.errors.industry}</p>
+                            )}
                         </div>
 
                         {/* Bio Textarea */}
@@ -92,11 +110,21 @@ const Innovator = () =>
                                 <textarea
                                     className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#31473A]"
                                     id="bio"
+                                    name="bio"
                                     rows="4"
                                     placeholder='Short Bio'
-                                ></textarea>
+                                    maxLength={300}
+                                    value={formik.values.bio || ''}
+                                    onChange={formik.handleChange}
+                                    onBlur={formik.handleBlur}
+                                />
                             </div>
-                            <div className="text-gray-500 text-sm mt-2">0/300 characters</div>
+                            <div className="text-gray-500 text-sm mt-2">
+                                {(formik.values.bio || '').length}/300 characters
+                            </div>
+                            {formik.touched.bio && formik.errors.bio && (
+                                <div className="text-red-500 text-sm mt-1">{formik.errors.bio}</div>
+                            )}
                         </div>
 
                         {/* Website Input */}
@@ -112,9 +140,16 @@ const Innovator = () =>
                                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#31473A]"
                                     type="text"
                                     id="website"
+                                    name="website"
                                     placeholder="Website"
+                                    value={formik.values.website || ''}
+                                    onChange={formik.handleChange}
+                                    onBlur={formik.handleBlur}
                                 />
                             </div>
+                            {formik.touched.website && formik.errors.website && (
+                                <div className="text-red-500 text-sm mt-1">{formik.errors.website}</div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -134,10 +169,17 @@ const Innovator = () =>
                                 <input
                                     type="text"
                                     id="linkedin"
+                                    name="linkedin"
                                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#31473A]"
-                                    placeholder='Linkedin Profile'
+                                    placeholder='LinkedIn Profile'
+                                    value={formik.values.linkedin || ''}
+                                    onChange={formik.handleChange}
+                                    onBlur={formik.handleBlur}
                                 />
                             </div>
+                            {formik.touched.linkedin && formik.errors.linkedin && (
+                                <div className="text-red-500 text-sm mt-1">{formik.errors.linkedin}</div>
+                            )}
                         </div>
 
                         {/* Checkboxes */}
@@ -147,7 +189,9 @@ const Innovator = () =>
                                     type="checkbox"
                                     className="form-checkbox h-5 w-5 themetext mt-1"
                                     id="tips"
-                                    required
+                                    name="sendTips"
+                                    checked={formik.values.sendTips || false}
+                                    onChange={formik.handleChange}
                                 />
                                 <label htmlFor="tips" className="ml-3 text-gray-700 leading-tight">
                                     Send me emails with tips on how to find the right problem solvers for my challenges on VovantSpace.
@@ -159,29 +203,48 @@ const Innovator = () =>
                                     type="checkbox"
                                     className="form-checkbox h-5 w-5 text-green-600 mt-1"
                                     id="terms"
+                                    name="agreeTerms"
+                                    checked={formik.values.agreeTerms || false}
+                                    onChange={formik.handleChange}
                                     required
                                 />
                                 <label htmlFor="terms" className="ml-3 text-gray-700 leading-tight">
                                     Yes, I understand and agree to the VovantSpace Terms of Service, including the User Agreement and Privacy Policy.
                                 </label>
                             </div>
+                            {formik.errors.agreeTerms && formik.touched.agreeTerms && (
+                                <p className="text-red-500 text-sm mt-1">{formik.errors.agreeTerms}</p>
+                            )}
                         </div>
-
-                        {/* Submit Button */}
-                        <button className="w-full themebg text-white py-4 rounded-lg text-lg font-semibold  transition-colors focus:outline-none focus:ring-2  focus:ring-offset-2">
-                            Create Account as Innovator
-                        </button>
                     </div>
                 </div>
             </div>
 
             {/* Sticky Card Container */}
-            <StickyCardContainer heading={`Innovator Sign-Up Page`} para={<>Turn Vision Into Reality.
-                Join a dynamic community of forward-thinkers, problem- solvers, and creators. As an innovator, you can propose challenges, form teams, and bring transformative ideas to life. Whether you're reshaping industries, pioneering new technologies, or driving social impact, VovantSpace is your launchpad for innovation.<br />
-                <i>Sign up today and start shaping the future!</i>
-            </>} subheading={`Solve Challenges. Create Impact.`} />
+            <StickyCardContainer
+                heading="Innovator Sign-Up Page"
+                para={<>Turn Vision Into Reality.
+                    Join a dynamic community of forward-thinkers, problem- solvers, and creators. As an innovator, you can propose challenges, form teams, and bring transformative ideas to life. Whether you're reshaping industries, pioneering new technologies, or driving social impact, VovantSpace is your launchpad for innovation.<br />
+                    <i>Sign up today and start shaping the future!</i>
+                </>}
+                subheading="Solve Challenges. Create Impact."
+            />
         </div>
     );
+};
+
+// PropTypes definition
+Innovator.propTypes = {
+    formik: PropTypes.shape({
+        values: PropTypes.object.isRequired,
+        handleChange: PropTypes.func.isRequired,
+        handleBlur: PropTypes.func.isRequired,
+        setFieldValue: PropTypes.func.isRequired,
+        touched: PropTypes.object,
+        errors: PropTypes.object,
+    }).isRequired,
+    INDUSTRIES: PropTypes.arrayOf(PropTypes.string),
+    isLoading: PropTypes.bool,
 };
 
 export default Innovator;
