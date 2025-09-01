@@ -1,13 +1,13 @@
-import { useEffect, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { useAppContext } from "@/context/AppContext.jsx";
-import { handleOauthCallback } from "@/utils/oauthUtils.js";
+import {useEffect, useState} from "react";
+import {useNavigate, useParams, useSearchParams} from "react-router-dom";
+import {useAppContext} from "@/context/AppContext.jsx";
+import {handleOauthCallback} from "@/utils/oauthUtils.js";
 
 const OAuthCallback = () => {
     const navigate = useNavigate();
-    const { provider } = useParams();
+    const {provider} = useParams();
     const [searchParams] = useSearchParams();
-    const { oauthLogin } = useAppContext();
+    const {oauthLogin} = useAppContext();
     const [isProcessing, setIsProcessing] = useState(true);
     const [error, setError] = useState(null);
     const [retryCount, setRetryCount] = useState(0);
@@ -59,7 +59,7 @@ const OAuthCallback = () => {
 
             // Handle OAuth callback and get the authorization code
             // Pass provider to help with state validation
-            const { code } = handleOauthCallback(searchParams, provider);
+            const {code} = handleOauthCallback(searchParams, provider);
             console.log('Authorization code extracted successfully');
 
             // Send the code to the backend for token exchange
@@ -76,7 +76,7 @@ const OAuthCallback = () => {
                     // Existing user with role - redirect to their dashboard
                     const dashboardRoute = getDashboardRoute(userRole);
                     console.log("OAuth login successful, redirecting existing user to:", dashboardRoute);
-                    navigate(dashboardRoute, { replace: true });
+                    navigate(dashboardRoute, {replace: true});
                 } else {
                     // New user or user without role - redirect to role selection
                     console.log("User needs role selection, redirecting to role selection page");
@@ -231,29 +231,31 @@ const OAuthCallback = () => {
     }
 
     // Loading state
-    return (
-        <div className="min-h-screen bg-[#f8f9fa] flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
-                <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-[#00674f] mx-auto mb-6"></div>
-                <h2 className="text-2xl font-bold text-gray-800 mb-4">
-                    Authenticating with {provider === 'google' ? 'Google' : 'GitHub'}...
-                </h2>
-                <p className="text-gray-600 mb-4">Please wait while we complete your authentication.</p>
+    if (isProcessing) {
+        return (
+            <div className="min-h-screen bg-[#f8f9fa] flex items-center justify-center p-4">
+                <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
+                    <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-[#00674f] mx-auto mb-6"></div>
+                    <h2 className="text-2xl font-bold text-gray-800 mb-4">
+                        Authenticating with {provider === 'google' ? 'Google' : 'GitHub'}...
+                    </h2>
+                    <p className="text-gray-600 mb-4">Please wait while we complete your authentication.</p>
 
-                {retryCount > 0 && (
-                    <p className="text-sm text-yellow-600">
-                        Retrying authentication... (Attempt {retryCount + 1})
-                    </p>
-                )}
+                    {retryCount > 0 && (
+                        <p className="text-sm text-yellow-600">
+                            Retrying authentication... (Attempt {retryCount + 1})
+                        </p>
+                    )}
 
-                <div className="mt-6 pt-4 border-t border-gray-100">
-                    <p className="text-xs text-gray-400">
-                        This should only take a few seconds. If it&#39;s taking too long, try refreshing the page.
-                    </p>
+                    <div className="mt-6 pt-4 border-t border-gray-100">
+                        <p className="text-xs text-gray-400">
+                            This should only take a few seconds. If it&#39;s taking too long, try refreshing the page.
+                        </p>
+                    </div>
                 </div>
             </div>
-        </div>
-    );
+        )
+    }
 };
 
 export default OAuthCallback;
