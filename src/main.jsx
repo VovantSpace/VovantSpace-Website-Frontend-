@@ -16,7 +16,7 @@ import AdvisorRouting from './dashboard/Advisor/AdvisorRouting';
 import ClientRouting from './dashboard/Client/ClientRouting';
 import Forget from './Forget';
 import {AppProvider} from './context/AppContext.jsx'
-import OAuthCallback from './auth/OAuthCallback.jsx';
+import OAuthCallback from './auth/OauthCallback.jsx';
 //import OAuthRoleSelection from "@/auth/OAuthRoleSelection.jsx";
 
 const root = createRoot(document.getElementById('root'));
