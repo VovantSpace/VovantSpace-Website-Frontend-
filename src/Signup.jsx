@@ -1,26 +1,22 @@
-import { useCallback, useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
-import { useFormik } from 'formik';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import {useCallback, useEffect, useState} from 'react';
+import {motion} from 'framer-motion';
+import {useFormik} from 'formik';
+import {Link, useLocation, useNavigate} from 'react-router-dom';
 import * as Yup from 'yup';
-import { BsArrowRight, BsChevronRight } from 'react-icons/bs';
-//import { FaGoogle, FaGithub } from 'react-icons/fa';
+import {BsArrowRight, BsChevronRight} from 'react-icons/bs';
 import Innovator from './components/signup/Innovator';
 import ProblemSolver from './components/signup/ProblemSolver';
 import Advisor from './components/signup/Advisor';
 import Client from './components/signup/Client';
 import RoleSelectionGrid from './components/RoleSelectionGrid';
-import { useAppContext } from './context/AppContext';
-//import { initiateOauthFlow } from '@/utils/oauthUtils';
+import {useAppContext} from './context/AppContext';
 
 const Signup = () => {
     const navigate = useNavigate();
-    const { state } = useLocation();
-    const { signup, isLoading } = useAppContext();
+    const {state} = useLocation();
+    const {signup, isLoading} = useAppContext();
     const [submitError, setSubmitError] = useState('');
     const [step, setStep] = useState(1);
-    // const [isOauthLoading, setIsOauthLoading] = useState(false);
-    // const [oauthProvider, setOauthProvider] = useState(null);
 
     useEffect(() => {
         if (state?.userData && state?.fromOAuth) {
@@ -33,34 +29,8 @@ const Signup = () => {
             });
             setStep(1);
         }
-    }, [ state]);
+    }, [state]);
 
-    // const handleOauthSignup = async (provider) => {
-    //     try {
-    //         setSubmitError('');
-    //         setIsOauthLoading(true);
-    //         setOauthProvider(provider);
-    //         const clientId =
-    //             provider === 'google'
-    //                 ? import.meta.env.VITE_GOOGLE_CLIENT_ID
-    //                 : import.meta.env.VITE_GITHUB_CLIENT_ID;
-    //
-    //         if (!clientId) {
-    //             throw new Error(
-    //                 `${provider === 'google' ? 'Google' : 'GitHub'} authentication is not configured.`,
-    //             );
-    //         }
-    //
-    //         initiateOauthFlow(provider);
-    //     } catch (error) {
-    //         console.error(`${provider} OAuth signup error:`, error);
-    //         setSubmitError(
-    //             `Failed to initiate ${provider === 'google' ? 'Google' : 'GitHub'} signup. Please try again.`,
-    //         );
-    //         setIsOauthLoading(false);
-    //         setOauthProvider(null);
-    //     }
-    // };
 
     const formik = useFormik({
         initialValues: {
@@ -137,8 +107,8 @@ const Signup = () => {
             }),
             agreeTerms: Yup.boolean().oneOf([true], 'You must accept the terms'),
         }),
-        context: { fromOAuth: state?.fromOAuth || false },
-        onSubmit: async (values, { setSubmitting }) => {
+        context: {fromOAuth: state?.fromOAuth || false},
+        onSubmit: async (values, {setSubmitting}) => {
             setSubmitError('');
             setSubmitting(true);
 
@@ -204,13 +174,13 @@ const Signup = () => {
     const renderRoleSpecificFields = () => {
         switch (formik.values.userType) {
             case 'Innovator':
-                return <Innovator formik={formik} />;
+                return <Innovator formik={formik}/>;
             case 'Problem Solver':
-                return <ProblemSolver formik={formik} />;
+                return <ProblemSolver formik={formik}/>;
             case 'Advisor/Mentor':
-                return <Advisor formik={formik} />;
+                return <Advisor formik={formik}/>;
             case 'Client/Mentee':
-                return <Client formik={formik} />;
+                return <Client formik={formik}/>;
             default:
                 return null;
         }
@@ -234,7 +204,7 @@ const Signup = () => {
     };
 
     const isFormValid = useCallback(() => {
-        const { userType, firstName, lastName, email, password, agreeTerms } = formik.values;
+        const {userType, firstName, lastName, email, password, agreeTerms} = formik.values;
 
         const basicFieldsValid =
             firstName?.trim() && lastName?.trim() && email?.trim() && agreeTerms;
@@ -277,57 +247,19 @@ const Signup = () => {
         <div className="themebg">
             <div className="min-h-[80vh] bg-[#f8f9fa] flex items-center justify-center p-4">
                 <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
+                    initial={{opacity: 0, y: 20}}
+                    animate={{opacity: 1, y: 0}}
                     className="bg-white rounded-2xl shadow-xl w-full mx-auto max-w-5xl p-8"
                 >
                     {step === 1 && (
                         <div className="text-center">
                             <h2 className="text-3xl font-bold themetext mb-8">Join VovantSpace</h2>
                             {submitError && (
-                                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6 max-w-md mx-auto">
+                                <div
+                                    className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6 max-w-md mx-auto">
                                     {submitError}
                                 </div>
                             )}
-                            {/*<div className="space-y-4 w-full max-w-md mx-auto mb-8">*/}
-                            {/*    <button*/}
-                            {/*        onClick={() => handleOauthSignup('google')}*/}
-                            {/*        disabled={isLoading || isOauthLoading}*/}
-                            {/*        className="w-full flex items-center justify-center gap-2 p-3 border border-gray-300 rounded-lg hover:bg-gray-100 text-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"*/}
-                            {/*    >*/}
-                            {/*        {isOauthLoading && oauthProvider === 'google' ? (*/}
-                            {/*            <>*/}
-                            {/*                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-700"></div>*/}
-                            {/*                Connecting to Google...*/}
-                            {/*            </>*/}
-                            {/*        ) : (*/}
-                            {/*            <>*/}
-                            {/*                <FaGoogle className="text-xl" /> Continue with Google*/}
-                            {/*            </>*/}
-                            {/*        )}*/}
-                            {/*    </button>*/}
-                            {/*    <button*/}
-                            {/*        onClick={() => handleOauthSignup('github')}*/}
-                            {/*        disabled={isLoading || isOauthLoading}*/}
-                            {/*        className="w-full flex items-center justify-center gap-2 p-3 border border-gray-300 rounded-lg hover:bg-gray-100 text-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"*/}
-                            {/*    >*/}
-                            {/*        {isOauthLoading && oauthProvider === 'github' ? (*/}
-                            {/*            <>*/}
-                            {/*                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-700"></div>*/}
-                            {/*                Connecting to GitHub...*/}
-                            {/*            </>*/}
-                            {/*        ) : (*/}
-                            {/*            <>*/}
-                            {/*                <FaGithub className="text-xl" /> Continue with GitHub*/}
-                            {/*            </>*/}
-                            {/*        )}*/}
-                            {/*    </button>*/}
-                            {/*</div>*/}
-                            {/*<div className="my-8 flex items-center w-full max-w-md mx-auto">*/}
-                            {/*    <div className="flex-1 border-t border-gray-300"></div>*/}
-                            {/*    <span className="px-4 text-gray-500">Or</span>*/}
-                            {/*    <div className="flex-1 border-t border-gray-300"></div>*/}
-                            {/*</div>*/}
                             <h2 className="text-2xl font-bold themetext mb-4 capitalize">Select Role</h2>
                             <RoleSelectionGrid
                                 selectedRole={formik.values.userType}
@@ -351,7 +283,7 @@ const Signup = () => {
                                 onClick={() => setStep(1)}
                                 className="flex items-center text-gray-600 hover:text-gray-800 mb-4"
                             >
-                                <BsChevronRight className="mr-2 rotate-180" />
+                                <BsChevronRight className="mr-2 rotate-180"/>
                                 Back to role selection
                             </button>
                             <h2 className="text-2xl font-bold themetext mb-6">
@@ -400,13 +332,14 @@ const Signup = () => {
                                 >
                                     {(isLoading || formik.isSubmitting) ? (
                                         <div className="flex items-center">
-                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                            <div
+                                                className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                                             Creating Account...
                                         </div>
                                     ) : (
                                         <>
                                             Create Account
-                                            <BsArrowRight className="ml-2" />
+                                            <BsArrowRight className="ml-2"/>
                                         </>
                                     )}
                                 </button>

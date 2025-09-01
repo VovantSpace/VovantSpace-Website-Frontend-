@@ -1,21 +1,10 @@
-import React from 'react';
 import PropTypes from 'prop-types';
-import { FaGoogle, FaGithub, FaBuilding, FaIndustry, FaInfoCircle, FaLink, FaLinkedin } from 'react-icons/fa';
+import { FaBuilding, FaIndustry, FaInfoCircle, FaLink, FaLinkedin } from 'react-icons/fa';
 import DetailsForm from './DetailsForm';
-import { Link } from 'react-router-dom';
 import StickyCardContainer from './StickyCardContainer';
 
-const customTheme = (theme) => ({
-    ...theme,
-    colors: {
-        ...theme.colors,
-        primary: '#31473A',
-        primary25: '#a9e8b9',
-        neutralBorder: '#31473A',
-    },
-});
 
-const Innovator = ({ formik, INDUSTRIES, isLoading }) => {
+const Innovator = ({ formik}) => {
     return (
         <div className="flex flex-col lg:flex-row gap-8 p-4 mx-auto">
             {/* Main Form Container - Takes full available width */}
@@ -224,7 +213,7 @@ const Innovator = ({ formik, INDUSTRIES, isLoading }) => {
             <StickyCardContainer
                 heading="Innovator Sign-Up Page"
                 para={<>Turn Vision Into Reality.
-                    Join a dynamic community of forward-thinkers, problem- solvers, and creators. As an innovator, you can propose challenges, form teams, and bring transformative ideas to life. Whether you're reshaping industries, pioneering new technologies, or driving social impact, VovantSpace is your launchpad for innovation.<br />
+                    Join a dynamic community of forward-thinkers, problem- solvers, and creators. As an innovator, you can propose challenges, form teams, and bring transformative ideas to life. Whether you&#39;re reshaping industries, pioneering new technologies, or driving social impact, VovantSpace is your launchpad for innovation.<br />
                     <i>Sign up today and start shaping the future!</i>
                 </>}
                 subheading="Solve Challenges. Create Impact."

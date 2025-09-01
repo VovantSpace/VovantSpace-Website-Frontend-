@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types'
-import { FaGoogle, FaGithub, FaUser, FaEnvelope, FaLock } from 'react-icons/fa'
+import {FaGoogle, FaGithub, FaUser, FaEnvelope, FaLock} from 'react-icons/fa'
 import CountryandTime from './CountryandTime'
 
-const DetailsForm = ({ formik }) => {
+const DetailsForm = ({formik}) => {
     // Get password from formik instead of local state
     const password = formik.values.password || ""
     const isLengthValid = password.length >= 8
@@ -21,27 +21,6 @@ const DetailsForm = ({ formik }) => {
     return (
         <>
             <div className="w-full max-w-xl mx-auto">
-                {/*<div className="text-center mb-3 themetext">*/}
-                {/*    <span className="text-xl font-medium">Register With:</span>*/}
-                {/*</div>*/}
-                {/*<div className="flex justify-center mb-6 gap-5">*/}
-                {/*    <button*/}
-                {/*        type="button" // Important: prevent form submission*/}
-                {/*        onClick={() => handleSocialLogin('Google')}*/}
-                {/*        className="flex-1 flex items-center justify-center bg-gray-100 text-gray-700 py-3 px-6 rounded-lg border border-gray-300 hover:bg-gray-200 transition"*/}
-                {/*    >*/}
-                {/*        <FaGoogle className="mr-3 text-xl" />*/}
-                {/*        <span className="font-medium">Google</span>*/}
-                {/*    </button>*/}
-                {/*    <button*/}
-                {/*        type="button" // Important: prevent form submission*/}
-                {/*        onClick={() => handleSocialLogin('GitHub')}*/}
-                {/*        className="flex-1 flex items-center justify-center bg-gray-100 text-gray-700 py-3 px-6 rounded-lg border border-gray-300 hover:bg-gray-200 transition"*/}
-                {/*    >*/}
-                {/*        <FaGithub className="mr-3 text-xl" />*/}
-                {/*        <span className="font-medium">GitHub</span>*/}
-                {/*    </button>*/}
-                {/*</div>*/}
                 <div className="my-2 flex items-center w-full">
                     <div className="flex-1 border-t border-gray-300"></div>
                     {/*<span className="px-4 text-gray-500">Or</span>*/}
@@ -54,7 +33,7 @@ const DetailsForm = ({ formik }) => {
                             <label className="block text-gray-700 font-medium">First Name</label>
                             <div className="relative mt-2">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <FaUser className="text-gray-400" />
+                                    <FaUser className="text-gray-400"/>
                                 </div>
                                 <input
                                     type="text"
@@ -75,7 +54,7 @@ const DetailsForm = ({ formik }) => {
                             <label className="block text-gray-700 font-medium">Last Name</label>
                             <div className="relative mt-2">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <FaUser className="text-gray-400" />
+                                    <FaUser className="text-gray-400"/>
                                 </div>
                                 <input
                                     type="text"
@@ -97,7 +76,7 @@ const DetailsForm = ({ formik }) => {
                         <label className="block text-gray-700 font-medium">Email</label>
                         <div className="relative mt-2">
                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <FaEnvelope className="text-gray-400" />
+                                <FaEnvelope className="text-gray-400"/>
                             </div>
                             <input
                                 type="email"
@@ -118,7 +97,7 @@ const DetailsForm = ({ formik }) => {
                         <label className="block text-gray-700 font-medium">Password</label>
                         <div className="relative mt-2">
                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <FaLock className="text-gray-400" />
+                                <FaLock className="text-gray-400"/>
                             </div>
                             <input
                                 type="password"
@@ -136,14 +115,24 @@ const DetailsForm = ({ formik }) => {
                             )}
                         </div>
                         <ul className="mt-3 text-sm space-y-1">
-                            <li className={isLengthValid ? "text-green-600" : "text-red-600"}>• Password must be at least 8 characters long</li>
-                            <li className={hasUppercase ? "text-green-600" : "text-red-600"}>• Password must contain at least one uppercase letter</li>
-                            <li className={hasLowercase ? "text-green-600" : "text-red-600"}>• Password must contain at least one lowercase letter</li>
-                            <li className={hasSymbol ? "text-green-600" : "text-red-600"}>• Password must contain at least one symbol</li>
-                            <li className={hasNumber ? "text-green-600" : "text-red-600"}>• Password must contain at least one number</li>
+                            <li className={isLengthValid ? "text-green-600" : "text-red-600"}>• Password must be at
+                                least 8 characters long
+                            </li>
+                            <li className={hasUppercase ? "text-green-600" : "text-red-600"}>• Password must contain at
+                                least one uppercase letter
+                            </li>
+                            <li className={hasLowercase ? "text-green-600" : "text-red-600"}>• Password must contain at
+                                least one lowercase letter
+                            </li>
+                            <li className={hasSymbol ? "text-green-600" : "text-red-600"}>• Password must contain at
+                                least one symbol
+                            </li>
+                            <li className={hasNumber ? "text-green-600" : "text-red-600"}>• Password must contain at
+                                least one number
+                            </li>
                         </ul>
                     </div>
-                    <CountryandTime formik={formik} />
+                    <CountryandTime formik={formik}/>
                 </div>
             </div>
         </>
