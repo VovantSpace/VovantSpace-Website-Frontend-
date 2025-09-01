@@ -12,39 +12,39 @@ const DetailsForm = ({ formik }) => {
     const hasNumber = /\d/.test(password);
 
     // Handle social login buttons (prevent form submission)
-    const handleSocialLogin = (provider) => {
-        // Add your social login logic here
-        console.log(`Login with ${provider}`);
-        // This should not submit the form
-    };
+    // const handleSocialLogin = (provider) => {
+    //     // Add your social login logic here
+    //     console.log(`Login with ${provider}`);
+    //     // This should not submit the form
+    // };
 
     return (
         <>
             <div className="w-full max-w-xl mx-auto">
-                <div className="text-center mb-3 themetext">
-                    <span className="text-xl font-medium">Register With:</span>
-                </div>
-                <div className="flex justify-center mb-6 gap-5">
-                    <button
-                        type="button" // Important: prevent form submission
-                        onClick={() => handleSocialLogin('Google')}
-                        className="flex-1 flex items-center justify-center bg-gray-100 text-gray-700 py-3 px-6 rounded-lg border border-gray-300 hover:bg-gray-200 transition"
-                    >
-                        <FaGoogle className="mr-3 text-xl" />
-                        <span className="font-medium">Google</span>
-                    </button>
-                    <button
-                        type="button" // Important: prevent form submission
-                        onClick={() => handleSocialLogin('GitHub')}
-                        className="flex-1 flex items-center justify-center bg-gray-100 text-gray-700 py-3 px-6 rounded-lg border border-gray-300 hover:bg-gray-200 transition"
-                    >
-                        <FaGithub className="mr-3 text-xl" />
-                        <span className="font-medium">GitHub</span>
-                    </button>
-                </div>
+                {/*<div className="text-center mb-3 themetext">*/}
+                {/*    <span className="text-xl font-medium">Register With:</span>*/}
+                {/*</div>*/}
+                {/*<div className="flex justify-center mb-6 gap-5">*/}
+                {/*    <button*/}
+                {/*        type="button" // Important: prevent form submission*/}
+                {/*        onClick={() => handleSocialLogin('Google')}*/}
+                {/*        className="flex-1 flex items-center justify-center bg-gray-100 text-gray-700 py-3 px-6 rounded-lg border border-gray-300 hover:bg-gray-200 transition"*/}
+                {/*    >*/}
+                {/*        <FaGoogle className="mr-3 text-xl" />*/}
+                {/*        <span className="font-medium">Google</span>*/}
+                {/*    </button>*/}
+                {/*    <button*/}
+                {/*        type="button" // Important: prevent form submission*/}
+                {/*        onClick={() => handleSocialLogin('GitHub')}*/}
+                {/*        className="flex-1 flex items-center justify-center bg-gray-100 text-gray-700 py-3 px-6 rounded-lg border border-gray-300 hover:bg-gray-200 transition"*/}
+                {/*    >*/}
+                {/*        <FaGithub className="mr-3 text-xl" />*/}
+                {/*        <span className="font-medium">GitHub</span>*/}
+                {/*    </button>*/}
+                {/*</div>*/}
                 <div className="my-2 flex items-center w-full">
                     <div className="flex-1 border-t border-gray-300"></div>
-                    <span className="px-4 text-gray-500">Or</span>
+                    {/*<span className="px-4 text-gray-500">Or</span>*/}
                     <div className="flex-1 border-t border-gray-300"></div>
                 </div>
                 <h2 className="text-2xl font-semibold mb-6 text-[#00674F]">Basic Information</h2>

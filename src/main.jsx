@@ -3,7 +3,6 @@ import {StrictMode} from 'react'
 import {createRoot} from 'react-dom/client'
 import {BrowserRouter, Routes, Route} from 'react-router-dom';
 import App from './App.jsx'
-import Footer from './components/Footer.jsx'
 import About from './About.jsx'
 import Services from './Services.jsx';
 import Contact from './Contact.jsx';
@@ -17,6 +16,8 @@ import AdvisorRouting from './dashboard/Advisor/AdvisorRouting';
 import ClientRouting from './dashboard/Client/ClientRouting';
 import Forget from './Forget';
 import {AppProvider} from './context/AppContext.jsx'
+import OAuthCallback from '@/auth/OAuthCallback.jsx';
+//import OAuthRoleSelection from "@/auth/OAuthRoleSelection.jsx";
 
 const root = createRoot(document.getElementById('root'));
 
@@ -32,6 +33,11 @@ root.render(
                     <Route path="/login" element={<Login/>}/>
                     <Route path="/forget" element={<Forget/>}/>
                     <Route path="/signup" element={<Signup/>}/>
+
+                    {/* OAuth routes */}
+                    <Route path={'/auth/:provider/callback'} element={<OAuthCallback/>}/>
+                    {/*<Route path="/auth/role-selection" element={<OAuthRoleSelection/>}/>*/}
+
                     <Route path="/dashboard/innovator/*" element={<DashboardRouting/>}/>
                     <Route path="/dashboard/ps/*" element={<ProblemSolverRouting/>}/>
                     <Route path="/dashboard/advisor/*" element={<AdvisorRouting/>}/>

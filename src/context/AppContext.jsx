@@ -143,12 +143,16 @@ export const AppProvider = ({children}) => {
         try {
             setIsLoading(true);
 
-            const response = await fetch(`${backendUrl}/api/auth/oauth/${provider}`, {
+            const response = await fetch(`${backendUrl}/api/auth/oauth/callback/${provider}`, {
+
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({code}),
+                body: JSON.stringify({
+                    code,
+                    redirect_uri: `${window.location.origin}/auth/${provider}/callback`
+                }),
             })
 
             const result = await response.json();
@@ -156,6 +160,7 @@ export const AppProvider = ({children}) => {
             if (result.success) {
                 // Store token in localstorage
                 localStorage.setItem('token', result.token);
+                setToken(result.token);
 
                 // update context state
                 setUser(result.user);
@@ -176,12 +181,33 @@ export const AppProvider = ({children}) => {
             console.error(`${provider} OAuth error:`, error)
             return {
                 success: false,
-                message: 'Network error occured during authentication. Please try again.'
+                message: 'Network error occurred during authentication. Please try again.'
             }
         } finally {
             setIsLoading(false)
         }
     }
+
+    const updateUserRole = async (userId, role) => {
+        try {
+            setIsLoading(true)
+            const response = await axios.put(`${backendUrl}/api/user/update-role`, {userId, role})
+
+            if (response.data.success) {
+                setUser(response.data.user)
+                setToken(token)
+                return {success: true, message: 'Role updated successfully'}
+            } else {
+                return {success: false, message: response.data.message || 'Failed to update role'}
+            }
+        } catch (error) {
+            console.error('Update role error:', error)
+            return {success: false, message: error.response?.data?.message || "Network error occurred"}
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
 
     const value = {
         user,
@@ -191,7 +217,8 @@ export const AppProvider = ({children}) => {
         login,
         logout,
         signup,
-        oauthLogin
+        oauthLogin,
+        updateUserRole,
     }
 
     return (
