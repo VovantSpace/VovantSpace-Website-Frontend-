@@ -16,7 +16,7 @@ import AdvisorRouting from './dashboard/Advisor/AdvisorRouting';
 import ClientRouting from './dashboard/Client/ClientRouting';
 import Forget from './Forget';
 import {AppProvider} from './context/AppContext.jsx'
-import OAuthCallback from '@/auth/OAuthCallback.jsx';
+import OauthCallback from "@/auth/OauthCallback.jsx";
 //import OAuthRoleSelection from "@/auth/OAuthRoleSelection.jsx";
 
 const root = createRoot(document.getElementById('root'));
@@ -35,7 +35,7 @@ root.render(
                     <Route path="/signup" element={<Signup/>}/>
 
                     {/* OAuth routes */}
-                    <Route path={'/auth/:provider/callback'} element={<OAuthCallback/>}/>
+                    <Route path={'/auth/:provider/callback'} element={<OauthCallback/>}/>
                     {/*<Route path="/auth/role-selection" element={<OAuthRoleSelection/>}/>*/}
 
                     <Route path="/dashboard/innovator/*" element={<DashboardRouting/>}/>
