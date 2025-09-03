@@ -6,7 +6,7 @@ import PropTypes from "prop-types";
 const AppContext = createContext(undefined);
 
 // API base Url
-const backendUrl = import.meta.env.VITE_BACKEND_URL;
+const backendUrl = import.meta.env.VITE_API_BASE_URL;
 
 export const AppProvider = ({children}) => {
     const [user, setUser] = useState(null)

@@ -1,19 +1,46 @@
-import { motion } from 'framer-motion';
-import { useFormik } from 'formik';
+import {motion} from 'framer-motion';
+import {useFormik} from 'formik';
 import * as Yup from 'yup';
-import { FaGoogle, FaGithub, FaLock, FaEnvelope } from 'react-icons/fa';
-import { BsArrowRight } from 'react-icons/bs';
+import {FaGoogle, FaGithub, FaLock, FaEnvelope} from 'react-icons/fa';
+import {BsArrowRight} from 'react-icons/bs';
 import Loginimg from './assets/login.jpeg';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAppContext } from '@/context/AppContext';
-import { useState } from 'react';
+import {Link, useNavigate} from 'react-router-dom';
+import {useAppContext} from '@/context/AppContext';
+import {useState, useEffect} from 'react';
 
 const Login = () => {
-    const { login, isLoading } = useAppContext();
+    const {login, isLoading} = useAppContext();
     const navigate = useNavigate();
     const [errorMessage, setErrorMessage] = useState('');
     const [isOauthLoading, setIsOauthLoading] = useState(false);
-    const [oauthProvider, setOauthProvider] = useState(null); // New state for tracking provider
+    const [oauthProvider, setOauthProvider] = useState(null);
+
+    // Handle OAuth success callback from backend
+    useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+        const error = urlParams.get('error');
+        const userRole = urlParams.get('role');
+
+        if (error) {
+            setErrorMessage(`OAuth authentication failed: ${decodeURIComponent(error)}`);
+            // Clean up URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+            return;
+        }
+
+        if (token) {
+            // Store token
+            localStorage.setItem('token', token);
+
+            // Redirect to appropriate dashboard
+            const dashboardRoute = getDashboardRoute(userRole);
+            navigate(dashboardRoute, {replace: true});
+
+            // Clean up URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    }, [navigate]);
 
     const getDashboardRoute = (role) => {
         switch (role?.toLowerCase()) {
@@ -34,7 +61,7 @@ const Login = () => {
     };
 
     const formik = useFormik({
-        initialValues: { email: '', password: '' },
+        initialValues: {email: '', password: ''},
         validationSchema: Yup.object({
             email: Yup.string().email('Invalid email address').required('Email Required'),
             password: Yup.string().required('Password Required'),
@@ -48,7 +75,7 @@ const Login = () => {
                     if (userRole) {
                         const dashboardRoute = getDashboardRoute(userRole);
                         console.log('Redirecting to:', dashboardRoute, 'for role:', userRole);
-                        navigate(dashboardRoute, { replace: true });
+                        navigate(dashboardRoute, {replace: true});
                     } else {
                         setErrorMessage('User role not found. Please contact support.');
                     }
@@ -62,15 +89,54 @@ const Login = () => {
         },
     });
 
+    const initiateOauthFlow = (provider) => {
+        const clientId = provider === 'google'
+            ? import.meta.env.VITE_GOOGLE_CLIENT_ID
+            : import.meta.env.VITE_GITHUB_CLIENT_ID;
+
+        // Use your backend URL as redirect URI - this is where Google will send the code
+        const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? 'http://localhost:8000' : 'https://vovant-backend-1.onrender.com');
+        const redirectUri = `${apiBaseUrl}/api/oauth/callback/${provider}`;
+        console.log('using redirect uri:', redirectUri)
+
+        // Add frontend URL as state so backend knows where to redirect after success
+        const frontendUrl = window.location.origin;
+
+        let authUrl;
+
+        if (provider === 'google') {
+            authUrl = `https://accounts.google.com/o/oauth2/auth?` +
+                `client_id=${clientId}&` +
+                `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+                `response_type=code&` +
+                `scope=${encodeURIComponent('openid email profile')}&` +
+                `state=${encodeURIComponent(JSON.stringify({provider, frontend_url: frontendUrl}))}&` +
+                `access_type=offline&` +
+                `prompt=consent`;
+        } else if (provider === 'github') {
+            authUrl = `https://github.com/login/oauth/authorize?` +
+                `client_id=${clientId}&` +
+                `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+                `scope=user:email&` +
+                `state=${encodeURIComponent(JSON.stringify({provider, frontend_url: frontendUrl}))}`;
+        }
+
+        console.log('OAuth redirect URI:', redirectUri);
+        console.log('Frontend URL:', frontendUrl);
+
+        // Redirect to OAuth provider
+        window.location.href = authUrl;
+    };
+
     const handleOauthLogin = async (provider) => {
         setErrorMessage('');
         setIsOauthLoading(true);
-        setOauthProvider(provider); // Set the provider
+        setOauthProvider(provider);
+
         try {
-            const clientId =
-                provider === 'google'
-                    ? import.meta.env.VITE_GOOGLE_CLIENT_ID
-                    : import.meta.env.VITE_GITHUB_CLIENT_ID;
+            const clientId = provider === 'google'
+                ? import.meta.env.VITE_GOOGLE_CLIENT_ID
+                : import.meta.env.VITE_GITHUB_CLIENT_ID;
 
             if (!clientId) {
                 throw new Error(
@@ -78,14 +144,15 @@ const Login = () => {
                 );
             }
 
-            // initiateOauthFlow(provider);
+            // Initiate OAuth flow
+            initiateOauthFlow(provider);
         } catch (error) {
             console.error(`${provider} OAuth login error:`, error);
             setErrorMessage(
                 `Failed to initiate ${provider === 'google' ? 'Google' : 'GitHub'} login. Please try again.`,
             );
             setIsOauthLoading(false);
-            setOauthProvider(null); // Reset provider on error
+            setOauthProvider(null);
         }
     };
 
@@ -95,8 +162,8 @@ const Login = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 w-full max-w-5xl">
                     {/* Left Portion: Image (hidden on mobile) */}
                     <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
+                        initial={{opacity: 0, y: 20}}
+                        animate={{opacity: 1, y: 0}}
                         className="hidden md:flex items-center justify-center bg-white border"
                     >
                         <img
@@ -108,8 +175,8 @@ const Login = () => {
 
                     {/* Right Portion: Form */}
                     <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
+                        initial={{opacity: 0, y: 20}}
+                        animate={{opacity: 1, y: 0}}
                         className="flex flex-col items-center justify-center bg-white rounded-2xl shadow-xl p-8"
                     >
                         <h2 className="text-3xl font-bold themetext mb-8 text-center">Welcome Back!</h2>
@@ -128,12 +195,13 @@ const Login = () => {
                             >
                                 {isOauthLoading && oauthProvider === 'google' ? (
                                     <>
-                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-700"></div>
+                                        <div
+                                            className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-700"></div>
                                         Connecting to Google...
                                     </>
                                 ) : (
                                     <>
-                                        <FaGoogle className="text-xl" /> Continue with Google
+                                        <FaGoogle className="text-xl"/> Continue with Google
                                     </>
                                 )}
                             </button>
@@ -144,12 +212,13 @@ const Login = () => {
                             >
                                 {isOauthLoading && oauthProvider === 'github' ? (
                                     <>
-                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-700"></div>
+                                        <div
+                                            className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-700"></div>
                                         Connecting to GitHub...
                                     </>
                                 ) : (
                                     <>
-                                        <FaGithub className="text-xl" /> Continue with GitHub
+                                        <FaGithub className="text-xl"/> Continue with GitHub
                                     </>
                                 )}
                             </button>
@@ -165,7 +234,8 @@ const Login = () => {
                             <div>
                                 <label className="block text-gray-700 mb-2">Email</label>
                                 <div className="relative">
-                                    <FaEnvelope className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                                    <FaEnvelope
+                                        className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"/>
                                     <input
                                         name="email"
                                         type="email"
@@ -184,7 +254,8 @@ const Login = () => {
                             <div>
                                 <label className="block text-gray-700 mb-2">Password</label>
                                 <div className="relative">
-                                    <FaLock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                                    <FaLock
+                                        className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"/>
                                     <input
                                         type="password"
                                         name="password"
@@ -213,12 +284,13 @@ const Login = () => {
                             >
                                 {isLoading ? (
                                     <>
-                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                        <div
+                                            className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                                         Logging in...
                                     </>
                                 ) : (
                                     <>
-                                        Login <BsArrowRight />
+                                        Login <BsArrowRight/>
                                     </>
                                 )}
                             </button>
