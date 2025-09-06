@@ -59,7 +59,7 @@ export function ChatInterface({
     return () => scrollElement.removeEventListener("scroll", handleScroll)
   }, [])
 
-  // Auto-scroll to bottom for new messages
+  // Auto-scroll to the bottom for new messages
   useEffect(() => {
     if (scrollRef.current && isNearBottomRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
@@ -218,7 +218,6 @@ export function ChatInterface({
               onEmojiSelect={handleEmojiSelect}
               isOpen={isEmojiPickerOpen}
               onOpenChange={() => setIsEmojiPickerOpen(false)}
-
             />
           </div>
           <Input

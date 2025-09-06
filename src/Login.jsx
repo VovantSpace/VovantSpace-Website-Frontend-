@@ -99,8 +99,8 @@ const Login = () => {
         const redirectUri = `${apiBaseUrl}/api/oauth/callback/${provider}`;
         console.log('using redirect uri:', redirectUri)
 
-        // Add frontend URL as state so backend knows where to redirect after success
-        const frontendUrl = window.location.origin;
+        // Add frontend URL as state so the backend knows where to redirect after success
+        const frontendUrl = import.meta.env.VITE_FRONTEND_URL || window.location.origin;
 
         let authUrl;
 

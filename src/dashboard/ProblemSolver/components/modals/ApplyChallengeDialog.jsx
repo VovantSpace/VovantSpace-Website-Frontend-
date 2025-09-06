@@ -4,7 +4,7 @@ import {
     DialogHeader,
     DialogTitle,
     DialogClose,
-  } from "@innovator/components/ui/dialog";
+  } from "@/dashboard/Innovator/components/ui/dialog.tsx";
   import { Button } from "@innovator/components/ui/button";
   
   export function ApplyChallengeDialog({ isOpen, onClose, challenge }) {

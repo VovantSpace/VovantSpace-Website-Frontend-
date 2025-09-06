@@ -13,7 +13,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "../../components/ui/dialog"
+} from "../ui/dialog"
 
 export function UploadImageDialog({
   isOpen,

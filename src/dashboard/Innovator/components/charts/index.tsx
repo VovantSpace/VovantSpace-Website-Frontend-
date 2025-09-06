@@ -64,11 +64,12 @@ const defaultOptions = {
   },
 }
 
+// @ts-ignore
 export function BarChart({ data, index, categories, colors }) {
   const chartData = {
-    labels: data.map((d) => d[index]),
-    datasets: categories.map((category, i) => ({
-      data: data.map((d) => d[category]),
+    labels: data.map((d: { [x: string]: any }) => d[index]),
+    datasets: categories.map((category: string | number, i: any) => ({
+      data: data.map((d: { [x: string]: any }) => d[category]),
       backgroundColor: colors,
       borderWidth: 0,
       borderRadius: 4,
@@ -79,11 +80,12 @@ export function BarChart({ data, index, categories, colors }) {
   return <Bar data={chartData} options={defaultOptions} />
 }
 
+// @ts-ignore
 export function LineChart({ data, index, categories, colors }) {
   const chartData = {
-    labels: data.map((d) => d[index]),
-    datasets: categories.map((category, i) => ({
-      data: data.map((d) => d[category]),
+    labels: data.map((d: { [x: string]: any }) => d[index]),
+    datasets: categories.map((category: string | number, i: string | number) => ({
+      data: data.map((d: { [x: string]: any }) => d[category]),
       borderColor: colors[i],
       backgroundColor: colors[i],
       tension: 0.4,

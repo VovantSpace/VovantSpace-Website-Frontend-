@@ -1,33 +1,33 @@
-import React, { useEffect } from "react";
-import { useEditor, EditorContent } from "@tiptap/react";
+import React, {useEffect} from "react";
+import {useEditor, EditorContent} from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Heading from "@tiptap/extension-heading";
 import UnderlineExtension from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
 import Link from "@tiptap/extension-link";
-import { all, createLowlight } from 'lowlight';
+import {all, createLowlight} from 'lowlight';
 
 import {
-  Bold,
-  Italic,
-  Underline as UnderlineIcon,
-  Heading1,
-  Heading2,
-  Heading3,
-  List,
-  ListOrdered,
-  Quote,
-  Code,
-  AlignLeft,
-  AlignCenter,
-  AlignRight,
-  Link2,
-  Undo,
-  Redo,
+    Bold,
+    Italic,
+    Underline as UnderlineIcon,
+    Heading1,
+    Heading2,
+    Heading3,
+    List,
+    ListOrdered,
+    Quote,
+    Code,
+    AlignLeft,
+    AlignCenter,
+    AlignRight,
+    Link2,
+    Undo,
+    Redo,
 } from "lucide-react";
-import { Button } from "@innovator/components/ui/button";
-import { Toggle } from "@innovator/components/ui/toggle";
+import {Button} from "@/components/ui/button";
+import {Toggle} from "../ui/toggle";
 
 const lowlight = createLowlight(all);
 
@@ -101,207 +101,223 @@ const editorStyles = `
   }
 `;
 
-const RichTextEditor: React.FC = () => {
-  const editor = useEditor({
-    extensions: [
-      StarterKit.configure({
-        codeBlock: false,
-        heading: false
-      }),
-      Heading.configure({
-        levels: [1, 2, 3],
-      }),
-      UnderlineExtension,
-      TextAlign.configure({
-        types: ["heading", "paragraph"],
-        alignments: ['left', 'center', 'right']
-      }),
-      CodeBlockLowlight.configure({ lowlight }),
-      Link.configure({
-        openOnClick: false,
-        HTMLAttributes: {
-          class: 'text-blue-600 hover:text-blue-800',
+interface RichTextEditorProps {
+    value?: string;
+    onChange?: (value: string) => void;
+}
+
+const RichTextEditor: React.FC<RichTextEditorProps> = ({value = '', onChange}) => {
+    const editor = useEditor({
+        extensions: [
+            StarterKit.configure({
+                codeBlock: false,
+                heading: false
+            }),
+            Heading.configure({
+                levels: [1, 2, 3],
+            }),
+            UnderlineExtension,
+            TextAlign.configure({
+                types: ["heading", "paragraph"],
+                alignments: ['left', 'center', 'right']
+            }),
+            CodeBlockLowlight.configure({lowlight}),
+            Link.configure({
+                openOnClick: false,
+                HTMLAttributes: {
+                    class: 'text-blue-600 hover:text-blue-800',
+                },
+            }),
+        ],
+        content: value,
+        editorProps: {
+            attributes: {
+                class: 'focus:outline-none',
+            },
         },
-      }),
-    ],
-    content: '',
-    editorProps: {
-      attributes: {
-        class: 'focus:outline-none',
-      },
-    },
-  });
+        onUpdate: ({editor}) => {
+            const html = editor.getHTML()
+            onChange?.(html)
+        }
+    });
 
-  useEffect(() => {
-    return () => {
-      editor?.destroy();
-    };
-  }, [editor]);
+    // update editor content when value prop changes
+    useEffect(() => {
+        if (editor && value !== editor.getHTML()) {
+            editor.commands.setContent(value)
+        }
+    }, [value, editor]);
 
-  if (!editor) {
-    return null;
-  }
+    useEffect(() => {
+        return () => {
+            editor?.destroy();
+        };
+    }, [editor]);
 
-  return (
-    <div className="rounded-lg border dashborder secondbg">
-      <style>{editorStyles}</style>
+    if (!editor) {
+        return null;
+    }
 
-      <div className="flex flex-wrap items-center gap-1 p-2 border-b dashborder">
-        {/* Text Formatting */}
-        <div className="flex items-center gap-1 border-r dashborder pr-2">
-          <Toggle
-            size="sm"
-            pressed={editor.isActive("bold")}
-            onPressedChange={() => editor.chain().focus().toggleBold().run()}
-          >
-            <Bold className="h-4 w-4" />
-          </Toggle>
-          <Toggle
-            size="sm"
-            pressed={editor.isActive("italic")}
-            onPressedChange={() => editor.chain().focus().toggleItalic().run()}
-          >
-            <Italic className="h-4 w-4" />
-          </Toggle>
-          <Toggle
-            size="sm"
-            pressed={editor.isActive("underline")}
-            onPressedChange={() => editor.chain().focus().toggleUnderline().run()}
-          >
-            <UnderlineIcon className="h-4 w-4" />
-          </Toggle>
+    return (
+        <div className="rounded-lg border dashborder secondbg">
+            <style>{editorStyles}</style>
+
+            <div className="flex flex-wrap items-center gap-1 p-2 border-b dashborder">
+                {/* Text Formatting */}
+                <div className="flex items-center gap-1 border-r dashborder pr-2">
+                    <Toggle
+                        size="sm"
+                        pressed={editor.isActive("bold")}
+                        onPressedChange={() => editor.chain().focus().toggleBold().run()}
+                    >
+                        <Bold className="h-4 w-4"/>
+                    </Toggle>
+                    <Toggle
+                        size="sm"
+                        pressed={editor.isActive("italic")}
+                        onPressedChange={() => editor.chain().focus().toggleItalic().run()}
+                    >
+                        <Italic className="h-4 w-4"/>
+                    </Toggle>
+                    <Toggle
+                        size="sm"
+                        pressed={editor.isActive("underline")}
+                        onPressedChange={() => editor.chain().focus().toggleUnderline().run()}
+                    >
+                        <UnderlineIcon className="h-4 w-4"/>
+                    </Toggle>
+                </div>
+
+                {/* Headings */}
+                <div className="flex items-center gap-1 border-r dashborder px-2">
+                    <Toggle
+                        size="sm"
+                        pressed={editor.isActive("heading", {level: 1})}
+                        onPressedChange={() => editor.chain().focus().toggleHeading({level: 1}).run()}
+                    >
+                        <Heading1 className="h-4 w-4"/>
+                    </Toggle>
+                    <Toggle
+                        size="sm"
+                        pressed={editor.isActive("heading", {level: 2})}
+                        onPressedChange={() => editor.chain().focus().toggleHeading({level: 2}).run()}
+                    >
+                        <Heading2 className="h-4 w-4"/>
+                    </Toggle>
+                    <Toggle
+                        size="sm"
+                        pressed={editor.isActive("heading", {level: 3})}
+                        onPressedChange={() => editor.chain().focus().toggleHeading({level: 3}).run()}
+                    >
+                        <Heading3 className="h-4 w-4"/>
+                    </Toggle>
+                </div>
+
+                {/* Lists */}
+                <div className="flex items-center gap-1 border-r dashborder px-2">
+                    <Toggle
+                        size="sm"
+                        pressed={editor.isActive("bulletList")}
+                        onPressedChange={() => editor.chain().focus().toggleBulletList().run()}
+                    >
+                        <List className="h-4 w-4"/>
+                    </Toggle>
+                    <Toggle
+                        size="sm"
+                        pressed={editor.isActive("orderedList")}
+                        onPressedChange={() => editor.chain().focus().toggleOrderedList().run()}
+                    >
+                        <ListOrdered className="h-4 w-4"/>
+                    </Toggle>
+                </div>
+
+                {/* Alignment */}
+                <div className="flex items-center gap-1 border-r dashborder px-2">
+                    <Toggle
+                        size="sm"
+                        pressed={editor.isActive({textAlign: "left"})}
+                        onPressedChange={() => editor.chain().focus().setTextAlign("left").run()}
+                    >
+                        <AlignLeft className="h-4 w-4"/>
+                    </Toggle>
+                    <Toggle
+                        size="sm"
+                        pressed={editor.isActive({textAlign: "center"})}
+                        onPressedChange={() => editor.chain().focus().setTextAlign("center").run()}
+                    >
+                        <AlignCenter className="h-4 w-4"/>
+                    </Toggle>
+                    <Toggle
+                        size="sm"
+                        pressed={editor.isActive({textAlign: "right"})}
+                        onPressedChange={() => editor.chain().focus().setTextAlign("right").run()}
+                    >
+                        <AlignRight className="h-4 w-4"/>
+                    </Toggle>
+                </div>
+
+                {/* Special Blocks */}
+                <div className="flex items-center gap-1 border-r dashborder px-2">
+                    <Toggle
+                        size="sm"
+                        pressed={editor.isActive("blockquote")}
+                        onPressedChange={() => editor.chain().focus().toggleBlockquote().run()}
+                    >
+                        <Quote className="h-4 w-4"/>
+                    </Toggle>
+                    <Toggle
+                        size="sm"
+                        pressed={editor.isActive("codeBlock")}
+                        onPressedChange={() => editor.chain().focus().toggleCodeBlock().run()}
+                    >
+                        <Code className="h-4 w-4"/>
+                    </Toggle>
+                </div>
+
+                {/* Links */}
+                <div className="flex items-center gap-1 px-2">
+                    <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 w-8 p-0"
+                        onClick={() => {
+                            const url = prompt("Enter URL");
+                            if (url) {
+                                editor.chain().focus().toggleLink({href: url}).run();
+                            }
+                        }}
+                    >
+                        <Link2 className="h-4 w-4"/>
+                    </Button>
+                </div>
+
+                {/* Undo/Redo */}
+                <div className="flex items-center gap-1 border-l dashborder pl-2">
+                    <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 w-8 p-0"
+                        onClick={() => editor.chain().focus().undo().run()}
+                    >
+                        <Undo className="h-4 w-4"/>
+                    </Button>
+                    <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 w-8 p-0"
+                        onClick={() => editor.chain().focus().redo().run()}
+                    >
+                        <Redo className="h-4 w-4"/>
+                    </Button>
+                </div>
+            </div>
+
+            <EditorContent
+                editor={editor}
+                className=" min-h-[200px] max-w-none"
+            />
         </div>
-
-        {/* Headings */}
-        <div className="flex items-center gap-1 border-r dashborder px-2">
-          <Toggle
-            size="sm"
-            pressed={editor.isActive("heading", { level: 1 })}
-            onPressedChange={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-          >
-            <Heading1 className="h-4 w-4" />
-          </Toggle>
-          <Toggle
-            size="sm"
-            pressed={editor.isActive("heading", { level: 2 })}
-            onPressedChange={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-          >
-            <Heading2 className="h-4 w-4" />
-          </Toggle>
-          <Toggle
-            size="sm"
-            pressed={editor.isActive("heading", { level: 3 })}
-            onPressedChange={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-          >
-            <Heading3 className="h-4 w-4" />
-          </Toggle>
-        </div>
-
-        {/* Lists */}
-        <div className="flex items-center gap-1 border-r dashborder px-2">
-          <Toggle
-            size="sm"
-            pressed={editor.isActive("bulletList")}
-            onPressedChange={() => editor.chain().focus().toggleBulletList().run()}
-          >
-            <List className="h-4 w-4" />
-          </Toggle>
-          <Toggle
-            size="sm"
-            pressed={editor.isActive("orderedList")}
-            onPressedChange={() => editor.chain().focus().toggleOrderedList().run()}
-          >
-            <ListOrdered className="h-4 w-4" />
-          </Toggle>
-        </div>
-
-        {/* Alignment */}
-        <div className="flex items-center gap-1 border-r dashborder px-2">
-          <Toggle
-            size="sm"
-            pressed={editor.isActive({ textAlign: "left" })}
-            onPressedChange={() => editor.chain().focus().setTextAlign("left").run()}
-          >
-            <AlignLeft className="h-4 w-4" />
-          </Toggle>
-          <Toggle
-            size="sm"
-            pressed={editor.isActive({ textAlign: "center" })}
-            onPressedChange={() => editor.chain().focus().setTextAlign("center").run()}
-          >
-            <AlignCenter className="h-4 w-4" />
-          </Toggle>
-          <Toggle
-            size="sm"
-            pressed={editor.isActive({ textAlign: "right" })}
-            onPressedChange={() => editor.chain().focus().setTextAlign("right").run()}
-          >
-            <AlignRight className="h-4 w-4" />
-          </Toggle>
-        </div>
-
-        {/* Special Blocks */}
-        <div className="flex items-center gap-1 border-r dashborder px-2">
-          <Toggle
-            size="sm"
-            pressed={editor.isActive("blockquote")}
-            onPressedChange={() => editor.chain().focus().toggleBlockquote().run()}
-          >
-            <Quote className="h-4 w-4" />
-          </Toggle>
-          <Toggle
-            size="sm"
-            pressed={editor.isActive("codeBlock")}
-            onPressedChange={() => editor.chain().focus().toggleCodeBlock().run()}
-          >
-            <Code className="h-4 w-4" />
-          </Toggle>
-        </div>
-
-        {/* Links */}
-        <div className="flex items-center gap-1 px-2">
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-8 w-8 p-0"
-            onClick={() => {
-              const url = prompt("Enter URL");
-              if (url) {
-                editor.chain().focus().toggleLink({ href: url }).run();
-              }
-            }}
-          >
-            <Link2 className="h-4 w-4" />
-          </Button>
-        </div>
-
-        {/* Undo/Redo */}
-        <div className="flex items-center gap-1 border-l dashborder pl-2">
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-8 w-8 p-0"
-            onClick={() => editor.chain().focus().undo().run()}
-          >
-            <Undo className="h-4 w-4" />
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-8 w-8 p-0"
-            onClick={() => editor.chain().focus().redo().run()}
-          >
-            <Redo className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-
-      <EditorContent
-        editor={editor}
-        className=" min-h-[200px] max-w-none"
-      />
-    </div>
-  );
+    );
 };
 
 export default RichTextEditor;

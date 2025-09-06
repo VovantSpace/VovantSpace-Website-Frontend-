@@ -15,7 +15,6 @@ export function AllSubmissionsDialog({ submissions, isOpen, onClose, onApprove, 
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between text-xl">
             All Submissions
-
           </DialogTitle>
         </DialogHeader>
 
@@ -45,19 +44,6 @@ export function AllSubmissionsDialog({ submissions, isOpen, onClose, onApprove, 
                   </div>
                 </div>
                 <div className="flex gap-2 md:mt-0 mt-6">
-                  {/* <Button
-                    onClick={onReject}
-                    className=" bg-red-700 text-white  border hover:bg-red-800 border-red-500/30"
-                  >
-                    Reject
-                  </Button>
-                  <Button
-                    onClick={onApprove}
-                    className=" bg-green-700 text-white border hover:bg-green-800 border-[#00bf8f]/30"
-                  >
-                    Approve
-                  </Button> */}
-
                   <div className="flex flex-col items-center justify-center gap-2 ">
                     <Button
                       variant="outline"
@@ -75,10 +61,9 @@ export function AllSubmissionsDialog({ submissions, isOpen, onClose, onApprove, 
         </div>
 
         <SubmissionDetailsDialog
-          submission={selectedSubmission}
-          isOpen={!!selectedSubmission}
-          onClose={() => setSelectedSubmission(null)}
-        />
+            submission={selectedSubmission}
+            isOpen={!!selectedSubmission}
+            onClose={() => setSelectedSubmission(null)} onApprove={undefined} onReject={undefined}        />
       </DialogContent>
     </Dialog>
   )

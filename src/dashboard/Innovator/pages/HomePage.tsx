@@ -5,7 +5,7 @@ import { Link } from "react-router-dom"
 import { Button } from "../components/ui/button"
 import { Card } from "../components/ui/card"
 import { MainLayout } from "../components/layout/main-layout"
-import { ReviewSubmissionDialog } from "../components/modals/All-Submission-Dialogue"
+// import { ReviewSubmissionDialog } from "../components/modals/All-Submission-Dialogue"
 import { ScheduleReviewDialog } from "../components/modals/schedule-review-dialog"
 import { ViewResultsDialog } from "../components/modals/view-results-dialog"
 import { CreateChallengeDialog } from "../components/modals/create-challenge-dialog"
@@ -93,72 +93,7 @@ export default function HomePage() {
             </Card>
           </div>
         </div>
-
-        {/* <div>
-          <h2 className="mb-4 text-xl font-bold dashtext">Timeline & Deadlines</h2>
-          <Card className="secondbg p-6">
-            <div className="space-y-6">
-              <div className="relative pl-6">
-                <div className="absolute left-0 top-2 h-2 w-2 rounded-full bg-red-500" />
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-sm font-semibold dashtext">Smart City Challenge Deadline</h3>
-                    <p className="text-sm text-gray-400">Tomorrow at 11:59 PM</p>
-                    <p className="text-sm text-gray-400">3 submissions pending review</p>
-                  </div>
-                  <Button variant="link" className="text-[#00bf8f]" onClick={() => setIsReviewOpen(true)}>
-                    Review Now
-                  </Button>
-                </div>
-              </div>
-
-              <div className="relative pl-6">
-                <div className="absolute left-0 top-2 h-2 w-2 rounded-full bg-yellow-500" />
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-sm font-semibold dashtext">Healthcare Analytics Review</h3>
-                    <p className="text-sm text-gray-400">In 3 days</p>
-                    <p className="text-sm text-gray-400">Schedule review meeting with stakeholders</p>
-                  </div>
-                  <Button variant="link" className="text-[#00bf8f]" onClick={() => setIsScheduleOpen(true)}>
-                    Schedule
-                  </Button>
-                </div>
-              </div>
-
-              <div className="relative pl-6">
-                <div className="absolute left-0 top-2 h-2 w-2 rounded-full bg-[#00bf8f]" />
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-sm font-semibold dashtext">Renewable Energy Challenge</h3>
-                    <p className="text-sm text-gray-400">Completed yesterday</p>
-                    <p className="text-sm text-gray-400">All submissions reviewed and winners selected</p>
-                  </div>
-                  <Button variant="link" className="text-[#00bf8f]" onClick={() => setIsResultsOpen(true)}>
-                    View Results
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </Card>
-        </div> */}
-
-        {/* <ReviewSubmissionDialog
-          isOpen={isReviewOpen}
-          onClose={() => setIsReviewOpen(false)}
-          onApprove={() => {
-            setIsReviewOpen(false)
-          }}
-          onReject={() => {
-            setIsReviewOpen(false)
-          }}
-        /> */}
-
-        {/* <ScheduleReviewDialog isOpen={isScheduleOpen} onClose={() => setIsScheduleOpen(false)} /> */}
-
-        {/* <ViewResultsDialog isOpen={isResultsOpen} onClose={() => setIsResultsOpen(false)} /> */}
         <CreateChallengeDialog isOpen={isCreateChallengeOpen} onClose={() => setIsCreateChallengeOpen(false)} />
-
       </div>
     </MainLayout>
   )
