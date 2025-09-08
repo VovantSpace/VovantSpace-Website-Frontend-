@@ -82,7 +82,7 @@ export const challengeService = {
     createChallenge: async (challengeData: CreateChallengeData) => {
        try {
            console.log('Sending data to backend:', challengeData);
-           const response = await api.post('/challenges', challengeData);
+           const response = await api.post('/api/challenges', challengeData);
            console.log('Response from backend:', response.data);
            return response.data;
        } catch (error: any) {
