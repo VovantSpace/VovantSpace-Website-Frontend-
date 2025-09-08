@@ -1,4 +1,3 @@
-// src/services/challengeService.ts
 import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
@@ -83,7 +82,7 @@ export const challengeService = {
     createChallenge: async (challengeData: CreateChallengeData) => {
        try {
            console.log('Sending data to backend:', challengeData);
-           const response = await api.post('/challenge', challengeData);
+           const response = await api.post('/challenges', challengeData);
            console.log('Response from backend:', response.data);
            return response.data;
        } catch (error: any) {
@@ -106,7 +105,7 @@ export const challengeService = {
 
     // Get challenges created by the current user
     getMyChallenges: async (): Promise<{ success: boolean; data: MyChallengeData[]; message?: string }> => {
-        const response = await api.get('/challenges/my/challenges');
+        const response = await api.get('/challenges/my-challenges');
         return response.data;
     },
 

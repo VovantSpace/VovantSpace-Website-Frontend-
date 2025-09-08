@@ -19,7 +19,6 @@ function ProblemSolverRouting() {
         <Route path="availability" element={<AvailabilityPage />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="alerts" element={<AlertPage />} />
-
       </Routes>
     </div>
   );

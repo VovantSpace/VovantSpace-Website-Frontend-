@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Menu, Sun, Moon } from "lucide-react";
 
-import { Button } from "@innovator/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Sidebar } from "./sidebar";
 import { UserNav } from "./user-nav";
 import { MobileNav } from "./mobile-nav";

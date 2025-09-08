@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { Eye, FileText, Pencil, CheckCircle, Users } from "lucide-react";
-import { Button } from "@innovator/components/ui/button";
-import { MainLayout } from "@innovator/components/layout/main-layout";
-import { Badge } from "@innovator/components/ui/badge";
-import { WinnerSelectorDialog } from "@innovator/components/modals/WinnerSelectorDialog";
+import { Button } from "@/components/ui/button";
+import { MainLayout } from "../../components/layout/main-layout";
+import {Badge} from '../../components/ui/badge'
+import { WinnerSelectorDialog } from "../../components/modals/WinnerSelectorDialog";
 import { AllSubmissionsDialog } from "../../components/modals/All-Submission-Dialogue";
 import { ApproveChallenge } from "../../components/modals/ApproveChallenge";
 
