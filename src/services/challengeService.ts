@@ -1,15 +1,20 @@
-import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+import axios, { AxiosResponse } from 'axios';
 
+const API_BASE_URL = import.meta.env.REACT_APP_API_URL || 'http://localhost:8000/api';
+
+// Create axios instance with default config
 const api = axios.create({
     baseURL: API_BASE_URL,
+    headers: {
+        'Content-Type': 'application/json',
+    },
 });
 
 // Add auth token to requests
 api.interceptors.request.use(
     (config) => {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('authToken');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
@@ -19,6 +24,25 @@ api.interceptors.request.use(
         return Promise.reject(error);
     }
 );
+
+// Response interceptor for error handling
+api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response?.status === 401) {
+            localStorage.removeItem('authToken');
+            window.location.href = '/login';
+        }
+        return Promise.reject(error);
+    }
+);
+
+export interface ApiResponse<T = any> {
+    success: boolean;
+    message: string;
+    data?: T;
+    error?: string;
+}
 
 export interface Challenge {
     _id: string;
@@ -46,6 +70,20 @@ export interface Challenge {
     dueDate?: string;
     createdAt: string;
     updatedAt: string;
+    isPaused?: boolean;
+    isPromoted?: boolean;
+    promotionType?: string;
+}
+
+export interface DashboardStats {
+    totalChallenges: number;
+    activeChallenges: number;
+    completedChallenges: number;
+    totalSubmissions: number;
+    approvedSubmissions: number;
+    totalViews: number;
+    totalBudget: number;
+    recentActivity: any[];
 }
 
 export interface CreateChallengeData {
@@ -59,89 +97,97 @@ export interface CreateChallengeData {
     }>;
     problemSolversNeeded: number;
     totalBudget: number;
-    dueDate?: string;
+    dueDate?: Date;
+    additionalResources?: Array<{
+        filename: string;
+        url: string;
+        fileType: string;
+    }>;
 }
 
-export interface MyChallengeData {
-    id: string;
-    name: string;
-    problemSolvers: string;
-    submissions: number;
-    approved: number;
-    rejected: number;
-    status: string;
-    reward: number;
-    daysLeft: number | null;
-    views: number;
-    createdAt: string;
-    updatedAt: string;
-}
-
-export const challengeService = {
+// Challenge API endpoints
+export const challengeApi = {
     // Create a new challenge
-    createChallenge: async (challengeData: CreateChallengeData) => {
-       try {
-           console.log('Sending data to backend:', challengeData);
-           const response = await api.post('/api/challenges', challengeData);
-           console.log('Response from backend:', response.data);
-           return response.data;
-       } catch (error: any) {
-           console.error('Error creating challenge:', error);
-           console.error('Error response:', error.response?.data)
-           throw error;
-       }
-    },
-
-    // Get all challenges (for homepage)
-    getAllChallenges: async (params?: {
-        page?: number;
-        limit?: number;
-        industry?: string;
-        skills?: string;
-    }) => {
-        const response = await api.get('/challenges', { params });
+    createChallenge: async (data: CreateChallengeData): Promise<ApiResponse<Challenge>> => {
+        const response: AxiosResponse<ApiResponse<Challenge>> = await api.post('/challenges', data);
         return response.data;
     },
 
-    // Get challenges created by the current user
-    getMyChallenges: async (): Promise<{ success: boolean; data: MyChallengeData[]; message?: string }> => {
-        const response = await api.get('/challenges/my-challenges');
+    // Get user's challenges
+    getMyChallenges: async (): Promise<ApiResponse<Challenge[]>> => {
+        const response: AxiosResponse<ApiResponse<Challenge[]>> = await api.get('/challenges/my-challenges');
         return response.data;
     },
 
-    // Get a single challenge by ID
-    getChallengeById: async (id: string) => {
-        const response = await api.get(`/challenges/${id}`);
-        return response.data;
-    },
-
-    // Submit a proposal to a challenge
-    submitProposal: async (challengeId: string, proposal: string) => {
-        const response = await api.post(`/challenges/${challengeId}/submit`, {
-            proposal
-        });
-        return response.data;
-    },
-
-    // Review a submission (approve/reject)
-    reviewSubmission: async (challengeId: string, submissionId: string, action: 'approve' | 'reject') => {
-        const response = await api.put(`/challenges/${challengeId}/submissions/${submissionId}/review`, {
-            action
-        });
+    // Get challenge by ID
+    getChallengeById: async (id: string): Promise<ApiResponse<Challenge>> => {
+        const response: AxiosResponse<ApiResponse<Challenge>> = await api.get(`/challenges/${id}`);
         return response.data;
     },
 
     // Update challenge status
-    updateChallengeStatus: async (id: string, status: string) => {
-        const response = await api.put(`/challenges/${id}/status`, { status });
+    updateChallengeStatus: async (id: string, status: string): Promise<ApiResponse> => {
+        const response: AxiosResponse<ApiResponse> = await api.put(`/challenges/${id}/status`, { status });
         return response.data;
     },
 
-    // Complete challenge and select winners
-    completeChallenge: async (id: string, winners: Array<{ problemSolver: string; reward: number }>) => {
-        const response = await api.put(`/challenges/${id}/complete`, { winners });
+    // Complete challenge
+    completeChallenge: async (id: string, winners: Array<{ problemSolver: string, reward: number }>): Promise<ApiResponse> => {
+        const response: AxiosResponse<ApiResponse> = await api.put(`/challenges/${id}/complete`, { winners });
+        return response.data;
+    },
+
+    // Duplicate challenge
+    duplicateChallenge: async (id: string): Promise<ApiResponse<Challenge>> => {
+        const response: AxiosResponse<ApiResponse<Challenge>> = await api.post(`/challenges/${id}/duplicate`);
+        return response.data;
+    },
+
+    // Promote challenge
+    promoteChallenge: async (id: string, promotionType: string, duration: number): Promise<ApiResponse> => {
+        const response: AxiosResponse<ApiResponse> = await api.put(`/challenges/${id}/promote`, { promotionType, duration });
+        return response.data;
+    },
+
+    // Review submission
+    reviewSubmission: async (challengeId: string, submissionId: string, action: 'approve' | 'reject'): Promise<ApiResponse> => {
+        const response: AxiosResponse<ApiResponse> = await api.put(`/challenges/${challengeId}/submissions/${submissionId}`, { action });
+        return response.data;
+    },
+
+    // Get challenge analytics
+    getChallengeAnalytics: async (timeRange?: string): Promise<ApiResponse<any>> => {
+        const response: AxiosResponse<ApiResponse<any>> = await api.get('/challenges/analytics', {
+            params: { timeRange }
+        });
         return response.data;
     }
 };
 
-export default challengeService;
+// Dashboard API endpoints
+export const dashboardApi = {
+    // Get dashboard overview
+    getDashboardOverview: async (): Promise<ApiResponse<DashboardStats>> => {
+        const response: AxiosResponse<ApiResponse<DashboardStats>> = await api.get('/dashboard/overview');
+        return response.data;
+    },
+
+    // Get challenges for management
+    getChallengesManagement: async (params?: {
+        page?: number;
+        limit?: number;
+        status?: string;
+        sortBy?: string;
+    }): Promise<ApiResponse<any>> => {
+        const response: AxiosResponse<ApiResponse<any>> = await api.get('/dashboard/challenges', { params });
+        return response.data;
+    },
+
+    // Toggle challenge pause
+    toggleChallengePause: async (challengeId: string): Promise<ApiResponse> => {
+        const response: AxiosResponse<ApiResponse> = await api.patch(`/dashboard/challenges/${challengeId}/pause`);
+        return response.data;
+    }
+};
+
+export default api;

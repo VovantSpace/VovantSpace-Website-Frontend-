@@ -309,7 +309,7 @@ export default function ProfilePage() {
               </div>
 
               <div className="mt-5">
-                <CountryandTime disable={isEditing ? false : true} flex={''} />
+                <CountryandTime disable={!isEditing} flex={''} />
               </div>
 
               <div className="my-4">

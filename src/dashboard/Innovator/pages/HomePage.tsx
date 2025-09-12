@@ -5,9 +5,6 @@ import { Link } from "react-router-dom"
 import { Button } from "../components/ui/button"
 import { Card } from "../components/ui/card"
 import { MainLayout } from "../components/layout/main-layout"
-// import { ReviewSubmissionDialog } from "../components/modals/All-Submission-Dialogue"
-import { ScheduleReviewDialog } from "../components/modals/schedule-review-dialog"
-import { ViewResultsDialog } from "../components/modals/view-results-dialog"
 import { CreateChallengeDialog } from "../components/modals/create-challenge-dialog"
 
 export default function HomePage() {

@@ -1,5 +1,3 @@
-
-
 import { LogOut, Settings, User } from "lucide-react"
 import { Link } from "react-router-dom"
 
@@ -11,7 +9,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@innovator/components/ui/dropdown-menu"
+} from "@innovator/components/ui/dropdown-menu";
 import { Button } from "@innovator/components/ui/button"
 
 export function UserNav() {
@@ -31,7 +29,7 @@ export function UserNav() {
             <p className="text-xs leading-none text-muted-foreground">vovant@example.com</p>
           </div>
         </DropdownMenuLabel>
-        <DropdownMenuSeparator />
+        <DropdownMenuSeparator/>
         <DropdownMenuGroup>
           <DropdownMenuItem>
             <Settings className="mr-2 h-4 w-4" />

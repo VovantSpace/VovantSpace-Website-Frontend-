@@ -1,4 +1,3 @@
-
 import { useState } from "react"
 import { Search, Moon, Sun, Heart, ArrowUpRight, MapPin, Star, Clock, DollarSign } from "lucide-react"
 import { Button } from "@innovator/components/ui/button"
@@ -6,7 +5,6 @@ import { Input } from "@innovator/components/ui/input"
 import { Card } from "@innovator/components/ui/card"
 import { Badge } from "@innovator/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@innovator/components/ui/tabs"
-import { Avatar, AvatarFallback, AvatarImage } from "@innovator/components/ui/avatar"
 import { MainLayout } from "@problemsolver/components/layout/main-layout"
 import { ChallengeDetailsDialog } from "../../components/modals/ChallengeDetailsDialogue"
 
@@ -142,17 +140,6 @@ export default function ExploreChallenges() {
                     <span className="text-lg font-extrabold bg-gradient-to-r from-emerald-400 to-emerald-600 bg-clip-text text-transparent">
                       ${challenge?.reward}
                     </span>
-                    {/* <Button
-                   variant="ghost"
-                   size="icon"
-                   onClick={() => toggleSaved(challenge.id)}
-                   className="dark:hover:bg-gray-700"
-                 >
-                   <Heart
-                     className="h-5 w-5 dark:text-white "
-                     fill={savedChallenges.includes(challenge.id) ? "currentColor" : "none"}
-                   />
-                 </Button> */}
                   </div>
                 </div>
   
@@ -251,4 +238,3 @@ export default function ExploreChallenges() {
     </MainLayout>
   )
 }
-

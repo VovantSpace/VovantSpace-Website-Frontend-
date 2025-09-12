@@ -140,7 +140,7 @@ export default function HomePage() {
           </Card>
 
           {/* Card 3: Current Rank */}
-          <Card className="p-6 secondbg !dark:text-white">
+           <Card className="p-6 secondbg !dark:text-white">
             <div className="flex justify-between items-start">
               <div>
                 <p className="text-sm text-gray-500 dark:text-gray-300 mb-2">
