@@ -3,7 +3,7 @@ import axios, { AxiosResponse } from 'axios';
 
 const API_BASE_URL = import.meta.env.REACT_APP_API_URL || 'http://localhost:8000/api';
 
-// Create axios instance with default config
+// Create axios instance with the default config
 const api = axios.create({
     baseURL: API_BASE_URL,
     headers: {
@@ -143,7 +143,7 @@ export const challengeApi = {
         return response.data;
     },
 
-    // Promote challenge
+    // Promote the challenge
     promoteChallenge: async (id: string, promotionType: string, duration: number): Promise<ApiResponse> => {
         const response: AxiosResponse<ApiResponse> = await api.put(`/challenges/${id}/promote`, { promotionType, duration });
         return response.data;

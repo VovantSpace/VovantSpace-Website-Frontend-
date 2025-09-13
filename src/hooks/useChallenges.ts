@@ -211,7 +211,7 @@ export const useAnalytics = (timeRange: string = '30d') => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const fetchAnalytics = useCallback(() => {
+    const fetchAnalytics = useCallback(async () => {
         try {
             setLoading(true);
             setError(null);

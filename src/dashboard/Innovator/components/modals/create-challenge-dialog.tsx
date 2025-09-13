@@ -18,7 +18,7 @@ import {
     SelectValue,
 } from "../ui/select";
 import RichTextEditor from "./RichTextEditor";
-import {challengeService, CreateChallengeData} from "@/services/challengeService";
+import { challengeApi, CreateChallengeData} from "@/services/challengeService";
 import {toast} from "react-hot-toast";
 
 interface Skill {
@@ -101,7 +101,7 @@ export function CreateChallengeDialog({
                 totalBudget: Number(totalBudget),
             };
 
-            const response = await challengeService.createChallenge(challengeData);
+            const response = await challengeApi.createChallenge(challengeData);
 
             if (response.success) {
                 toast.success("Challenge created successfully!");
@@ -207,7 +207,12 @@ export function CreateChallengeDialog({
                                 onChange={(e) => setSkillInput(e.target.value)}
                                 placeholder="Add a skill"
                                 className="secondbg border dashborder"
-                                onKeyPress={(e) => e.key === 'Enter' && handleAddSkill()}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault(); // Prevent form submission if inside a form
+                                        handleAddSkill();
+                                    }
+                                }}
                             />
                             <Button
                                 type="button"

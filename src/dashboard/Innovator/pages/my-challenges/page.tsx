@@ -1,196 +1,297 @@
-import { useState } from "react";
-import { Eye, FileText, Pencil, CheckCircle, Users } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { MainLayout } from "../../components/layout/main-layout";
+import {SetStateAction, useState} from "react";
+import {Eye, FileText, Users, Loader2, Search, MoreHorizontal, Play, Pause, TrendingUp, Copy,} from "lucide-react";
+import {Button} from "@/components/ui/button";
+import {MainLayout} from "../../components/layout/main-layout";
 import {Badge} from '../../components/ui/badge'
-import { WinnerSelectorDialog } from "../../components/modals/WinnerSelectorDialog";
-import { AllSubmissionsDialog } from "../../components/modals/All-Submission-Dialogue";
-import { ApproveChallenge } from "../../components/modals/ApproveChallenge";
-
-const challenges = [
-  {
-    id: "1",
-    name: "AI-Powered Smart Farming",
-    problemSolvers: "3/3", // Format: approved/needed
-    submissions: 8,
-    approved: 3,
-    rejected: 1,
-    status: "active",
-    reward: 5000,
-    daysLeft: 3,
-    views: 245,
-  },
-  // Add more challenges here as needed
-];
-
-const fakeSubmissions = [
-  {
-    id: "1",
-    name: "John Doe",
-    title: "Full Stack Developer",
-    rate: "50",
-    location: "New York, USA",
-    skills: ["React", "Node.js", "GraphQL"],
-    earned: "$10,000",
-    successRate: "95%",
-    image: "https://i.pravatar.cc/150?img=1",
-    description: "Experienced developer with a focus on building robust systems.",
-    country: "USA",
-  },
-  {
-    id: "2",
-    name: "Jane Smith",
-    title: "UI/UX Designer",
-    rate: "40",
-    location: "London, UK",
-    skills: ["Figma", "Sketch", "Adobe XD"],
-    earned: "$8,000",
-    successRate: "90%",
-    image: "https://i.pravatar.cc/150?img=1",
-    description: "Creative designer focused on user-centered design solutions.",
-    country: "USA",
-  },
-  // Add more fake submissions as needed
-];
+import {Link} from 'react-router-dom'
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '../../components/ui/select'
+import {useChallenges} from "@/hooks/useChallenges";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger
+} from "../../components/ui/dropdown-menu";
+import {Card, CardContent, CardHeader} from "@mui/material";
+import {CardTitle} from "@/components/ui/card";
 
 export default function ChallengesPage() {
-  const [selectedChallenge, setSelectedChallenge] = useState(null);
-  const [challengeToApprove, setChallengeToApprove] = useState(null);
-  const [isReviewOpen, setIsReviewOpen] = useState(false);
+    const {challenges, loading, error, duplicateChallenge, promoteChallenge, pauseChallenge} = useChallenges();
+    const [searchTerm, setSearchTerm] = useState("");
+    const [statusFilter, setStatusFilter] = useState('all')
+    const [sortBy, setSortBy] = useState('newest');
 
-  const handleReviewSubmit = (approved: boolean) => {
-    // Handle the review submission
-    setIsReviewOpen(false);
-  };
+    const filteredChallenges = challenges.filter(challenge => {
+        const matchesSearch = challenge.title.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesStatus = statusFilter === 'all' || challenge.status.toLowerCase() === statusFilter;
+        return matchesSearch && matchesStatus;
+    })
 
-  const canApprove = (challenge) => {
-    const parts = challenge.problemSolvers.split("/");
-    if (parts.length === 2) {
-      const approved = parseInt(parts[0], 10);
-      const needed = parseInt(parts[1], 10);
-      return approved === needed;
+    const sortedChallenges = [...filteredChallenges].sort((a, b) => {
+        switch (sortBy) {
+            case 'oldest':
+                return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+            case 'mostViews':
+                return b.views - a.views;
+            case 'mostSubmissions':
+                return b.submissions.length - a.submissions.length;
+            case 'newest':
+            default:
+                return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        }
+    })
+
+    const handleDuplicate = async (challengeId: string) => {
+        try {
+            await duplicateChallenge(challengeId);
+            // Success handled by the hook
+        } catch (error: any) {
+            alert(`Error duplicating challenge: ${error.message}`);
+        }
     }
-    return false;
-  };
 
-  return (
-    <MainLayout>
-      <div className=" px-3 py-3 md:p-6 dashbg secondbg rounded-xl">
-        <h1 className="mb-4 md:mb-6 text-xl md:text-2xl font-bold dashtext">
-          My Challenges
-        </h1>
+    const handlePromote = async (challengeId: string, type: string) => {
+        try {
+            await promoteChallenge(challengeId, type);
+            // success handled by the hook
+        } catch (error: any) {
+            alert(`Error promoting challenge: ${error.message}`);
+        }
+    }
 
-        {/* Responsive Table Container */}
-        <div className="overflow-x-auto">
-          <div className="min-w-[900px] rounded-lg secondbg border dashborder shadow-sm">
-            {/* Table Header */}
-            <div className="grid grid-cols-12 md:grid-cols-10 gap-2 md:gap-4 md:px-4 border-b dashborder justify-items-center p-2 items-center text-xs md:text-sm font-medium text-gray-600 dark:text-gray-200 whitespace-nowrap">
-              <div className="col-span-2">CHALLENGE TITLE</div>
-              <div className="px-3 md:px-0">SOLVERS</div>
-              <div className="px-3 md:px-0 ">SUBMISSIONS</div>
-              <div className="px-3 md:px-0 relative left-2 right-2">APPROVED</div>
-              <div className="px-3 md:px-0 relative left-2 right-2">REJECTED</div>
-              <div className="px-3 md:px-0">STATUS</div>
-              <div className="px-3 md:px-0 md:col-span-3 col-span-4">ACTIONS</div>
+    const handlePause = async (challengeId: string) => {
+        try {
+            await pauseChallenge(challengeId);
+            // success handled by the hook
+        } catch (error: any) {
+            alert(`Error pausing challenge: ${error.message}`);
+        }
+    }
+
+    if (loading) {
+        return (
+            <div className={'flex items-center justify-center h-64'}>
+                <Loader2 className="animate-spin h-8 w-8"/>
+                <span className={'ml-2'}>Loading challenges</span>
+            </div>
+        )
+    }
+
+    if (error) {
+        return (
+            <div className={'flex items-center justify-center h-64'}>
+                <div className={'text-center'}>
+                    <p className={'text-red-500 mb-4'}>{error}</p>
+                    <Button onClick={() => window.location.reload()}>Try again</Button>
+                </div>
+            </div>
+        )
+    }
+
+    return (
+        <MainLayout>
+            <div className="p-6 space-y-6">
+                {/* Header */}
+                <div className="flex justify-between items-center">
+                    <div>
+                        <h1 className="text-3xl font-bold tracking-tight">My Challenges</h1>
+                        <p className="text-muted-foreground">
+                            Manage and track all your challenges in one place.
+                        </p>
+                    </div>
+                    <Link to="/dashboard/challenges/create">
+                        <Button>Create New Challenge</Button>
+                    </Link>
+                </div>
+
+                {/* Filters and Search */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Filters</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex flex-wrap gap-4">
+                            <div className="flex-1 min-w-[200px]">
+                                <div className="relative">
+                                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground"/>
+                                    <input
+                                        placeholder="Search challenges..."
+                                        value={searchTerm}
+                                        onChange={(e: {
+                                            target: { value: SetStateAction<string>; };
+                                        }) => setSearchTerm(e.target.value)}
+                                        className="pl-9"
+                                    />
+                                </div>
+                            </div>
+                            <Select value={statusFilter} onValueChange={setStatusFilter}>
+                                <SelectTrigger className="w-[180px]">
+                                    <SelectValue placeholder="Filter by status"/>
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Status</SelectItem>
+                                    <SelectItem value="active">Active</SelectItem>
+                                    <SelectItem value="completed">Completed</SelectItem>
+                                    <SelectItem value="paused">Paused</SelectItem>
+                                    <SelectItem value="draft">Draft</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <Select value={sortBy} onValueChange={setSortBy}>
+                                <SelectTrigger className="w-[180px]">
+                                    <SelectValue placeholder="Sort by"/>
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="newest">Newest First</SelectItem>
+                                    <SelectItem value="oldest">Oldest First</SelectItem>
+                                    <SelectItem value="mostViews">Most Views</SelectItem>
+                                    <SelectItem value="mostSubmissions">Most Submissions</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Challenges List */}
+                <div className="grid gap-4">
+                    {sortedChallenges.length > 0 ? (
+                        sortedChallenges.map((challenge) => (
+                            <Card key={challenge._id} className="hover:shadow-md transition-shadow">
+                                <CardContent className="p-6">
+                                    <div className="flex items-start justify-between">
+                                        <div className="flex-1 space-y-3">
+                                            <div className="flex items-center gap-3">
+                                                <Link
+                                                    to={`/dashboard/challenges/${challenge._id}`}
+                                                    className="text-lg font-semibold hover:text-blue-600 transition-colors"
+                                                >
+                                                    {challenge.title}
+                                                </Link>
+                                                <div className="flex gap-2">
+                                                    <Badge variant={
+                                                        challenge.status === 'Active' ? 'default' :
+                                                            challenge.status === 'Completed' ? 'secondary' :
+                                                                challenge.status === 'Paused' ? 'outline' : 'destructive'
+                                                    }>
+                                                        {challenge.status}
+                                                    </Badge>
+                                                    {challenge.isPaused && (
+                                                        <Badge variant="outline">Paused</Badge>
+                                                    )}
+                                                    {challenge.isPromoted && (
+                                                        <Badge variant="default" className="bg-orange-500">
+                                                            {challenge.promotionType}
+                                                        </Badge>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <p className="text-sm text-muted-foreground line-clamp-2">
+                                                {challenge.description}
+                                            </p>
+
+                                            <div className="flex items-center gap-6 text-sm text-muted-foreground">
+                                                <div className="flex items-center gap-1">
+                                                    <Eye className="h-4 w-4"/>
+                                                    <span>{challenge.views} views</span>
+                                                </div>
+                                                <div className="flex items-center gap-1">
+                                                    <Users className="h-4 w-4"/>
+                                                    <span>{challenge.submissions.length} submissions</span>
+                                                </div>
+                                                <div className="flex items-center gap-1">
+                                                    <TrendingUp className="h-4 w-4"/>
+                                                    <span>{challenge.approvedSubmissions.length} approved</span>
+                                                </div>
+                                                <div className="text-green-600 font-medium">
+                                                    ${challenge.totalBudget}
+                                                </div>
+                                            </div>
+
+                                            <div className="text-xs text-muted-foreground">
+                                                Created {new Date(challenge.createdAt).toLocaleDateString()}
+                                                {challenge.dueDate && (
+                                                    <span className="ml-3">
+                          Due {new Date(challenge.dueDate).toLocaleDateString()}
+                        </span>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                                    <MoreHorizontal className="h-4 w-4"/>
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                <DropdownMenuItem asChild>
+                                                    <Link to={`/dashboard/challenges/${challenge._id}`}>
+                                                        View Details
+                                                    </Link>
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem asChild>
+                                                    <Link to={`/dashboard/challenges/${challenge._id}/edit`}>
+                                                        Edit Challenge
+                                                    </Link>
+                                                </DropdownMenuItem>
+                                                <DropdownMenuSeparator/>
+                                                <DropdownMenuItem onClick={() => handlePause(challenge._id)}>
+                                                    {challenge.isPaused ? (
+                                                        <>
+                                                            <Play className="mr-2 h-4 w-4"/>
+                                                            Resume
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Pause className="mr-2 h-4 w-4"/>
+                                                            Pause
+                                                        </>
+                                                    )}
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => handleDuplicate(challenge._id)}>
+                                                    <Copy className="mr-2 h-4 w-4"/>
+                                                    Duplicate
+                                                </DropdownMenuItem>
+                                                <DropdownMenuSeparator/>
+                                                <DropdownMenuItem
+                                                    onClick={() => handlePromote(challenge._id, 'featured')}>
+                                                    <TrendingUp className="mr-2 h-4 w-4"/>
+                                                    Promote as Featured
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem
+                                                    onClick={() => handlePromote(challenge._id, 'urgent')}>
+                                                    <TrendingUp className="mr-2 h-4 w-4"/>
+                                                    Mark as Urgent
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ))
+                    ) : (
+                        <Card>
+                            <CardContent className="p-12 text-center">
+                                <p className="text-muted-foreground mb-4">
+                                    {challenges.length === 0
+                                        ? "You haven't created any challenges yet."
+                                        : "No challenges match your current filters."
+                                    }
+                                </p>
+                                {challenges.length === 0 && (
+                                    <Link to="/dashboard/challenges/create">
+                                        <Button>Create Your First Challenge</Button>
+                                    </Link>
+                                )}
+                            </CardContent>
+                        </Card>
+                    )}
+                </div>
             </div>
 
-            {/* Table Rows */}
-            {challenges.map((challenge) => (
-              <div
-                key={challenge.id}
-                className="grid grid-cols-12 md:grid-cols-10 md:px-4 justify-items-center gap-2 md:gap-4 p-2 items-center text-xs md:text-sm whitespace-nowrap"
-              >
-                <div className="col-span-2 font-medium dashtext text-wrap">
-                  {challenge.name}
-                </div>
-                <div className="flex items-center text-gray-600 dark:text-gray-200">
-                  <Users className="mr-1 md:mr-2 h-3 w-3 md:h-4 md:w-4" />
-                  {challenge.problemSolvers}
-                </div>
-                <div className="flex items-center text-gray-600 dark:text-gray-200">
-                  <FileText className="mr-1 md:mr-2 h-3 w-3 md:h-4 md:w-4" />
-                  {challenge.submissions}
-                </div>
-                <div className="text-[#00bf8f] px-3 md:px-0">
-                  {challenge.approved}
-                </div>
-                <div className="text-red-500 px-3 md:px-0">
-                  {challenge.rejected}
-                </div>
-                <div>
-                  <Badge
-                    variant={
-                      challenge.status === "active" ? "success" : "secondary"
-                    }
-                    className="text-xs bg-green-600 text-white dashborder"
-                  >
-                    {challenge.status}
-                  </Badge>
-                </div>
-                <div className="flex flex-row space-x-2 uppercase md:col-span-3 col-span-5">
-                  <Button
-                    variant="ghost"
-                    size="xs"
-                    className="dashbutton text-white text-[11px] py-1.5 px-1.5 uppercase rounded-md dark:hover:text-black w-auto"
-                    onClick={() => setIsReviewOpen(true)}
-                  >
-                    Submissions
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="xs"
-                    className="dashbutton text-white text-[11px] py-1.5 px-1.5 uppercase rounded-md dark:hover:text-black w-auto"
-                    onClick={() => setChallengeToApprove(challenge)}
-                    disabled={!canApprove(challenge)}
-                  >
-                    Approve
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="xs"
-                    className="dashbutton text-white text-[11px] py-1.5 px-1.5 uppercase rounded-md dark:hover:text-black w-auto"
-                    onClick={() => setSelectedChallenge(challenge)}
-                  >
-                    Complete
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {selectedChallenge && (
-        <WinnerSelectorDialog
-          challenge={selectedChallenge}
-          isOpen={!!selectedChallenge}
-          onClose={() => setSelectedChallenge(null)}
-        />
-      )}
-
-      {challengeToApprove && (
-        <ApproveChallenge
-          open={!!challengeToApprove}
-          onClose={() => setChallengeToApprove(null)}
-          approvedCount={parseInt(challengeToApprove.problemSolvers.split("/")[0], 10)}
-          problemSolversNeeded={parseInt(challengeToApprove.problemSolvers.split("/")[1], 10)}
-          innovator="Innovator Name"
-          approvedProblemSolvers={[
-            "Problem Solver 1",
-            "Problem Solver 2",
-            "Problem Solver 3",
-          ]}
-          onChatCreated={(chat) => console.log("Chat created:", chat)}
-        />
-      )}
-
-      <AllSubmissionsDialog
-        submissions={fakeSubmissions}
-        isOpen={isReviewOpen}
-        onClose={() => setIsReviewOpen(false)}
-        onApprove={() => handleReviewSubmit(true)}
-        onReject={() => handleReviewSubmit(false)}
-      />
-    </MainLayout>
-  );
+        </MainLayout>
+    );
 }
