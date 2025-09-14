@@ -101,7 +101,7 @@ export default function ChallengesPage() {
                             Manage and track all your challenges in one place.
                         </p>
                     </div>
-                    <Link to="/dashboard/challenges/create">
+                    <Link to="/dashboard/challenges">
                         <Button>Create New Challenge</Button>
                     </Link>
                 </div>
@@ -115,7 +115,7 @@ export default function ChallengesPage() {
                         <div className="flex flex-wrap gap-4">
                             <div className="flex-1 min-w-[200px]">
                                 <div className="relative">
-                                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground"/>
+                                    <Search className="absolute left-3 top-1.5 h-4 w-4 text-muted-foreground"/>
                                     <input
                                         placeholder="Search challenges..."
                                         value={searchTerm}
@@ -251,21 +251,7 @@ export default function ChallengesPage() {
                                                         </>
                                                     )}
                                                 </DropdownMenuItem>
-                                                <DropdownMenuItem onClick={() => handleDuplicate(challenge._id)}>
-                                                    <Copy className="mr-2 h-4 w-4"/>
-                                                    Duplicate
-                                                </DropdownMenuItem>
                                                 <DropdownMenuSeparator/>
-                                                <DropdownMenuItem
-                                                    onClick={() => handlePromote(challenge._id, 'featured')}>
-                                                    <TrendingUp className="mr-2 h-4 w-4"/>
-                                                    Promote as Featured
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem
-                                                    onClick={() => handlePromote(challenge._id, 'urgent')}>
-                                                    <TrendingUp className="mr-2 h-4 w-4"/>
-                                                    Mark as Urgent
-                                                </DropdownMenuItem>
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </div>
@@ -291,6 +277,8 @@ export default function ChallengesPage() {
                     )}
                 </div>
             </div>
+
+
 
         </MainLayout>
     );
