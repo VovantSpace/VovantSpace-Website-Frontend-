@@ -1,15 +1,11 @@
 import React, {SetStateAction, useState} from "react";
 import {
     Eye,
-    FileText,
     Users,
     Loader2,
     Search,
     MoreHorizontal,
-    Play,
-    Pause,
     TrendingUp,
-    Copy,
     Plus,
 } from "lucide-react";
 import {Button} from "@/components/ui/button";
