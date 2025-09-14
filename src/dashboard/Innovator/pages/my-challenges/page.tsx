@@ -238,19 +238,6 @@ export default function ChallengesPage() {
                                                     </Link>
                                                 </DropdownMenuItem>
                                                 <DropdownMenuSeparator/>
-                                                <DropdownMenuItem onClick={() => handlePause(challenge._id)}>
-                                                    {challenge.isPaused ? (
-                                                        <>
-                                                            <Play className="mr-2 h-4 w-4"/>
-                                                            Resume
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <Pause className="mr-2 h-4 w-4"/>
-                                                            Pause
-                                                        </>
-                                                    )}
-                                                </DropdownMenuItem>
                                                 <DropdownMenuSeparator/>
                                             </DropdownMenuContent>
                                         </DropdownMenu>
