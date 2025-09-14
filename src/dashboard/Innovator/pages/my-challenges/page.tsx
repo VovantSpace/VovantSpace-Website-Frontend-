@@ -24,8 +24,8 @@ export default function ChallengesPage() {
     const [sortBy, setSortBy] = useState('newest');
 
     const filteredChallenges = challenges.filter(challenge => {
-        const matchesSearch = challenge.title.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesStatus = statusFilter === 'all' || challenge.status.toLowerCase() === statusFilter;
+        const matchesSearch = challenge.title?.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesStatus = statusFilter === 'all' || challenge.status?.toLowerCase() === statusFilter;
         return matchesSearch && matchesStatus;
     })
 
@@ -34,9 +34,9 @@ export default function ChallengesPage() {
             case 'oldest':
                 return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
             case 'mostViews':
-                return b.views - a.views;
+                return (b.views || 0) - (a.views || 0);
             case 'mostSubmissions':
-                return b.submissions.length - a.submissions.length;
+                return (b.submissions?.length || 0) - (a.submissions?.length || 0);
             case 'newest':
             default:
                 return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
@@ -166,7 +166,7 @@ export default function ChallengesPage() {
                                                     to={`/dashboard/challenges/${challenge._id}`}
                                                     className="text-lg font-semibold hover:text-blue-600 transition-colors"
                                                 >
-                                                    {challenge.title}
+                                                    {challenge.title || 'Untitled Challenge'}
                                                 </Link>
                                                 <div className="flex gap-2">
                                                     <Badge variant={
@@ -174,43 +174,43 @@ export default function ChallengesPage() {
                                                             challenge.status === 'Completed' ? 'secondary' :
                                                                 challenge.status === 'Paused' ? 'outline' : 'destructive'
                                                     }>
-                                                        {challenge.status}
+                                                        {challenge.status || 'Unknown'}
                                                     </Badge>
                                                     {challenge.isPaused && (
                                                         <Badge variant="outline">Paused</Badge>
                                                     )}
                                                     {challenge.isPromoted && (
                                                         <Badge variant="default" className="bg-orange-500">
-                                                            {challenge.promotionType}
+                                                            {challenge.promotionType || 'Promoted'}
                                                         </Badge>
                                                     )}
                                                 </div>
                                             </div>
 
                                             <p className="text-sm text-muted-foreground line-clamp-2">
-                                                {challenge.description}
+                                                {challenge.description || 'No description available'}
                                             </p>
 
                                             <div className="flex items-center gap-6 text-sm text-muted-foreground">
                                                 <div className="flex items-center gap-1">
                                                     <Eye className="h-4 w-4"/>
-                                                    <span>{challenge.views} views</span>
+                                                    <span>{challenge.views || 0} views</span>
                                                 </div>
                                                 <div className="flex items-center gap-1">
                                                     <Users className="h-4 w-4"/>
-                                                    <span>{challenge.submissions.length} submissions</span>
+                                                    <span>{challenge.submissions?.length || 0} submissions</span>
                                                 </div>
                                                 <div className="flex items-center gap-1">
                                                     <TrendingUp className="h-4 w-4"/>
-                                                    <span>{challenge.approvedSubmissions.length} approved</span>
+                                                    <span>{challenge.approvedSubmissions?.length || 0} approved</span>
                                                 </div>
                                                 <div className="text-green-600 font-medium">
-                                                    ${challenge.totalBudget}
+                                                    ${challenge.totalBudget || 0}
                                                 </div>
                                             </div>
 
                                             <div className="text-xs text-muted-foreground">
-                                                Created {new Date(challenge.createdAt).toLocaleDateString()}
+                                                Created {challenge.createdAt ? new Date(challenge.createdAt).toLocaleDateString() : 'Unknown date'}
                                                 {challenge.dueDate && (
                                                     <span className="ml-3">
                           Due {new Date(challenge.dueDate).toLocaleDateString()}

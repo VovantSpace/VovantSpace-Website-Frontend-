@@ -27,92 +27,106 @@ export const useChallenges = () => {
         fetchChallenges();
     }, [fetchChallenges])
 
-    const createChallenge = async (data: CreateChallengeData) => {
-        try {
-            const response = await challengeApi.createChallenge(data);
-            if (response.success) {
-                await fetchChallenges(); // Refresh the list
-                return response.data;
-            } else {
-                console.error("API error", response.message)
-                return null
-            }
-        } catch (error: any) {
-            throw new Error(error.response?.data?.message || 'Failed to create challenge')
-        }
-    }
 
-    const updateChallengeStatus = async (id: string, status: string) => {
-        try {
-            const response = await challengeApi.updateChallengeStatus(id, status)
-            if (response.success) {
-                await fetchChallenges();
-                return true;
-            } else {
-                console.error("API error", response.message)
-                return null
-            }
-        } catch (error: any) {
-            throw new Error(error.response?.data?.message || "Failed to update challenge status")
+const createChallenge = async (data: CreateChallengeData) => {
+    try {
+        const response = await challengeApi.createChallenge(data);
+        if (response.success) {
+            await fetchChallenges(); // Refresh the list
+            return response.data;
+        } else {
+            console.error("API error", response.message)
+            return null
         }
+    } catch (error: any) {
+        throw new Error(error.response?.data?.message || 'Failed to create challenge')
     }
+}
 
-    const duplicateChallenge = async (id: string) => {
-        try {
-            const response = await challengeApi.duplicateChallenge(id);
-            if (response.success) {
-                await fetchChallenges()
-                return response.data;
-            } else {
-                console.error("API error", response.message)
-                return null
-            }
-        } catch (error: any) {
-            throw new Error(error.response?.data?.message || "failed to duplicate challenge")
+const updateChallengeStatus = async (id: string, status: string) => {
+    try {
+        const response = await challengeApi.updateChallengeStatus(id, status)
+        if (response.success) {
+            await fetchChallenges();
+            return true;
+        } else {
+            console.error("API error", response.message)
+            return null
         }
+    } catch (error: any) {
+        throw new Error(error.response?.data?.message || "Failed to update challenge status")
     }
+}
 
-    const promoteChallenge = async (id: string, promotionType: string, duration: number = 7) => {
-        try {
-            const response = await challengeApi.promoteChallenge(id, promotionType, duration)
-            if (response.success) {
-                await fetchChallenges()
-                return true;
-            } else {
-                console.error("API error", response.message)
-                return null
-            }
-        } catch (error: any) {
-            throw new Error(error.response?.data?.message || "Failed to promote challenge")
+const duplicateChallenge = async (id: string) => {
+    try {
+        const response = await challengeApi.duplicateChallenge(id);
+        if (response.success) {
+            await fetchChallenges()
+            return response.data;
+        } else {
+            console.error("API error", response.message)
+            return null
         }
+    } catch (error: any) {
+        throw new Error(error.response?.data?.message || "failed to duplicate challenge")
     }
+}
 
-    const pauseChallenge = async (id: string) => {
-        try {
-            const response = await dashboardApi.toggleChallengePause(id)
-            if (response.success) {
-                await fetchChallenges()
-                return true
-            } else {
-                console.error("API error", response.message)
-                return null
-            }
-        } catch (error: any) {
-            throw new Error(error.response?.data?.message || "Failed to pause/resume challenge")
+const promoteChallenge = async (id: string, promotionType: string, duration: number = 7) => {
+    try {
+        const response = await challengeApi.promoteChallenge(id, promotionType, duration)
+        if (response.success) {
+            await fetchChallenges()
+            return true;
+        } else {
+            console.error("API error", response.message)
+            return null
         }
+    } catch (error: any) {
+        throw new Error(error.response?.data?.message || "Failed to promote challenge")
     }
+}
 
-    return {
-        challenges,
-        loading,
-        error,
-        refetch: fetchChallenges,
-        createChallenge,
-        updateChallengeStatus,
-        duplicateChallenge,
-        promoteChallenge,
-        pauseChallenge
+const pauseChallenge = async (id: string) => {
+    try {
+        const response = await dashboardApi.toggleChallengePause(id)
+        if (response.success) {
+            await fetchChallenges()
+            return true
+        } else {
+            console.error("API error", response.message)
+            return null
+        }
+    } catch (error: any) {
+        throw new Error(error.response?.data?.message || "Failed to pause/resume challenge")
     }
+}
+
+    const normalizeChallenge = (challenge: any) => ({
+        ...challenge,
+        submissions: challenge.submissions || [],
+        approvedSubmissions: challenge.approvedSubmissions || [],
+        views: challenge.views || 0,
+        totalBudget: challenge.totalBudget || 0,
+        title: challenge.title || 'Untitled Challenge',
+        description: challenge.description || '',
+        status: challenge.status || 'draft',
+    })
+
+
+return {
+    challenges,
+    loading,
+    error,
+    refetch: fetchChallenges,
+    createChallenge,
+    updateChallengeStatus,
+    duplicateChallenge,
+    promoteChallenge,
+    pauseChallenge,
+    normalizeChallenge
+}
 }
 
 export const useDashboardStats = () => {
