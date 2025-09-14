@@ -28,14 +28,14 @@ import {
 } from "../../components/ui/dropdown-menu";
 import {Card, CardContent, CardHeader} from "@mui/material";
 import {CardTitle} from "@/components/ui/card";
-import CreateChallengeDialog from "@/dashboard/Innovator/components/modals/create-challenge-dialog";
+import {CreateChallengeDialog} from "@/dashboard/Innovator/components/modals/create-challenge-dialog";
 
 export default function ChallengesPage() {
-    const {challenges, loading, error, duplicateChallenge, promoteChallenge, pauseChallenge} = useChallenges();
+    const {challenges, loading, error, duplicateChallenge, promoteChallenge, pauseChallenge, refetch} = useChallenges();
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState('all')
     const [sortBy, setSortBy] = useState('newest');
-    const [isCreateChallengeOpen, setIsCreateChallengeOpen] = useState(false);
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
 
     const filteredChallenges = challenges.filter(challenge => {
         const matchesSearch = challenge.title?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -115,7 +115,7 @@ export default function ChallengesPage() {
                             Manage and track all your challenges in one place.
                         </p>
                     </div>
-                        <Button className="flex items-center gap-2" onClick={() => setIsCreateChallengeOpen(true)}>
+                        <Button className="flex items-center gap-2" onClick={() => setIsDialogOpen(true)}>
                             <Plus className="h-4 w-4"/>
                             Create Challenge
                         </Button>
@@ -279,7 +279,7 @@ export default function ChallengesPage() {
                         </Card>
                     )}
                 </div>
-                <CreateChallengeDialog isOpen={isCreateChallengeOpen}  onClose={() => setIsCreateChallengeOpen(false)}/>
+                <CreateChallengeDialog isOpen={isDialogOpen}  onClose={() => setIsDialogOpen(false)} onChallengeCreated={refetch}/>
             </div>
 
         </MainLayout>

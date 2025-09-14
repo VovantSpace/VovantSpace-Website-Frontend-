@@ -6,7 +6,7 @@ import {useDashboardStats, useChallenges} from '@/hooks/useChallenges';
 import {Loader2, Plus, TrendingUp, Users, Eye, DollarSign} from 'lucide-react';
 import {Link} from 'react-router-dom';
 import {MainLayout} from '../components/layout/main-layout';
-import CreateChallengeDialog from "@/dashboard/Innovator/components/modals/create-challenge-dialog";
+import {CreateChallengeDialog} from "@/dashboard/Innovator/components/modals/create-challenge-dialog";
 
 export default function HomePage() {
     const {stats, loading: statsLoading, error: statsError} = useDashboardStats();
