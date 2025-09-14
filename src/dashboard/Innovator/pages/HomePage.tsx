@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react';
 import {Card, CardContent, CardHeader, CardTitle} from '../components/ui/card';
 import {Button} from '../components/ui/button';
 import {Badge} from '../components/ui/badge';
@@ -6,10 +6,12 @@ import {useDashboardStats, useChallenges} from '@/hooks/useChallenges';
 import {Loader2, Plus, TrendingUp, Users, Eye, DollarSign} from 'lucide-react';
 import {Link} from 'react-router-dom';
 import {MainLayout} from '../components/layout/main-layout';
+import CreateChallengeDialog from "@/dashboard/Innovator/components/modals/create-challenge-dialog";
 
 export default function HomePage() {
     const {stats, loading: statsLoading, error: statsError} = useDashboardStats();
-    const {challenges, loading: challengesLoading} = useChallenges();
+    const {challenges, loading: challengesLoading, refetch} = useChallenges();
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
 
     if (statsLoading || challengesLoading) {
         return (
@@ -44,12 +46,12 @@ export default function HomePage() {
                             Welcome back! Here's what's happening with your challenges.
                         </p>
                     </div>
-                    <Link to="/dashboard/challenges/create">
-                        <Button className="flex items-center gap-2">
-                            <Plus className="h-4 w-4"/>
-                            Create Challenge
-                        </Button>
-                    </Link>
+
+                    <Button className="flex items-center gap-2" onClick={() => setIsDialogOpen(true)}>
+                        <Plus className="h-4 w-4"/>
+                        Create Challenge
+                    </Button>
+
                 </div>
 
                 {/* Stats Cards */}
@@ -178,31 +180,8 @@ export default function HomePage() {
                     </Card>
                 </div>
 
-                {/* Quick Actions */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Quick Actions</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="grid gap-4 md:grid-cols-3">
-                            <Link to="/dashboard/challenges/create">
-                                <Button variant="outline" className="w-full">
-                                    Create New Challenge
-                                </Button>
-                            </Link>
-                            <Link to="/dashboard/my-challenges">
-                                <Button variant="outline" className="w-full">
-                                    Manage Challenges
-                                </Button>
-                            </Link>
-                            <Link to="/dashboard/analytics">
-                                <Button variant="outline" className="w-full">
-                                    View Analytics
-                                </Button>
-                            </Link>
-                        </div>
-                    </CardContent>
-                </Card>
+                {/*  create a Challenge dialog  */}
+                <CreateChallengeDialog isOpen={isDialogOpen} onClose={() => setIsDialogOpen(false)} onChallengeCreated={refetch}/>
             </div>
         </MainLayout>
     );

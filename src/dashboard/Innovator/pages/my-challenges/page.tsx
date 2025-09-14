@@ -1,5 +1,17 @@
-import {SetStateAction, useState} from "react";
-import {Eye, FileText, Users, Loader2, Search, MoreHorizontal, Play, Pause, TrendingUp, Copy,} from "lucide-react";
+import React, {SetStateAction, useState} from "react";
+import {
+    Eye,
+    FileText,
+    Users,
+    Loader2,
+    Search,
+    MoreHorizontal,
+    Play,
+    Pause,
+    TrendingUp,
+    Copy,
+    Plus,
+} from "lucide-react";
 import {Button} from "@/components/ui/button";
 import {MainLayout} from "../../components/layout/main-layout";
 import {Badge} from '../../components/ui/badge'
@@ -16,12 +28,14 @@ import {
 } from "../../components/ui/dropdown-menu";
 import {Card, CardContent, CardHeader} from "@mui/material";
 import {CardTitle} from "@/components/ui/card";
+import CreateChallengeDialog from "@/dashboard/Innovator/components/modals/create-challenge-dialog";
 
 export default function ChallengesPage() {
     const {challenges, loading, error, duplicateChallenge, promoteChallenge, pauseChallenge} = useChallenges();
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState('all')
     const [sortBy, setSortBy] = useState('newest');
+    const [isCreateChallengeOpen, setIsCreateChallengeOpen] = useState(false);
 
     const filteredChallenges = challenges.filter(challenge => {
         const matchesSearch = challenge.title?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -101,9 +115,11 @@ export default function ChallengesPage() {
                             Manage and track all your challenges in one place.
                         </p>
                     </div>
-                    <Link to="/dashboard/challenges">
-                        <Button>Create New Challenge</Button>
-                    </Link>
+                        <Button className="flex items-center gap-2" onClick={() => setIsCreateChallengeOpen(true)}>
+                            <Plus className="h-4 w-4"/>
+                            Create Challenge
+                        </Button>
+
                 </div>
 
                 {/* Filters and Search */}
@@ -263,9 +279,8 @@ export default function ChallengesPage() {
                         </Card>
                     )}
                 </div>
+                <CreateChallengeDialog isOpen={isCreateChallengeOpen}  onClose={() => setIsCreateChallengeOpen(false)}/>
             </div>
-
-
 
         </MainLayout>
     );
