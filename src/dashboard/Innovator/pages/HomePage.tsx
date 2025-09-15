@@ -9,21 +9,29 @@ import {useDashboardStats, useChallenges} from "@/hooks/useChallenges";
 import {toast} from 'react-hot-toast'
 import {Loader2} from "lucide-react";
 
+// Helper function to safely format numbers
+const safeFormatNumber = (value: number | undefined | null): string => {
+    if (value === null || value === undefined || isNaN(value)) {
+        return '0';
+    }
+    return value.toLocaleString();
+};
+
 export default function HomePage() {
     const {stats, loading: statsLoading, error: statsError, refetch: refetchStats} = useDashboardStats()
     const [isCreateChallengeOpen, setIsCreateChallengeOpen] = useState(false)
     const {challenges, loading: challengesLoading, error: challengesError, refetch: refetchChallenges} = useChallenges()
 
     // Filter challenges into active and completed
-    const activeChallenges = challenges?.filter(challenge => challenge.status.toLowerCase() === 'active')
-    const completedChallenges = challenges.filter(challenge => challenge.status.toLowerCase() === 'completed')
+    const activeChallenges = challenges?.filter(challenge => challenge.status.toLowerCase() === 'active') || []
+    const completedChallenges = challenges?.filter(challenge => challenge.status.toLowerCase() === 'completed') || []
 
     if (statsLoading || challengesLoading) {
         return (
             <MainLayout>
                 <div className={'flex items-center justify-center h-64'}>
                     <Loader2 className={'h-8 w-8 animate-spin'}/>
-                    <span className={'m;-2'}>Loading dashboard</span>
+                    <span className={'ml-2'}>Loading dashboard</span>
                 </div>
             </MainLayout>
         )
@@ -66,7 +74,7 @@ export default function HomePage() {
                         <div className="mb-2 text-sm text-gray-400">Total Challenges</div>
                         <div className="text-3xl font-bold">{totalChallenges}</div>
                         <div className="mt-2 text-sm text-[#00bf8f]">
-                            +{totalChallenges - completedChallengesCount} this month
+                            +{Math.max(0, totalChallenges - completedChallengesCount)} this month
                         </div>
                     </Card>
                     <Card className="secondbg p-6 dashtext">
@@ -76,9 +84,9 @@ export default function HomePage() {
                     </Card>
                     <Card className="secondbg p-6 dashtext">
                         <div className="mb-2 text-sm text-gray-400">Total Rewards</div>
-                        <div className="text-3xl font-bold">${totalBudget.toLocaleString()}</div>
+                        <div className="text-3xl font-bold">${safeFormatNumber(totalBudget)}</div>
                         <div className="mt-2 text-sm text-[#00bf8f]">
-                            +${totalBudget ? (totalBudget * 0.32).toFixed(0) : 0}
+                            +${totalBudget ? (totalBudget * 0.32).toFixed(0) : '0'}
                         </div>
                     </Card>
                 </div>
@@ -98,18 +106,18 @@ export default function HomePage() {
                                                 className={'inline-block rounded-full bg-[#00bf8f]/20 px-2 py-0.5 text-xs text-[#00bf8f]'}>{challenge.status}</span>
                                         </div>
                                         <div className={'text-xl font-bold text-[#00bf8f]'}>
-                                            ${challenge.totalBudget.toLocaleString()}
+                                            ${safeFormatNumber(challenge.totalBudget)}
                                         </div>
-                                        <div className={'mb-4 flex items-center gap-6 text-sm text-gray-400'}>
-                                            <div className={'flex items-center gap-2'}>
-                                                <FileText className={'w-4 h-4'}/>
-                                                {challenge.submissions?.length || 0}
-                                            </div>
-                                        </div>
-                                        <Link to={`/dashboard/innovator/my-challenges/${challenge._id}`}>
-                                            <Button className={'w-full dashbutton'}>View Details</Button>
-                                        </Link>
                                     </div>
+                                    <div className={'mb-4 flex items-center gap-6 text-sm text-gray-400'}>
+                                        <div className={'flex items-center gap-2'}>
+                                            <FileText className={'w-4 h-4'}/>
+                                            {challenge.submissions?.length || 0}
+                                        </div>
+                                    </div>
+                                    <Link to={`/dashboard/innovator/my-challenges/${challenge._id}`}>
+                                        <Button className={'w-full dashbutton'}>View Details</Button>
+                                    </Link>
                                 </Card>
                             ))
                         ) : (
@@ -137,8 +145,9 @@ export default function HomePage() {
                                                 {challenge.status}
                                             </span>
                                         </div>
-                                        <div
-                                            className={'text-xl font-bold text-[#00bf8f]'}>${challenge.totalBudget.toLocaleString()}</div>
+                                        <div className={'text-xl font-bold text-[#00bf8f]'}>
+                                            ${safeFormatNumber(challenge.totalBudget)}
+                                        </div>
                                     </div>
                                     <div className={'mb-4 flex items-center gap-6 text-sm text-gray-400'}>
                                         <div className={'flex items-center gap-2'}>
