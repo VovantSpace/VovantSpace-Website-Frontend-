@@ -1,78 +1,73 @@
-import { useState } from "react";
-import { Eye, FileText, Users, Loader2, Search, MoreHorizontal, Play, Pause, TrendingUp,   } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { MainLayout } from "../../components/layout/main-layout";
+import {useState} from "react";
+import {Eye, FileText, Users, Loader2, Search, MoreHorizontal, Play, Pause, TrendingUp,} from "lucide-react";
+import {Button} from "@/components/ui/button";
+import {MainLayout} from "../../components/layout/main-layout";
 import {Badge} from '../../components/ui/badge'
-import { WinnerSelectorDialog } from "../../components/modals/WinnerSelectorDialog";
-import { AllSubmissionsDialog } from "../../components/modals/All-Submission-Dialogue";
-import { ApproveChallenge } from "../../components/modals/ApproveChallenge";
-
-
-const challenges = [
-    {
-        id: "1",
-        name: "AI-Powered Smart Farming",
-        problemSolvers: "3/3", // Format: approved/needed
-        submissions: 8,
-        approved: 3,
-        rejected: 1,
-        status: "active",
-        reward: 5000,
-        daysLeft: 3,
-        views: 245,
-    },
-    // Add more challenges here as needed
-];
-
-const fakeSubmissions = [
-    {
-        id: "1",
-        name: "John Doe",
-        title: "Full Stack Developer",
-        rate: "50",
-        location: "New York, USA",
-        skills: ["React", "Node.js", "GraphQL"],
-        earned: "$10,000",
-        successRate: "95%",
-        image: "https://i.pravatar.cc/150?img=1",
-        description: "Experienced developer with a focus on building robust systems.",
-        country: "USA",
-    },
-    {
-        id: "2",
-        name: "Jane Smith",
-        title: "UI/UX Designer",
-        rate: "40",
-        location: "London, UK",
-        skills: ["Figma", "Sketch", "Adobe XD"],
-        earned: "$8,000",
-        successRate: "90%",
-        image: "https://i.pravatar.cc/150?img=1",
-        description: "Creative designer focused on user-centered design solutions.",
-        country: "USA",
-    },
-    // Add more fake submissions as needed
-];
+import {WinnerSelectorDialog} from "../../components/modals/WinnerSelectorDialog";
+import {AllSubmissionsDialog} from "../../components/modals/All-Submission-Dialogue";
+import {ApproveChallenge} from "../../components/modals/ApproveChallenge";
+import {useChallenges} from '@/hooks/useChallenges'
+import {Challenge} from '@/services/challengeService'
+import {challengeApi} from "@/services/challengeService";
 
 export default function ChallengesPage() {
-    const [selectedChallenge, setSelectedChallenge] = useState(null);
-    const [challengeToApprove, setChallengeToApprove] = useState(null);
+    const {challenges, loading, error, refetch} = useChallenges();
+    const [selectedChallenge, setSelectedChallenge] = useState<Challenge | null>(null);
+    const [challengeToApprove, setChallengeToApprove] = useState<Challenge | null>(null);
     const [isReviewOpen, setIsReviewOpen] = useState(false);
 
-    const handleReviewSubmit = (approved: boolean) => {
-        // Handle the review submission
-        setIsReviewOpen(false);
+    const handleReviewSubmit = async (approved: boolean, submissionId: string) => {
+        if (!selectedChallenge?._id) return;
+        try {
+            await challengeApi.reviewSubmission(selectedChallenge._id, submissionId, approved ? 'approve' : 'reject')
+            setIsReviewOpen(false);
+            refetch();
+        } catch (err: any) {
+            console.error("Error submitting review:", err.message);
+        }
     };
 
-    const canApprove = (challenge) => {
-        const parts = challenge.problemSolvers.split("/");
-        if (parts.length === 2) {
-            const approved = parseInt(parts[0], 10);
-            const needed = parseInt(parts[1], 10);
-            return approved === needed;
-        }
-        return false;
+    const canApprove = (challenge: Challenge) => {
+        return challenge.approvedSubmissions?.length >= challenge.problemSolversNeeded;
     };
+
+    if (loading) {
+        return (
+            <MainLayout>
+                <div className={'flex items-center justify-center h-64'}>
+                    <Loader2 className={'h-8 w-8 animate-spin'}/>
+                    <span className={'ml-2'}>Loading challenges</span>
+                </div>
+            </MainLayout>
+        )
+    }
+
+    if (error) {
+        return (
+            <MainLayout>
+                <div className={'flex items-center justify-center h-64'}>
+                    <div className={'text-center'}>
+                        <p className={'text-red-500 mb-4'}>{error}</p>
+                        <Button onClick={() => refetch()}>Retry</Button>
+                    </div>
+                </div>
+            </MainLayout>
+        )
+    }
+
+    const getBadgeVariant = (status: string) => {
+        const normalizedStatus = status?.toLowerCase();
+        switch (normalizedStatus) {
+            case 'active':
+                return 'active';
+            case 'completed':
+                return 'completed'
+            case 'draft':
+                return 'draft';
+            default:
+                return 'outline'
+        }
+    }
 
     return (
         <MainLayout>
@@ -85,7 +80,8 @@ export default function ChallengesPage() {
                 <div className="overflow-x-auto">
                     <div className="min-w-[900px] rounded-lg secondbg border dashborder shadow-sm">
                         {/* Table Header */}
-                        <div className="grid grid-cols-12 md:grid-cols-10 gap-2 md:gap-4 md:px-4 border-b dashborder justify-items-center p-2 items-center text-xs md:text-sm font-medium text-gray-600 dark:text-gray-200 whitespace-nowrap">
+                        <div
+                            className="grid grid-cols-12 md:grid-cols-10 gap-2 md:gap-4 md:px-4 border-b dashborder justify-items-center p-2 items-center text-xs md:text-sm font-medium text-gray-600 dark:text-gray-200 whitespace-nowrap">
                             <div className="col-span-2">CHALLENGE TITLE</div>
                             <div className="px-3 md:px-0">SOLVERS</div>
                             <div className="px-3 md:px-0 ">SUBMISSIONS</div>
@@ -98,32 +94,30 @@ export default function ChallengesPage() {
                         {/* Table Rows */}
                         {challenges.map((challenge) => (
                             <div
-                                key={challenge.id}
+                                key={challenge._id}
                                 className="grid grid-cols-12 md:grid-cols-10 md:px-4 justify-items-center gap-2 md:gap-4 p-2 items-center text-xs md:text-sm whitespace-nowrap"
                             >
                                 <div className="col-span-2 font-medium dashtext text-wrap">
-                                    {challenge.name}
+                                    {challenge.title}
                                 </div>
                                 <div className="flex items-center text-gray-600 dark:text-gray-200">
-                                    <Users className="mr-1 md:mr-2 h-3 w-3 md:h-4 md:w-4" />
-                                    {challenge.problemSolvers}
+                                    <Users className="mr-1 md:mr-2 h-3 w-3 md:h-4 md:w-4"/>
+                                    {`${challenge.approvedSubmissions?.length || 0}/${challenge.problemSolversNeeded}`}
                                 </div>
                                 <div className="flex items-center text-gray-600 dark:text-gray-200">
-                                    <FileText className="mr-1 md:mr-2 h-3 w-3 md:h-4 md:w-4" />
-                                    {challenge.submissions}
+                                    <FileText className="mr-1 md:mr-2 h-3 w-3 md:h-4 md:w-4"/>
+                                    {challenge.submissions?.length || 0}
                                 </div>
                                 <div className="text-[#00bf8f] px-3 md:px-0">
-                                    {challenge.approved}
+                                    {challenge.approvedSubmissions?.length || 0}
                                 </div>
                                 <div className="text-red-500 px-3 md:px-0">
-                                    {challenge.rejected}
+                                    {(challenge.submissions?.length || 0) - (challenge.approvedSubmissions?.length || 0)}
                                 </div>
                                 <div>
                                     <Badge
-                                        variant={
-                                            challenge.status === "active" ? "success" : "secondary"
-                                        }
-                                        className="text-xs bg-green-600 text-white dashborder"
+                                        variant={getBadgeVariant(challenge.status)}
+                                        className={'text-xs bg-green-600 text-white dashborder'}
                                     >
                                         {challenge.status}
                                     </Badge>
@@ -131,15 +125,18 @@ export default function ChallengesPage() {
                                 <div className="flex flex-row space-x-2 uppercase md:col-span-3 col-span-5">
                                     <Button
                                         variant="ghost"
-                                        size="xs"
+                                        size="sm"
                                         className="dashbutton text-white text-[11px] py-1.5 px-1.5 uppercase rounded-md dark:hover:text-black w-auto"
-                                        onClick={() => setIsReviewOpen(true)}
+                                        onClick={() => {
+                                            setSelectedChallenge(challenge);
+                                            setIsReviewOpen(true);
+                                        }}
                                     >
                                         Submissions
                                     </Button>
                                     <Button
                                         variant="ghost"
-                                        size="xs"
+                                        size="sm"
                                         className="dashbutton text-white text-[11px] py-1.5 px-1.5 uppercase rounded-md dark:hover:text-black w-auto"
                                         onClick={() => setChallengeToApprove(challenge)}
                                         disabled={!canApprove(challenge)}
@@ -148,7 +145,7 @@ export default function ChallengesPage() {
                                     </Button>
                                     <Button
                                         variant="ghost"
-                                        size="xs"
+                                        size="sm"
                                         className="dashbutton text-white text-[11px] py-1.5 px-1.5 uppercase rounded-md dark:hover:text-black w-auto"
                                         onClick={() => setSelectedChallenge(challenge)}
                                     >
@@ -173,25 +170,23 @@ export default function ChallengesPage() {
                 <ApproveChallenge
                     open={!!challengeToApprove}
                     onClose={() => setChallengeToApprove(null)}
-                    approvedCount={parseInt(challengeToApprove.problemSolvers.split("/")[0], 10)}
-                    problemSolversNeeded={parseInt(challengeToApprove.problemSolvers.split("/")[1], 10)}
-                    innovator="Innovator Name"
-                    approvedProblemSolvers={[
-                        "Problem Solver 1",
-                        "Problem Solver 2",
-                        "Problem Solver 3",
-                    ]}
+                    approvedCount={challengeToApprove.approvedSubmissions?.length || 0}
+                    problemSolversNeeded={challengeToApprove.problemSolversNeeded}
+                    innovator={`${challengeToApprove.innovator?.firstName} ${challengeToApprove.innovator?.lastName}`}
+                    approvedProblemSolvers={challengeToApprove.approvedSubmissions?.map((sub: any) => sub.problemSolver) || []}
                     onChatCreated={(chat) => console.log("Chat created:", chat)}
                 />
             )}
 
-            <AllSubmissionsDialog
-                submissions={fakeSubmissions}
-                isOpen={isReviewOpen}
-                onClose={() => setIsReviewOpen(false)}
-                onApprove={() => handleReviewSubmit(true)}
-                onReject={() => handleReviewSubmit(false)}
-            />
+            {selectedChallenge && (
+                <AllSubmissionsDialog
+                    submissions={selectedChallenge.submissions || []}
+                    isOpen={isReviewOpen}
+                    onClose={() => setIsReviewOpen(false)}
+                    onApprove={(submissionId: any) => handleReviewSubmit(true, submissionId)}
+                    onReject={(submissionId: any) => handleReviewSubmit(false, submissionId)}
+                />
+            )}
         </MainLayout>
     );
 }
