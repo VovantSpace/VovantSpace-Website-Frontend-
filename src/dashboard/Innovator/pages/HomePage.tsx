@@ -1,188 +1,173 @@
-import React, {useState} from 'react';
-import {Card, CardContent, CardHeader, CardTitle} from '../components/ui/card';
-import {Button} from '../components/ui/button';
-import {Badge} from '../components/ui/badge';
-import {useDashboardStats, useChallenges} from '@/hooks/useChallenges';
-import {Loader2, Plus, TrendingUp, Users, Eye, DollarSign} from 'lucide-react';
-import {Link} from 'react-router-dom';
-import {MainLayout} from '../components/layout/main-layout';
-import {CreateChallengeDialog} from "@/dashboard/Innovator/components/modals/create-challenge-dialog";
+import {useState} from "react"
+import {Clock, FileText} from "lucide-react"
+import {Link} from "react-router-dom"
+import {Button} from "../components/ui/button"
+import {Card} from "../components/ui/card"
+import {MainLayout} from "../components/layout/main-layout"
+import {CreateChallengeDialog} from "../components/modals/create-challenge-dialog"
+import {useDashboardStats, useChallenges} from "@/hooks/useChallenges";
+import {toast} from 'react-hot-toast'
+import {Loader2} from "lucide-react";
 
 export default function HomePage() {
-    const {stats, loading: statsLoading, error: statsError} = useDashboardStats();
-    const {challenges, loading: challengesLoading, refetch} = useChallenges();
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const {stats, loading: statsLoading, error: statsError, refetch: refetchStats} = useDashboardStats()
+    const [isCreateChallengeOpen, setIsCreateChallengeOpen] = useState(false)
+    const {challenges, loading: challengesLoading, error: challengesError, refetch: refetchChallenges} = useChallenges()
+
+    // Filter challenges into active and completed
+    const activeChallenges = challenges?.filter(challenge => challenge.status.toLowerCase() === 'active')
+    const completedChallenges = challenges.filter(challenge => challenge.status.toLowerCase() === 'completed')
 
     if (statsLoading || challengesLoading) {
         return (
-            <div className="flex items-center justify-center h-64">
-                <Loader2 className="h-8 w-8 animate-spin"/>
-                <span className="ml-2">Loading dashboard...</span>
-            </div>
-        );
-    }
-
-    if (statsError) {
-        return (
-            <div className="flex items-center justify-center h-64">
-                <div className="text-center">
-                    <p className="text-red-500 mb-4">{statsError}</p>
-                    <Button onClick={() => window.location.reload()}>Retry</Button>
+            <MainLayout>
+                <div className={'flex items-center justify-center h-64'}>
+                    <Loader2 className={'h-8 w-8 animate-spin'}/>
+                    <span className={'m;-2'}>Loading dashboard</span>
                 </div>
-            </div>
-        );
+            </MainLayout>
+        )
     }
 
-    const recentChallenges = challenges.slice(0, 5);
+    if (statsError || challengesError) {
+        return (
+            <MainLayout>
+                <div className={'flex items-center justify-center h-64'}>
+                    <div className={'text-center'}>
+                        <p className={'text-red-500 mb-4'}>{statsError || challengesError}</p>
+                        <Button onClick={() => {
+                            refetchStats();
+                            refetchChallenges()
+                        }}>Retry</Button>
+                    </div>
+                </div>
+            </MainLayout>
+        )
+    }
+
+    const totalChallenges = stats?.totalChallenges ?? 0;
+    const activeChallengesCount = stats?.activeChallenges ?? 0
+    const totalBudget = stats?.totalBudget ?? 0
+    const completedChallengesCount = stats?.completedChallenges ?? 0
+
 
     return (
         <MainLayout>
-            <div className="p-6 space-y-8">
-                {/* Header */}
-                <div className="flex justify-between items-center">
-                    <div>
-                        <h1 className="text-3xl font-bold tracking-tight">Dashboard Overview</h1>
-                        <p className="text-muted-foreground">
-                            Welcome back! Here's what's happening with your challenges.
-                        </p>
-                    </div>
-
-                    <Button className="flex items-center gap-2" onClick={() => setIsDialogOpen(true)}>
-                        <Plus className="h-4 w-4"/>
-                        Create Challenge
+            <div className="dashbg md:p-6 md:pr-3 md:pl-1 md:pt-1 px-3 pt-2 ">
+                <div className="mb-8 flex items-center justify-between">
+                    <h1 className="text-2xl font-bold dashtext">Overview</h1>
+                    <Button className="dashbutton" onClick={() => setIsCreateChallengeOpen(true)}>Create New
+                        Challenge
                     </Button>
-
                 </div>
 
-                {/* Stats Cards */}
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Total Challenges</CardTitle>
-                            <TrendingUp className="h-4 w-4 text-muted-foreground"/>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{stats?.totalChallenges || 0}</div>
-                            <p className="text-xs text-muted-foreground">
-                                +{stats?.activeChallenges || 0} active
-                            </p>
-                        </CardContent>
+                <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <Card className="secondbg p-6 dashtext">
+                        <div className="mb-2 text-sm text-gray-400">Total Challenges</div>
+                        <div className="text-3xl font-bold">{totalChallenges}</div>
+                        <div className="mt-2 text-sm text-[#00bf8f]">
+                            +{totalChallenges - completedChallengesCount} this month
+                        </div>
                     </Card>
-
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Total Submissions</CardTitle>
-                            <Users className="h-4 w-4 text-muted-foreground"/>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{stats?.totalSubmissions || 0}</div>
-                            <p className="text-xs text-muted-foreground">
-                                +{stats?.approvedSubmissions || 0} approved
-                            </p>
-                        </CardContent>
+                    <Card className="secondbg p-6 dashtext">
+                        <div className="mb-2 text-sm text-gray-400">Active Challenges</div>
+                        <div className="text-3xl font-bold">{activeChallengesCount}</div>
+                        <span>⏳</span>
                     </Card>
-
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Total Views</CardTitle>
-                            <Eye className="h-4 w-4 text-muted-foreground"/>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{stats?.totalViews || 0}</div>
-                            <p className="text-xs text-muted-foreground">
-                                Across all challenges
-                            </p>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Total Budget</CardTitle>
-                            <DollarSign className="h-4 w-4 text-muted-foreground"/>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">${stats?.totalBudget || 0}</div>
-                            <p className="text-xs text-muted-foreground">
-                                Allocated across challenges
-                            </p>
-                        </CardContent>
+                    <Card className="secondbg p-6 dashtext">
+                        <div className="mb-2 text-sm text-gray-400">Total Rewards</div>
+                        <div className="text-3xl font-bold">${totalBudget.toLocaleString()}</div>
+                        <div className="mt-2 text-sm text-[#00bf8f]">
+                            +${totalBudget ? (totalBudget * 0.32).toFixed(0) : 0}
+                        </div>
                     </Card>
                 </div>
 
-                {/* Recent Challenges */}
-                <div className="grid gap-4 md:grid-cols-2">
-                    <Card className="col-span-1">
-                        <CardHeader>
-                            <CardTitle>Recent Challenges</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-4">
-                                {recentChallenges.length > 0 ? (
-                                    recentChallenges.map((challenge) => (
-                                        <div key={challenge._id} className="flex items-center space-x-4">
-                                            <div className="flex-1 space-y-1">
-                                                <p className="text-sm font-medium leading-none">
-                                                    {challenge.title}
-                                                </p>
-                                                <p className="text-sm text-muted-foreground">
-                                                    {challenge.submissions.length} submissions
-                                                </p>
+                <div className="mb-8">
+                    <h2 className={'mb-4 text-xl font-bold dashtext'}>
+                        Active Challenges
+                    </h2>
+                    <div className={'grid grid-cols-1 gap-4 md:grid-cols-2'}>
+                        {activeChallenges.length > 0 ? (
+                            activeChallenges.map((challenge) => (
+                                <Card key={challenge._id} className={'secondbg p-6'}>
+                                    <div className={'mb-4 flex items-center justify-between'}>
+                                        <div>
+                                            <h3 className={'text-lg font-semibold dashtext'}>{challenge.title}</h3>
+                                            <span
+                                                className={'inline-block rounded-full bg-[#00bf8f]/20 px-2 py-0.5 text-xs text-[#00bf8f]'}>{challenge.status}</span>
+                                        </div>
+                                        <div className={'text-xl font-bold text-[#00bf8f]'}>
+                                            ${challenge.totalBudget.toLocaleString()}
+                                        </div>
+                                        <div className={'mb-4 flex items-center gap-6 text-sm text-gray-400'}>
+                                            <div className={'flex items-center gap-2'}>
+                                                <FileText className={'w-4 h-4'}/>
+                                                {challenge.submissions?.length || 0}
                                             </div>
-                                            <Badge variant={challenge.status === 'Active' ? 'default' : 'secondary'}>
+                                        </div>
+                                        <Link to={`/dashboard/innovator/my-challenges/${challenge._id}`}>
+                                            <Button className={'w-full dashbutton'}>View Details</Button>
+                                        </Link>
+                                    </div>
+                                </Card>
+                            ))
+                        ) : (
+                            <Card className={'secondbg p-6 text-center'}>
+                                <p className={'text-gray-400'}>No active challenges found</p>
+                                <Button className={'mt-4 dashbutton'} onClick={() => setIsCreateChallengeOpen(true)}>
+                                    Create a Challenge
+                                </Button>
+                            </Card>
+                        )}
+                    </div>
+                </div>
+
+                <div className="mb-8">
+                    <h2 className={'mb-4 text-xl font-bold dashtext'}>Completed Challenges</h2>
+                    <div className={'grid grid-cols-1 gap-4 md:grid-cols-2'}>
+                        {completedChallenges.length > 0 ? (
+                            completedChallenges.map((challenge) => (
+                                <Card key={challenge._id} className={'secondbg p-6'}>
+                                    <div className={'mb-4 flex items-center justify-between'}>
+                                        <div>
+                                            <h3 className={'text-lg font-semibold dashtext'}>{challenge.title}</h3>
+                                            <span
+                                                className={'inline-block rounded-full bg-[#00bf8f]/20 px-2 py-0.5 text-xs text-[#00bf8f]'}>
                                                 {challenge.status}
-                                            </Badge>
+                                            </span>
                                         </div>
-                                    ))
-                                ) : (
-                                    <p className="text-sm text-muted-foreground text-center py-4">
-                                        No challenges yet. Create your first challenge!
-                                    </p>
-                                )}
-                            </div>
-                            {recentChallenges.length > 0 && (
-                                <div className="mt-4">
-                                    <Link to="/dashboard/innovator/my-challenges">
-                                        <Button variant="outline" size="sm" className="w-full">
-                                            View All Challenges
-                                        </Button>
+                                        <div
+                                            className={'text-xl font-bold text-[#00bf8f]'}>${challenge.totalBudget.toLocaleString()}</div>
+                                    </div>
+                                    <div className={'mb-4 flex items-center gap-6 text-sm text-gray-400'}>
+                                        <div className={'flex items-center gap-2'}>
+                                            <FileText className={'h-4 w-4'}/>
+                                            {challenge.submissions?.length || 0} Submissions
+                                        </div>
+                                    </div>
+                                    <Link to={`/dashboard/completed-challenges/${challenge._id}`}>
+                                        <Button className={'w-full dashbutton'}>View Details</Button>
                                     </Link>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-
-                    {/* Recent Activity */}
-                    <Card className="col-span-1">
-                        <CardHeader>
-                            <CardTitle>Recent Activity</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-4">
-                                {stats?.recentActivity && stats.recentActivity.length > 0 ? (
-                                    stats.recentActivity.slice(0, 5).map((activity: any, index: number) => (
-                                        <div key={index} className="flex items-start space-x-3">
-                                            <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"/>
-                                            <div className="flex-1 space-y-1">
-                                                <p className="text-sm">{activity.description}</p>
-                                                <p className="text-xs text-muted-foreground">
-                                                    {new Date(activity.timestamp).toLocaleDateString()}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <p className="text-sm text-muted-foreground text-center py-4">
-                                        No recent activity
-                                    </p>
-                                )}
-                            </div>
-                        </CardContent>
-                    </Card>
+                                </Card>
+                            ))
+                        ) : (
+                            <Card className={'secondbg p-6 text-center'}>
+                                <p className={'text-gray-400'}>No completed challenges found.</p>
+                            </Card>
+                        )}
+                    </div>
                 </div>
 
-                {/*  create a Challenge dialog  */}
-                <CreateChallengeDialog isOpen={isDialogOpen} onClose={() => setIsDialogOpen(false)} onChallengeCreated={refetch}/>
+                <CreateChallengeDialog
+                    isOpen={isCreateChallengeOpen}
+                    onClose={() => setIsCreateChallengeOpen(false)}
+                    onChallengeCreated={() => {
+                        refetchChallenges();
+                        toast.success('Challenge created successfully!');
+                    }}
+                />
             </div>
         </MainLayout>
-    );
+    )
 }
