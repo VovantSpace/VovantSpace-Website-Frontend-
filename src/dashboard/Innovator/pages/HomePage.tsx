@@ -141,7 +141,7 @@ export default function HomePage() {
                             </div>
                             {recentChallenges.length > 0 && (
                                 <div className="mt-4">
-                                    <Link to="/dashboard/my-challenges">
+                                    <Link to="/my-challenges">
                                         <Button variant="outline" size="sm" className="w-full">
                                             View All Challenges
                                         </Button>
