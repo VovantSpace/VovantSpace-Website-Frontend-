@@ -81,7 +81,7 @@ export default function HomePage() {
                     </Card>
                     <Card className="secondbg p-6 dashtext">
                         <div className="mb-2 text-sm text-gray-400">Active Challenges</div>
-                        <div className="text-3xl font-bold">{safeFormatNumber(activeChallengesCount)}</div>
+                        <div className="text-3xl font-bold">{activeChallengesCount}</div>
                         <span>⏳</span>
                     </Card>
                     <Card className="secondbg p-6 dashtext">
