@@ -86,7 +86,7 @@ export default function HomePage() {
                         <div className="mb-2 text-sm text-gray-400">Total Rewards</div>
                         <div className="text-3xl font-bold">${safeFormatNumber(totalBudget)}</div>
                         <div className="mt-2 text-sm text-[#00bf8f]">
-                            +${totalBudget ? (totalBudget * 0.32).toFixed(0) : '0'}
+                            +${totalBudget ? (totalBudget * 0.32).toFixed(0) : '0'} this month
                         </div>
                     </Card>
                 </div>
