@@ -111,10 +111,10 @@ export default function ChallengesPage() {
                             Manage and track all your challenges in one place.
                         </p>
                     </div>
-                        <Button className="flex items-center gap-2" onClick={() => setIsDialogOpen(true)}>
-                            <Plus className="h-4 w-4"/>
-                            Create Challenge
-                        </Button>
+                    <Button className="flex items-center gap-2" onClick={() => setIsDialogOpen(true)}>
+                        <Plus className="h-4 w-4"/>
+                        Create Challenge
+                    </Button>
 
                 </div>
 
