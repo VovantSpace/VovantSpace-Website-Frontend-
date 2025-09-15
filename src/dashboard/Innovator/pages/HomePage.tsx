@@ -13,7 +13,7 @@ const safeFormatNumber = (value: number | undefined | null): string => {
     if (value === null || value === undefined || isNaN(value)) {
         return '0';
     }
-    return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return value.toLocaleString('en-US', { maximumFractionDigits: 2 });
 };
 
 export default function HomePage() {
