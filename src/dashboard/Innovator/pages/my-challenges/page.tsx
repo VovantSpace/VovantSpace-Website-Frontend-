@@ -12,20 +12,29 @@ import {challengeApi} from "@/services/challengeService";
 
 export default function ChallengesPage() {
     const {challenges, loading, error, refetch} = useChallenges();
-    const [selectedChallenge, setSelectedChallenge] = useState<Challenge | null>(null);
+    const [selectedChallengeForSubmissions, setSelectedChallengeForSubmissions] = useState<Challenge | null>(null);
     const [challengeToApprove, setChallengeToApprove] = useState<Challenge | null>(null);
+    const [selectedChallengeForCompletion, setSelectedChallengeForCompletion] = useState<Challenge | null>(null);
     const [isReviewOpen, setIsReviewOpen] = useState(false);
 
     const handleReviewSubmit = async (approved: boolean, submissionId: string) => {
-        if (!selectedChallenge?._id) return;
+        if (!selectedChallengeForSubmissions?._id) return;
         try {
-            await challengeApi.reviewSubmission(selectedChallenge._id, submissionId, approved ? 'approve' : 'reject')
+            await challengeApi.reviewSubmission(selectedChallengeForSubmissions._id, submissionId, approved ? 'approve' : 'reject')
             setIsReviewOpen(false);
             refetch();
         } catch (err: any) {
             console.error("Error submitting review:", err.message);
         }
     };
+
+    const handleChallengeCompleted = () => {
+        // Refresh the challenge list after completing a challenge
+        refetch();
+
+        // Close the completion dialog
+        setSelectedChallengeForCompletion(null);
+    }
 
     const canApprove = (challenge: Challenge) => {
         return challenge.approvedSubmissions?.length >= challenge.problemSolversNeeded;
@@ -128,7 +137,7 @@ export default function ChallengesPage() {
                                         size="sm"
                                         className="dashbutton text-white text-[11px] py-1.5 px-1.5 uppercase rounded-md dark:hover:text-black w-auto"
                                         onClick={() => {
-                                            setSelectedChallenge(challenge);
+                                            setSelectedChallengeForSubmissions(challenge);
                                             setIsReviewOpen(true);
                                         }}
                                     >
@@ -147,7 +156,7 @@ export default function ChallengesPage() {
                                         variant="ghost"
                                         size="sm"
                                         className="dashbutton text-white text-[11px] py-1.5 px-1.5 uppercase rounded-md dark:hover:text-black w-auto"
-                                        onClick={() => setSelectedChallenge(challenge)}
+                                        onClick={() => setSelectedChallengeForCompletion(challenge)}
                                     >
                                         Complete
                                     </Button>
@@ -158,11 +167,12 @@ export default function ChallengesPage() {
                 </div>
             </div>
 
-            {selectedChallenge && (
+            {/*Winner selector Dialog for challenge completion*/}
+            {setSelectedChallengeForCompletion && (
                 <WinnerSelectorDialog
-                    challenge={selectedChallenge}
-                    isOpen={!!selectedChallenge}
-                    onClose={() => setSelectedChallenge(null)}
+                    challenge={selectedChallengeForCompletion}
+                    isOpen={!!selectedChallengeForCompletion}
+                    onClose={() => setSelectedChallengeForCompletion(null)}
                 />
             )}
 
@@ -178,9 +188,9 @@ export default function ChallengesPage() {
                 />
             )}
 
-            {selectedChallenge && (
+            {selectedChallengeForSubmissions && (
                 <AllSubmissionsDialog
-                    submissions={selectedChallenge.submissions || []}
+                    submissions={selectedChallengeForSubmissions.submissions || []}
                     isOpen={isReviewOpen}
                     onClose={() => setIsReviewOpen(false)}
                     onApprove={(submissionId: any) => handleReviewSubmit(true, submissionId)}
@@ -188,5 +198,5 @@ export default function ChallengesPage() {
                 />
             )}
         </MainLayout>
-    );
+    )
 }

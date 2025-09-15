@@ -4,7 +4,6 @@ import {
     DialogContent,
     DialogHeader,
     DialogTitle,
-    DialogFooter,
 } from "../../components/ui/dialog";
 import {Button} from "../../components/ui/button";
 import {challengeApi, Challenge} from "@/services/challengeService";
@@ -14,7 +13,7 @@ interface ChallengeCompleteDialogProps {
     isOpen: boolean;
     onClose: () => void;
     // onBlockChat?: () => void; // Callback to block the chat automatically
-    challenge: Challenge
+    challenge: Challenge | null
     onChallengeCompleted?: () => void; // Callback to handle challenge completion
 }
 
@@ -41,16 +40,25 @@ export function WinnerSelectorDialog({
             if (response.success) {
                 setIsConfirmed(true);
                 toast.success("Challenge completed successfully");
-                onChallengeCompleted?.();
+                if (onChallengeCompleted) {
+                    onChallengeCompleted();
+                }
             } else {
                 toast.error(response.message || "Failed to complete challenge");
+                setIsSubmitting(false);
             }
         } catch (error: any) {
+            console.error("Error completing challenge:", error);
             toast.error(error?.response?.data?.message || "Failed to complete challenge");
-        } finally {
             setIsSubmitting(false);
         }
     };
+
+    const handleClose = () => {
+        setIsConfirmed(false);
+        setIsSubmitting(false);
+        onClose();
+    }
 
 
     return (
@@ -66,27 +74,27 @@ export function WinnerSelectorDialog({
                         <p className="text-md font-medium mb-4 dashtext">
                             Congratulations, this project is successful. Thank you for choosing VovantSpace.
                         </p>
-                        <Button className="dashbutton w-full" onClick={onClose} disabled={isSubmitting}>
+                        <Button className="dashbutton w-full" onClick={handleClose} disabled={isSubmitting}>
                             Close
                         </Button>
                     </div>
                 ) : (
                     <div>
                         <p className="text-md text-center ">
-                            Are you sure the challenge "{challenge.title}" has been solved and solution has been
+                            Are you sure the challenge "{challenge?.title || 'this challenge'}" has been solved and solution has been
                             completed?
                         </p>
                         <div className="flex justify-center gap-4 mt-3">
                             <Button
                                 variant="outline"
                                 className="border border-gray-400 dark:text-black"
-                                onClick={onClose}
+                                onClick={handleClose}
                                 disabled={isSubmitting}
                             >
                                 No
                             </Button>
                             <Button
-                                className="dashbutton "
+                                className="dashbutton"
                                 onClick={handleConfirm}
                                 disabled={isSubmitting}
                             >
@@ -95,7 +103,6 @@ export function WinnerSelectorDialog({
                         </div>
                     </div>
                 )}
-
             </DialogContent>
         </Dialog>
     );
