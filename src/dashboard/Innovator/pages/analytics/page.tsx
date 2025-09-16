@@ -41,7 +41,7 @@ export default function AnalyticsPage() {
     // Transform data into the format expected by the charts
     const metrics = analytics?.metrics || [];
     const industryData = analytics?.industryData || [];
-    const engagementData = analytics?.engagementData || 0;
+    const engagementData = analytics?.engagementData || [];
     const rewardData = analytics?.rewardData || [];
 
     return (
