@@ -3,32 +3,32 @@ import { Camera, Edit2, Check, X } from "lucide-react"
 import {
   FaChartLine
 } from 'react-icons/fa';
-import { Button } from "@innovator/components/ui/button"
-import { Card } from "@innovator/components/ui/card"
-import { Input } from "@innovator/components/ui/input"
-import { Switch } from "@innovator/components/ui/switch"
-import { Separator } from "@innovator/components/ui/separator"
-import { Label } from "@innovator/components/ui/label"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { Input } from "@/dashboard/Innovator/components/ui/input"
+import { Switch } from "@/dashboard/Innovator/components/ui/switch"
+import { Separator } from "@/dashboard/Innovator/components/ui/separator"
+import { Label } from "@/dashboard/Innovator/components/ui/label"
 import { MainLayout } from "../../components/layout/main-layout";
-import { ChangePasswordDialog } from "@innovator/components/modals/change-password-dialog"
-import { UploadImageDialog } from "@innovator/components/modals/upload-image-dialog"
+import { ChangePasswordDialog } from "@/dashboard/Innovator/components/modals/change-password-dialog"
+import { UploadImageDialog } from "@/dashboard/Innovator/components/modals/upload-image-dialog"
 import CountryandTime from "@/dashboard/ProblemSolver/pages/profile/CountryandTime"
 import tick from '@/assets/tick.png'
-import { IdentityVerificationDialog } from "@problemsolver/components/modals/IdentityVerificationDialogue"
-import { Textarea } from "@innovator/components/ui/textarea"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@innovator/components/ui/dialog"
+import { IdentityVerificationDialog } from "@/dashboard/ProblemSolver/components/modals/IdentityVerificationDialogue"
+import { Textarea } from "@/dashboard/Innovator/components/ui/textarea"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/dashboard/Innovator/components/ui/dialog"
 import { Link } from "react-router-dom"
 import PhoneInput from "react-phone-input-2"
 import "react-phone-input-2/lib/style.css"
 import * as Yup from 'yup';
 import { useFormik } from 'formik';
-import { EditableSection } from "@problemsolver/components/modals/EditableSection"
-import { EducationEntry } from "@problemsolver/components/modals/EducationEntry"
-import { PortfolioEntry } from "@problemsolver/components/modals/PortfolioEntry"
-import { CertificationEntry } from "@problemsolver/components/modals/CertificationEntry"
+import { EditableSection } from "@/dashboard/ProblemSolver/components/modals/EditableSection"
+import { EducationEntry } from "@/dashboard/ProblemSolver/components/modals/EducationEntry"
+import { PortfolioEntry } from "@/dashboard/ProblemSolver/components/modals/PortfolioEntry"
+import { CertificationEntry } from "@/dashboard/ProblemSolver/components/modals/CertificationEntry"
 
-import ReauthenticateDialog from "@client/components/Reauthenticatedialog";
-import EditableField from "@client/components/EditableField";
+import ReauthenticateDialog from "@/dashboard/Client/components/Reauthenticatedialog";
+import EditableField from "@/dashboard/Client/components/EditableField";
 import Select from "react-select";
 import { WorkExperienceEntry } from "../../components/modals/WorkExperienceEntry";
 

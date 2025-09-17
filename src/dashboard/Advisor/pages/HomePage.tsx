@@ -8,7 +8,6 @@ import {MainLayout} from "../components/layout/main-layout";
 import {Link} from "react-router-dom";
 import {useDashboardStats, useMentorSessions} from "@/hooks/useMentor";
 
-
 // Helper function to get week days starting from today
 const getWeekDays = () => {
     const today = new Date();
@@ -30,13 +29,14 @@ const getWeekDays = () => {
     return days;
 }
 
-// Helper function to group sessions by day
+// Fixed: Helper function to group sessions by day using full date as key
 const groupSessionsByDay = (sessions: any[]) => {
-    const grouped: { [key: number]: any[] } = {};
+    const grouped: { [key: string]: any[] } = {}; // Changed to string key
 
     sessions.forEach(session => {
-        const sessionDate = new Date(session.scheduledDate)
-        const dayKey = sessionDate.getDate();
+        const sessionDate = new Date(session.scheduledDate);
+        // Use full date string as key instead of just day number to avoid conflicts
+        const dayKey = sessionDate.toDateString(); // e.g., "Wed Dec 25 2024"
 
         if (!grouped[dayKey]) {
             grouped[dayKey] = [];
@@ -53,8 +53,8 @@ const groupSessionsByDay = (sessions: any[]) => {
             clientAvatar: session.mentee.profilePicture,
             status: session.status,
             amount: session.amount,
-        })
-    })
+        });
+    });
 
     return grouped;
 }
@@ -72,7 +72,6 @@ const LoadingStats = (): JSX.Element => {
 
 // Error component
 const ErrorMessage = ({message, onRetry}: { message: string; onRetry: () => void }) => {
-
     return <div className={'flex items-center justify-center p-8 text-center'}>
         <div className={'max-w-md'}>
             <AlertCircle className={'h-12 w-12 text-red-500 mx-auto mb-4'}/>
@@ -85,7 +84,6 @@ const ErrorMessage = ({message, onRetry}: { message: string; onRetry: () => void
             </Button>
         </div>
     </div>
-
 }
 
 export default function HomePage() {
@@ -105,7 +103,7 @@ export default function HomePage() {
         loading: sessionsLoading,
         error: sessionsError,
         refetch: refetchSessions
-    } = useMentorSessions('scheduled', 1, 50); // Get more session to show across the week
+    } = useMentorSessions('scheduled', 1, 50);
 
     const days = useMemo(() => {
         const weekDays = getWeekDays();
@@ -117,20 +115,41 @@ export default function HomePage() {
 
     const sessionsByDay = useMemo(() => {
         return groupSessionsByDay(upcomingSessions || []);
-    }, [upcomingSessions])
+    }, [upcomingSessions]);
 
+    // Fixed: Get sessions for selected day using full date string
     const selectedDay = days[selectedDayIndex];
-    const sessionsForSelectedDay = selectedDay ? sessionsByDay[selectedDay.date] || [] : [];
+    const sessionsForSelectedDay = selectedDay
+        ? sessionsByDay[selectedDay.fullDate.toDateString()] || []
+        : [];
 
-    // Handle day selection
-    const handleSelectDay = (dayIndex: number) => {
-        setSelectedDayIndex(dayIndex);
-    }
+    // Fixed: Handle day selection properly
+    const handleSelectDay = (date: number) => {
+        // Find the index of the day with this date number
+        const dayIndex = days.findIndex(day => day.date === date);
+        if (dayIndex !== -1) {
+            setSelectedDayIndex(dayIndex);
+        }
+    };
 
     // Handle retry for errors
     const handleRetry = () => {
         refetchStats()
         refetchSessions()
+    }
+
+    // Show error state
+    if (statsError || sessionsError) {
+        return (
+            <MainLayout>
+                <div className={'p-4 dark:text-white'}>
+                    <ErrorMessage
+                        message={statsError || sessionsError || "Failed to load dashboard data"}
+                        onRetry={handleRetry}
+                    />
+                </div>
+            </MainLayout>
+        );
     }
 
     // Show loading state
@@ -156,7 +175,7 @@ export default function HomePage() {
 
     return (
         <MainLayout>
-            <div className="p-4  dark:text-white">
+            <div className="p-4 dark:text-white">
                 <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-3">
                     <StatsCard
                         title="Total Sessions This Month"
@@ -180,7 +199,7 @@ export default function HomePage() {
                                 : "No pending requests",
                             positive: (stats?.pendingRequests || 0) > 0
                         }}
-                        iconBgColor="bg-gray-200 dark:bg-gray-700"
+                        iconBgColor="bg-blue-100 dark:bg-blue-900/30"
                     />
                     <StatsCard
                         title="Total Earnings"
@@ -193,7 +212,7 @@ export default function HomePage() {
                                 : "No ratings yet",
                             positive: (stats?.averageRatings || 0) >= 4
                         }}
-                        iconBgColor="bg-gray-200 dark:bg-gray-700"
+                        iconBgColor="bg-green-100 dark:bg-green-900/30"
                     />
 
                     {stats?.averageRatings && (
@@ -234,7 +253,7 @@ export default function HomePage() {
                                         <p className={'text-lg font-medium mb-2'}>No sessions scheduled</p>
                                         <p className={'text-sm'}>
                                             {selectedDay.isToday
-                                                ? "You habe no sessions today"
+                                                ? "You have no sessions today"
                                                 : `No sessions on ${selectedDay.name}, ${selectedDay.date}`
                                             }
                                         </p>
@@ -249,8 +268,7 @@ export default function HomePage() {
 
                 <div className="fixed bottom-6 right-6">
                     <Link to="requests">
-                        <Button
-                            className="dashbutton rounded-full p-4 text-white shadow-lg dark:bg-gray-800 dark:hover:bg-gray-700">
+                        <Button className="dashbutton rounded-full p-4 text-white shadow-lg dark:bg-gray-800 dark:hover:bg-gray-700 relative">
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
                                 className="mr-2 h-5 w-5"
@@ -265,6 +283,12 @@ export default function HomePage() {
                                 />
                             </svg>
                             View Requests
+                            {/* Show pending requests count badge */}
+                            {stats?.pendingRequests && stats.pendingRequests > 0 && (
+                                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center">
+                                    {stats.pendingRequests > 9 ? '9+' : stats.pendingRequests}
+                                </span>
+                            )}
                         </Button>
                     </Link>
                 </div>

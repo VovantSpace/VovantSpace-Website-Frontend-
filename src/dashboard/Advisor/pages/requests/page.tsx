@@ -1,8 +1,35 @@
 import { useState } from "react";
-import { Calendar, Clock } from "lucide-react";
-import { Button } from "@innovator/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@innovator/components/ui/dialog";
+import { Calendar, Clock, User, DollarSign, MessageSquare, AlertCircle, Loader2 } from "lucide-react";
+import { Button } from "@/dashboard/Innovator/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/dashboard/Innovator/components/ui/dialog";
 import { MainLayout } from "../../components/layout/main-layout";
+import {Input} from "@/dashboard/Innovator/components/ui/input";
+import {Label} from "@/dashboard/Innovator/components/ui/label";
+import {Badge} from "@/dashboard/Innovator/components/ui/badge";
+import {useSessionRequests} from "@/hooks/useMentor";
+
+
+interface CounterProposalData {
+    proposedDate: string;
+    proposedTime: string;
+    message?: string;
+}
+
+// Loading skeleton component
+const RequestSkeleton = () => (
+    <div className={'rounded-lg bg-card secondbg p-6 py-4 shadow-sm animate-pulse'}>
+        <div className={'flex flex-col sm:flex-row sm:items-center sm:justify-between'}>
+            <div className={'flex items-center space-x-4 mb:4 sm:mb-0'}>
+                <div className={'h-12 w-12 bg-gray-300 dark:bg-gray-700'}></div>
+                <div className={'h-6 min-w-32 bg-gray-300 dark:bg-gray-700 rounded'}></div>
+            </div>
+
+            <div className={'mt-3 space-y-3'}>
+                <div className={'h-4 w-48 dark:bg-gray-700 rounded'}></div>
+            </div>
+        </div>
+    </div>
+)
 
 export default function RequestsPage() {
   const [showAcceptDialog, setShowAcceptDialog] = useState(false);
