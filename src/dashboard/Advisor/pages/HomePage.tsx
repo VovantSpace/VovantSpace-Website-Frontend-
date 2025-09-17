@@ -1,197 +1,274 @@
-import { useState } from "react";
-import { Clock, Users, DollarSign, Star } from "lucide-react";
-import { Button } from "@innovator/components/ui/button";
-import { StatsCard } from "../components/modals/StatsCard";
-import { DaySelector } from "../components/modals/DaySelector";
-import { SessionCard } from "../components/modals/SessionCard";
-import { MainLayout } from "../components/layout/main-layout";
-import { Link } from "react-router-dom";
-import { RescheduleSession } from "../components/modals/RescheduleSession";
+import {JSX, useMemo, useState} from "react";
+import {Clock, Users, Star, AlertCircle, DollarSign} from "lucide-react";
+import {Button} from '@/components/ui/button'
+import {StatsCard} from "../components/modals/StatsCard";
+import {DaySelector} from "../components/modals/DaySelector";
+import {SessionCard} from "../components/modals/SessionCard";
+import {MainLayout} from "../components/layout/main-layout";
+import {Link} from "react-router-dom";
+import {useDashboardStats, useMentorSessions} from "@/hooks/useMentor";
+
+
+// Helper function to get week days starting from today
+const getWeekDays = () => {
+    const today = new Date();
+    const days = [];
+
+    for (let i = 0; i < 7; i++) {
+        const date = new Date(today)
+        date.setDate(today.getDate() + i);
+
+        days.push({
+            name: date.toLocaleDateString('en-US', {weekday: 'short'}),
+            date: date.getDate(),
+            fullDate: date,
+            isToday: i === 0,
+            isSelected: i === 0
+        });
+    }
+
+    return days;
+}
+
+// Helper function to group sessions by day
+const groupSessionsByDay = (sessions: any[]) => {
+    const grouped: { [key: number]: any[] } = {};
+
+    sessions.forEach(session => {
+        const sessionDate = new Date(session.scheduledDate)
+        const dayKey = sessionDate.getDate();
+
+        if (!grouped[dayKey]) {
+            grouped[dayKey] = [];
+        }
+
+        grouped[dayKey].push({
+            id: session._id,
+            time: sessionDate.toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+            }),
+            duration: `${session.duration} min`,
+            clientName: `${session.mentee.firstName} ${session.mentee.lastName}`,
+            clientAvatar: session.mentee.profilePicture,
+            status: session.status,
+            amount: session.amount,
+        })
+    })
+
+    return grouped;
+}
+
+// Loading component
+const LoadingStats = (): JSX.Element => {
+    return <div className={'grid gap-4 md:grid-cols-1 lg:grid-cols-3'}>
+        {[1, 2, 3].map((i) => (
+            <div key={i} className={'animate-pulse'}>
+                <div className={'h-24 bg-gray-200 dark:bg-gray-700 rounded-lg'}></div>
+            </div>
+        ))}
+    </div>;
+}
+
+// Error component
+const ErrorMessage = ({message, onRetry}: { message: string; onRetry: () => void }) => {
+
+    return <div className={'flex items-center justify-center p-8 text-center'}>
+        <div className={'max-w-md'}>
+            <AlertCircle className={'h-12 w-12 text-red-500 mx-auto mb-4'}/>
+            <h3 className={'text-lg font-semibold text-gray-900 dark:text-white mb-2'}>
+                Something went wrong
+            </h3>
+            <p className={'text-gray-600 dark:text-gray-400 mb-4'}>{message}</p>
+            <Button onClick={onRetry} variant={'outline'}>
+                Try again
+            </Button>
+        </div>
+    </div>
+
+}
 
 export default function HomePage() {
-  const [selectedDay, setSelectedDay] = useState(3);
-  const [sessionType, setSessionType] = useState("upcoming");
+    const [selectedDayIndex, setSelectedDayIndex] = useState(0);
 
+    // Fetch dashboard stats
+    const {
+        stats,
+        loading: statsLoading,
+        error: statsError,
+        refetch: refetchStats,
+    } = useDashboardStats();
 
-  // Simulated upcoming sessions data keyed by day
-  const upcomingSessionsByDay = {
-    1: [
-      {
-        initial: "A",
-        title: "Strategy Meeting",
-        time: "10:00 AM",
-        duration: "30 minutes",
-        details: {
-          type: "One-Time",
-          duration: "30 minutes",
-          discussion: "Discuss quarterly goals",
-        },
-      },
-      {
-        initial: "B",
-        title: "Client/Mentee Call",
-        time: "11:00 AM",
-        duration: "45 minutes",
-        details: {
-          type: "Recurring",
-          duration: "45 minutes",
-          discussion: "Discuss project updates",
-        },
-      },
-    ],
-    2: [
-      {
-        initial: "C",
-        title: "Team Standup",
-        time: "09:00 AM",
-        duration: "15 minutes",
-        details: {
-          type: "Daily",
-          duration: "15 minutes",
-          discussion: "Daily update",
-        },
-      },
-    ],
-    3: [
-      {
-        initial: "D",
-        title: "Career Development",
-        time: "3:00 PM",
-        duration: "30 minutes",
-        details: {
-          type: "One-Time",
-          duration: "30 minutes",
-          discussion: "Discuss transition to management role",
-        },
-      },
-      {
-        initial: "E",
-        title: "Technical Mentoring",
-        time: "11:00 AM",
-        duration: "30 minutes",
-        details: {
-          type: "Weekly",
-          duration: "30 minutes",
-          discussion: "Code review and architecture discussion",
-        },
-      },
-    ],
-    4: [
-      {
-        initial: "F",
-        title: "Product Review",
-        time: "2:00 PM",
-        duration: "40 minutes",
-        details: {
-          type: "One-Time",
-          duration: "40 minutes",
-          discussion: "Review product roadmap",
-        },
-      },
-    ],
-    5: [
-      {
-        initial: "G",
-        title: "Marketing Sync",
-        time: "10:00 AM",
-        duration: "30 minutes",
-        details: {
-          type: "Recurring",
-          duration: "30 minutes",
-          discussion: "Weekly marketing update",
-        },
-      },
-    ],
-    6: [],
-    7: []
-  };
+    // Fetch upcoming sessions
+    const {
+        sessions: upcomingSessions,
+        loading: sessionsLoading,
+        error: sessionsError,
+        refetch: refetchSessions
+    } = useMentorSessions('scheduled', 1, 50); // Get more session to show across the week
 
+    const days = useMemo(() => {
+        const weekDays = getWeekDays();
+        return weekDays.map((day, index) => ({
+            ...day,
+            isSelected: index === selectedDayIndex,
+        }))
+    }, [selectedDayIndex]);
 
-  // Determine sessions to show based on sessionType and day selection
-  const sessionsToShow =
-    sessionType === "upcoming" ? (upcomingSessionsByDay[selectedDay] || []) : [];
+    const sessionsByDay = useMemo(() => {
+        return groupSessionsByDay(upcomingSessions || []);
+    }, [upcomingSessions])
 
-  const days = [
-    { name: "Sun", date: 1, isToday: false, isSelected: selectedDay === 1 },
-    { name: "Mon", date: 2, isToday: false, isSelected: selectedDay === 2 },
-    { name: "Tue", date: 3, isToday: true, isSelected: selectedDay === 3 },
-    { name: "Wed", date: 4, isToday: false, isSelected: selectedDay === 4 },
-    { name: "Thu", date: 5, isToday: false, isSelected: selectedDay === 5 },
-    { name: "Fri", date: 6, isToday: false, isSelected: selectedDay === 6 },
-    { name: "Sat", date: 7, isToday: false, isSelected: selectedDay === 7 },
-  ];
+    const selectedDay = days[selectedDayIndex];
+    const sessionsForSelectedDay = selectedDay ? sessionsByDay[selectedDay.date] || [] : [];
 
-  return (
-    <MainLayout>
-      <div className="p-4  dark:text-white">
-        <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-3">
-          <StatsCard
-            title="Total Sessions This Month"
-            value="125"
-            icon={Clock}
-            change={{ value: "13.6% vs last month", positive: true }}
-            iconBgColor="bg-emerald-100 dark:bg-emerald-900/30"
-          />
-          <StatsCard
-            title="Active Client/Mentee"
-            value="15"
-            icon={Users}
-            change={{ value: "25% vs last month", positive: true }}
-            iconBgColor="bg-gray-200 dark:bg-gray-700"
-          />
-          {/* <StatsCard
-            title="Earnings This Month"
-            value="$2500"
-            icon={DollarSign}
-            subtitle="Total: $18750"
-            change={{ value: "13.6% vs last month", positive: true }}
-            iconBgColor="bg-gray-200 dark:bg-gray-700"
-          /> */}
-          <StatsCard
-            title="Average Rating"
-            value="4.9"
-            icon={Star}
-            subtitle="120 Reviews"
-            iconBgColor="bg-gray-200 dark:bg-gray-700"
-          />
-        </div>
+    // Handle day selection
+    const handleSelectDay = (dayIndex: number) => {
+        setSelectedDayIndex(dayIndex);
+    }
 
-        <div className="mt-8">
-          <div className="flex items-center justify-between">
-            <h2 className="mb-4 text-xl font-bold text-black dark:text-white">
-              Upcoming Sessions
-            </h2>
+    // Handle retry for errors
+    const handleRetry = () => {
+        refetchStats()
+        refetchSessions()
+    }
 
-          </div>
-          <DaySelector days={days} onSelectDay={setSelectedDay} />
-          <div className="mt-4">
-            {sessionsToShow?.map((session, index) => (
-              <SessionCard key={index} {...session} />
-            ))}
-          </div>
-        </div>
+    // Show loading state
+    if (statsLoading && sessionsLoading) {
+        return (
+            <MainLayout>
+                <div className={'p-4 dark:text-white'}>
+                    <LoadingStats/>
+                    <div className={'mt-8'}>
+                        <div className={'h-8 bg-gray-200 dark:bg-gray-700 rounded w-48 mb-4 animate-pulse'}></div>
+                        <div className={'h-16 bg-gray-200 dark:bg-gray-700 rounded mb-4 animate-pulse'}></div>
+                        <div className={'space-y-3'}>
+                            {[1, 2, 3].map((i) => (
+                                <div key={i}
+                                     className={'h-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse'}></div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </MainLayout>
+        )
+    }
 
-        <div className="fixed bottom-6 right-6">
-          <Link to="requests">
-          <Button className="dashbutton rounded-full p-4 text-white shadow-lg dark:bg-gray-800 dark:hover:bg-gray-700">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="mr-2 h-5 w-5"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-            >
-              <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
-              <path
-                fillRule="evenodd"
-                d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"
-                clipRule="evenodd"
-              />
-            </svg>
-            View Requests
-          </Button>
-          </Link>
-        </div>
-      </div>
-    </MainLayout>
-  );
+    return (
+        <MainLayout>
+            <div className="p-4  dark:text-white">
+                <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-3">
+                    <StatsCard
+                        title="Total Sessions This Month"
+                        value={stats?.completedSessions?.toString() || "0"}
+                        icon={Clock}
+                        change={{
+                            value: stats?.upcomingSessions
+                                ? `${stats.upcomingSessions} upcoming sessions`
+                                : "No upcoming sessions",
+                            positive: (stats?.upcomingSessions || 0) > 0
+                        }}
+                        iconBgColor="bg-emerald-100 dark:bg-emerald-900/30"
+                    />
+                    <StatsCard
+                        title="Total Requests"
+                        value={stats?.totalRequests?.toString() || "0"}
+                        icon={Users}
+                        change={{
+                            value: stats?.pendingRequests
+                                ? `${stats.pendingRequests} pending requests`
+                                : "No pending requests",
+                            positive: (stats?.pendingRequests || 0) > 0
+                        }}
+                        iconBgColor="bg-gray-200 dark:bg-gray-700"
+                    />
+                    <StatsCard
+                        title="Total Earnings"
+                        value={`$${stats?.totalEarnings?.toLocaleString() || 0}`}
+                        icon={DollarSign}
+                        subtitle={stats?.completedSessions ? `From ${stats?.completedSessions} sessions` : "No sessions completed"}
+                        change={{
+                            value: stats?.averageRatings
+                                ? `${stats.averageRatings}★ average rating`
+                                : "No ratings yet",
+                            positive: (stats?.averageRatings || 0) >= 4
+                        }}
+                        iconBgColor="bg-gray-200 dark:bg-gray-700"
+                    />
+
+                    {stats?.averageRatings && (
+                        <StatsCard
+                            title={'Average Rating'}
+                            value={stats.averageRatings.toString()}
+                            icon={Star}
+                            subtitle={`${stats.totalRatings || 0} Reviews`}
+                            iconBgColor={'bg-yellow-100 dark:bg-yellow-900/30'}
+                        />
+                    )}
+                </div>
+
+                <div className="mt-8">
+                    <div className="flex items-center justify-between">
+                        <h2 className="mb-4 text-xl font-bold text-black dark:text-white">
+                            Upcoming Sessions
+                        </h2>
+                        {sessionsLoading && (
+                            <div className={'text-sm text-gray-500 dark:text-gray-400'}>
+                                Loading sessions...
+                            </div>
+                        )}
+                    </div>
+
+                    <DaySelector days={days} onSelectDay={handleSelectDay}/>
+
+                    <div className="mt-4">
+                        {sessionsForSelectedDay.length > 0 ? (
+                            sessionsForSelectedDay.map((session, index) => (
+                                <SessionCard key={session.id || index} {...session} />
+                            ))
+                        ) : (
+                            <div className={'text-center py-8 text-gray-500 dark:text-gray-400'}>
+                                {selectedDay ? (
+                                    <>
+                                        <Clock className={'h-12 w-12 mx-auto mb-4 opacity-50'}/>
+                                        <p className={'text-lg font-medium mb-2'}>No sessions scheduled</p>
+                                        <p className={'text-sm'}>
+                                            {selectedDay.isToday
+                                                ? "You habe no sessions today"
+                                                : `No sessions on ${selectedDay.name}, ${selectedDay.date}`
+                                            }
+                                        </p>
+                                    </>
+                                ) : (
+                                    <p>Select a day to view sessions</p>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                <div className="fixed bottom-6 right-6">
+                    <Link to="requests">
+                        <Button
+                            className="dashbutton rounded-full p-4 text-white shadow-lg dark:bg-gray-800 dark:hover:bg-gray-700">
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="mr-2 h-5 w-5"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                            >
+                                <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
+                                <path
+                                    fillRule="evenodd"
+                                    d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"
+                                    clipRule="evenodd"
+                                />
+                            </svg>
+                            View Requests
+                        </Button>
+                    </Link>
+                </div>
+            </div>
+        </MainLayout>
+    );
 }
