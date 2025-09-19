@@ -440,7 +440,7 @@ export default function RequestsPage() {
                     {/*  Filter controls  */}
                     <div className={'flex flex-wrap gap-4 mb-4'}>
                         <div>
-                            <Label htmlFor={'statusFilter'}>Filter by Status:</Label>
+                            <Label htmlFor={'statusFilter'} className={'dark:text-white'}>Filter by Status:</Label>
                             <select
                                 id="statusFilter"
                                 value={statusFilter}
@@ -448,7 +448,7 @@ export default function RequestsPage() {
                                     setStatusFilter(e.target.value)
                                     setCurrentPage(1) // Resets to the first page when filtering
                                 }}
-                                className={'ml-2 px-3 py-2 border rounded-md bg-white dark:bg-gray-800 text-black dark:text-white'}
+                                className={'ml-1 px-3 py-2 border rounded-md bg-white dark:bg-gray-800 text-black dark:text-white'}
                             >
                                 <option value="">All Requests</option>
                                 <option value="pending">Pending</option>
