@@ -14,6 +14,8 @@ import {Label} from "@/dashboard/Innovator/components/ui/label";
 import {Badge} from "@/dashboard/Innovator/components/ui/badge";
 import {useSessionRequests, SessionRequest} from "@/hooks/useMentor";
 import {Textarea} from "@/dashboard/Innovator/components/ui/textarea";
+import {toast} from 'react-hot-toast'
+
 
 interface CounterProposalData {
     proposedDate: string;
@@ -87,9 +89,10 @@ const RequestCard = ({request}: { request: SessionRequest }) => {
             setLoading(true);
             await respondToRequest(request._id, 'accept');
             setShowAcceptDialog(true);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error accepting request', error);
             // reminder: add toast notification here
+            toast.error(error.message);
         } finally {
             setLoading(false);
         }
@@ -103,9 +106,10 @@ const RequestCard = ({request}: { request: SessionRequest }) => {
             });
             setShowDeclineDialog(false);
             setDeclineReason("");
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error decline request:', error)
             // reminder: add toast notification here
+            toast.error(error.message);
         } finally {
             setLoading(false);
         }
@@ -123,9 +127,10 @@ const RequestCard = ({request}: { request: SessionRequest }) => {
             })
             setShowCounterDialog(false);
             setCounterProposal({proposedDate: "", proposedTime: "", message: ""})
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error sending counter proposal request:', error);
             // reminder: add toast notification here
+            toast.error(error.message);
         } finally {
             setLoading(false);
         }

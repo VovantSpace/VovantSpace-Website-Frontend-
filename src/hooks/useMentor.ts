@@ -45,7 +45,7 @@ export interface Availability {
     mentor: string;
     type: 'recurring' | 'specific_date';
     dayOfWeek?: number;
-    timeSlots?: Array<{ startTime: string; endTime: string }>;
+    timeSlots?: Array<{ startTime: string; endTime: string, id: string }>;
     specificDate?: string;
     specificTimeDate?: Array<{ startTime: string; endTime: string }>;
     timeZone: string;
