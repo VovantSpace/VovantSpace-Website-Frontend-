@@ -36,7 +36,7 @@ const groupSessionsByDay = (sessions: any[]) => {
     sessions.forEach(session => {
         const sessionDate = new Date(session.scheduledDate);
         // Use full date string as key instead of just day number to avoid conflicts
-        const dayKey = sessionDate.toDateString(); // e.g., "Wed Dec 25 2024"
+        const dayKey = sessionDate.toDateString();
 
         if (!grouped[dayKey]) {
             grouped[dayKey] = [];
