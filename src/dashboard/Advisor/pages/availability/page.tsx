@@ -334,7 +334,7 @@ export default function AvailabilityPage() {
                     <h1 className={'text-2xl font-bold text-black dark:text-white'}>Availability Management</h1>
                     <div className={'flex gap-2'}>
                         <Button onClick={refetch} variant={'outline'} disabled={loading || saving}>
-                            {loading && <Loader2 className={'mr-2 h-4 w-4 animate-spin'}/>}
+                            {loading && <Loader2 className={'mr-2 h-4 w-4 animate-spin dark:text-black'}/>}
                             Refresh
                         </Button>
                         <Button
@@ -436,7 +436,7 @@ export default function AvailabilityPage() {
                                             step={'5'}
                                             value={daySchedule.hourlyRate}
                                             onChange={(e) => handleHourlyRateChange(daySchedule.day, parseInt(e.target.value) || 0)}
-                                            className={'w-20 h-8 text-center'}
+                                            className={'w-20 h-8 text-center dark:text-black'}
                                         />
                                     </div>
                                     <Button
