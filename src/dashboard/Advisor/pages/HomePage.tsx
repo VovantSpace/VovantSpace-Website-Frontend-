@@ -8,7 +8,7 @@ import {MainLayout} from "../components/layout/main-layout";
 import {Link} from "react-router-dom";
 import {useDashboardStats, useMentorSessions} from "@/hooks/useMentor";
 
-// Helper function to get week days starting from today
+// Helper functions to get week days starting from today
 const getWeekDays = () => {
     const today = new Date();
     const days = [];
@@ -36,7 +36,7 @@ const groupSessionsByDay = (sessions: any[]) => {
     sessions.forEach(session => {
         const sessionDate = new Date(session.scheduledDate);
         // Use full date string as key instead of just day number to avoid conflicts
-        const dayKey = sessionDate.toDateString();
+        const dayKey = sessionDate.toDateString(); // e.g., "Wed Dec 25 2024"
 
         if (!grouped[dayKey]) {
             grouped[dayKey] = [];
@@ -79,7 +79,7 @@ const ErrorMessage = ({message, onRetry}: { message: string; onRetry: () => void
                 Something went wrong
             </h3>
             <p className={'text-gray-600 dark:text-gray-400 mb-4'}>{message}</p>
-            <Button onClick={onRetry} variant={'outline'}>
+            <Button onClick={onRetry} variant={'outline'} className={'dark:text-black'}>
                 Try again
             </Button>
         </div>
@@ -285,7 +285,7 @@ export default function HomePage() {
                             View Requests
                             {/* Show pending requests count badge */}
                             {stats?.pendingRequests && stats.pendingRequests > 0 && (
-                                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center">
+                                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-6 w-6 flex gap-1 items-center justify-center">
                                     {stats.pendingRequests > 9 ? '9+' : stats.pendingRequests}
                                 </span>
                             )}
