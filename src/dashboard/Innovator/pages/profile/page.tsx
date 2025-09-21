@@ -1,92 +1,24 @@
 import { useState } from "react"
 import { Camera, Edit2, Check, X } from "lucide-react"
 
-import { Button } from "@innovator/components/ui/button"
-import { Card } from "@innovator/components/ui/card"
-import { Input } from "@innovator/components/ui/input"
-import { Switch } from "@innovator/components/ui/switch"
-import { Separator } from "@innovator/components/ui/separator"
-import { Label } from "@innovator/components/ui/label"
-import { MainLayout } from "@innovator/components/layout/main-layout"
-import { ChangePasswordDialog } from "@innovator/components/modals/change-password-dialog"
-import { UploadImageDialog } from "@innovator/components/modals/upload-image-dialog"
+import { Button } from "@/dashboard/Innovator/components/ui/button"
+import { Card } from "@/dashboard/Innovator/components/ui/card"
+import { Input } from "@/dashboard/Innovator/components/ui/input"
+import { Switch } from "@/dashboard/Innovator/components/ui/switch"
+import { Separator } from "@/dashboard/Innovator/components/ui/separator"
+import { Label } from "@/dashboard/Innovator/components/ui/label"
+import { MainLayout } from "@/dashboard/Innovator/components/layout/main-layout"
+import { ChangePasswordDialog } from "@/dashboard/Innovator/components/modals/change-password-dialog"
+import { UploadImageDialog } from "@/dashboard/Innovator/components/modals/upload-image-dialog"
 import CountryandTime from "@/dashboard/ProblemSolver/pages/profile/CountryandTime"
 import tick from '@/assets/tick.png'
-import { IdentityVerificationDialog } from "@problemsolver/components/modals/IdentityVerificationDialogue"
+import { IdentityVerificationDialog } from "@/dashboard/ProblemSolver/components/modals/IdentityVerificationDialogue"
 import { Textarea } from "@/dashboard/Innovator/components/ui/textarea"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@innovator/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/dashboard/Innovator/components/ui/dialog"
 import { Link } from "react-router-dom"
 import PhoneInput from "react-phone-input-2"
 import "react-phone-input-2/lib/style.css"
-
-
-function ReauthenticateDialog({
-  isOpen,
-  onClose,
-  onSuccess,
-}: {
-  isOpen: boolean
-  onClose: () => void
-  onSuccess: () => void
-}) {
-  const [password, setPassword] = useState("")
-  const [error, setError] = useState("")
-
-  const handleSubmit = async () => {
-    try {
-      // Add your authentication API call here
-      // await verifyPassword(password)
-      onSuccess()
-      onClose()
-    } catch (err) {
-      setError("Incorrect password. Please try again.")
-    }
-  }
-
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md p-6 rounded-md dark:bg-[#131313] border border-gray-700">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-semibold dashtext">Re-enter Password</DialogTitle>
-          <p className="text-sm text-gray-400 mt-1">We need to verify it's really you.</p>
-        </DialogHeader>
-        <div className="space-y-4 mt-4">
-          <div className="flex items-center justify-between text-sm">
-            <span className=" text-black dark:text-white">v...@gmail.com</span>
-            <Link to={'/login'}>
-              <button className="text-xs text-emerald-500 hover:underline">Not you?</button>
-            </Link>
-          </div>
-          <Label htmlFor="password" className="block text-sm dashtext">
-            Password
-          </Label>
-          <Input
-            id="password"
-            type="password"
-            placeholder="Enter your password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="mt-1"
-          />
-          {error && <p className="text-sm text-red-500">{error}</p>}
-          <div className="flex items-center justify-between">
-            <Link to={'/forget'}>
-              <button className="text-xs text-emerald-500 hover:underline">Forgot password?</button>
-            </Link>
-          </div>
-          <div className="flex justify-end space-x-2 mt-4">
-            <Button variant="outline" onClick={onClose} className="dashbutton text-white">
-              Cancel
-            </Button>
-            <Button onClick={handleSubmit} className="dashbutton">
-              Continue
-            </Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  )
-}
+import ReauthenticateDialog from '@/dashboard/Client/components/Reauthenticatedialog'
 
 function EditableField({
   label,
@@ -280,7 +212,7 @@ export default function ProfilePage() {
               </div>
 
               <div className="mt-5">
-                <CountryandTime disable={isEditing ? false : true} flex={''} />
+                <CountryandTime disable={!isEditing} flex={''} />
               </div>
 
               <div className="mt-6">

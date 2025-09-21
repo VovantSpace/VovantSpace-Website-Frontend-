@@ -13,7 +13,6 @@ function ProblemSolverRouting() {
 
     return (
         <div className='dashbg'>
-            // Toast container
             <Toaster
                 position="top-right"
                 toastOptions={{
@@ -34,7 +33,6 @@ function ProblemSolverRouting() {
             </Routes>
         </div>
     )
-        ;
 }
 
 export default ProblemSolverRouting;

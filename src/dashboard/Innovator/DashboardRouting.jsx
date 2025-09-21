@@ -7,11 +7,21 @@ import WalletPage from './pages/wallet/page';
 import ProfilePage from './pages/profile/page';
 import './styles/globals.css'
 import AlertPage from './pages/alert/Page';
+import {Toaster} from "react-hot-toast";
 
 function DashboardRouting() {
   return (
     <div className='dashbg'>
-      <Routes>
+        <Toaster
+            position="top-right"
+            toastOptions={{
+                style: {
+                    backgroundColor: '#333', color: 'white'
+                }
+            }}
+        />
+
+        <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="my-challenges" element={<ChallengesPage />} />
         <Route path="chats" element={<ChatsPage />} />

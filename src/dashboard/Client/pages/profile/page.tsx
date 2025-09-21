@@ -2,17 +2,17 @@ import { useState } from "react"
 import { Camera, Edit2, Check, X } from "lucide-react"
 import { FaTimes } from "react-icons/fa"
 
-import { Button } from "@innovator/components/ui/button"
-import { Card } from "@innovator/components/ui/card"
+import {Button} from "@/dashboard/Innovator/components/ui/button";
+import { Card } from "@/dashboard/Innovator/components/ui/card"
 
-import { Switch } from "@innovator/components/ui/switch"
-import { Separator } from "@innovator/components/ui/separator"
-import { Label } from "@innovator/components/ui/label"
+import { Switch } from "@/dashboard/Innovator/components/ui/switch"
+import { Separator } from "@/dashboard/Innovator/components/ui/separator"
+import { Label } from "@/dashboard/Innovator/components/ui/label"
 import { MainLayout } from "../../components/layout/main-layout";
-import { ChangePasswordDialog } from "@innovator/components/modals/change-password-dialog"
-import { UploadImageDialog } from "@innovator/components/modals/upload-image-dialog"
+import { ChangePasswordDialog } from "@/dashboard/Innovator/components/modals/change-password-dialog"
+import { UploadImageDialog } from "@/dashboard/Innovator/components/modals/upload-image-dialog"
 import tick from '@/assets/tick.png'
-import { IdentityVerificationDialog } from "@problemsolver/components/modals/IdentityVerificationDialogue"
+import { IdentityVerificationDialog } from "@/dashboard/ProblemSolver/components/modals/IdentityVerificationDialogue"
 
 import CountryandTime from "@/dashboard/ProblemSolver/pages/profile/CountryandTime"
 import PhoneInput from "react-phone-input-2"
@@ -81,7 +81,7 @@ const skillsList = [
 export default function ProfilePage() {
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false)
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false)
-  const [isGetVerifiedDialogueOpen, setisGetVerifiedDialogueOpen] = useState(false)
+  const [isGetVerifiedDialogueOpen, setIsGetVerifiedDialogueOpen] = useState(false)
   const [showAuthDialog, setShowAuthDialog] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [selectedAdvisor, setSelectedAdvisor] = useState("");
@@ -107,7 +107,7 @@ export default function ProfilePage() {
     skill.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleSkillSelection = (skill) => {
+  const handleSkillSelection = (skill: string) => {
     setSelectedSkill(prev => prev === skill ? '' : skill);
   };
 
@@ -214,7 +214,7 @@ export default function ProfilePage() {
                       </h3>
                       <div
                         className="flex items-center text-xs gap-2 bg-transparent py-0.5 px-2 rounded-full border border-gray-500 cursor-pointer"
-                        onClick={() => setisGetVerifiedDialogueOpen(true)}
+                        onClick={() => setIsGetVerifiedDialogueOpen(true)}
                       >
                         <img src={tick} alt="Verification Tick" className="w-5" />
                         <span className="dark:text-white font-semibold tracking-wide">Get verified</span>
@@ -272,7 +272,7 @@ export default function ProfilePage() {
               </div>
 
               <div className="mt-5">
-                <CountryandTime disable={isEditing ? false : true} flex={''} />
+                <CountryandTime disable={!isEditing} flex={''} />
               </div>
 
 
@@ -427,7 +427,7 @@ export default function ProfilePage() {
         />
         <ChangePasswordDialog isOpen={isPasswordDialogOpen} onClose={() => setIsPasswordDialogOpen(false)} />
         <UploadImageDialog isOpen={isUploadDialogOpen} onClose={() => setIsUploadDialogOpen(false)} />
-        <IdentityVerificationDialog isOpen={isGetVerifiedDialogueOpen} onClose={() => setisGetVerifiedDialogueOpen(false)} />
+        <IdentityVerificationDialog isOpen={isGetVerifiedDialogueOpen} onClose={() => setIsGetVerifiedDialogueOpen(false)} />
       </div>
     </MainLayout>
   )

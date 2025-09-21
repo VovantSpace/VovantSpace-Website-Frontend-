@@ -13,7 +13,7 @@ export const AppProvider = ({children}) => {
     const [token, setToken] = useState(localStorage.getItem('token'))
     const [isLoading, setIsLoading] = useState(true)
 
-    // Check if user is authenticated
+    // Check if the user is authenticated
     const isAuthenticated = !!user && !!token
 
     // Axios config

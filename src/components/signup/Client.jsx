@@ -117,7 +117,7 @@ const Client = ({ formik }) => {
     // Handle advisor change using formik
     const handleAdvisorChange = (e) => {
         formik.setFieldValue('advisorType', e.target.value);
-        // Clear reasons when advisor type changes
+        // Clear reasons when an advisor type changes
         formik.setFieldValue('reason', []);
     };
 

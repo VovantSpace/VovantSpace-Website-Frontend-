@@ -1,9 +1,9 @@
 import { useState } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@innovator/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/dashboard/Innovator/components/ui/dialog"
 import { Link } from "react-router-dom"
-import { Input } from "@innovator/components/ui/input"
-import { Label } from "@innovator/components/ui/label"
-import { Button } from "@innovator/components/ui/button"
+import { Input } from "@/dashboard/Innovator/components/ui/input"
+import { Label } from "@/dashboard/Innovator/components/ui/label"
+import { Button } from "@/dashboard/Innovator/components/ui/button"
 
 
 export default function ReauthenticateDialog({

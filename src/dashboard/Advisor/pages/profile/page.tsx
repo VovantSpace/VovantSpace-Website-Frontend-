@@ -443,7 +443,6 @@ export default function ProfilePage() {
                   <label className="block text-gray-700 dark:text-white font-medium my-2 mt-4 text-sm">Expertise</label>
                   <div className="relative">
                     <select
-                      name="expertise"
                       className="w-full pl-3 pr-3 py-2 border rounded-lg focus:outline-none "
                       {...formik.getFieldProps('expertise')}
                       onChange={e => {
@@ -619,7 +618,7 @@ export default function ProfilePage() {
                     degree
                     field
                     startYear
-                    EndYear
+                    endYear
                     isEditing={isEditingEducation}
                     showRemove={tempEducations.length > 1}
                     onChange={(updated) => {
