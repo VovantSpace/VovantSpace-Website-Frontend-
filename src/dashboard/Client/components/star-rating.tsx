@@ -1,5 +1,5 @@
 import { Star } from "lucide-react"
-import { cn } from "@innovator/lib/utils"
+import { cn } from "../../Innovator/lib/utils"
 
 interface StarRatingProps {
   rating: number
@@ -10,7 +10,7 @@ interface StarRatingProps {
   className?: string
 }
 
-export function StarRating({
+function StarRating({
   rating,
   maxRating = 5,
   size = "md",
@@ -48,3 +48,4 @@ export function StarRating({
   )
 }
 
+export default StarRating;

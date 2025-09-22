@@ -1,8 +1,8 @@
 import { useState } from "react"
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@innovator/components/ui/tabs"
-import { SessionCard } from "@client/components/session-card"
-import { PaymentConfirmationDialog } from "@client/components/payment-confirmation-dialog"
-import { MainLayout } from "../../components/layout/main-layout"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/dashboard/Innovator/components/ui/tabs"
+import { SessionCard } from "@/dashboard/Client/components/session-card"
+import { PaymentConfirmationDialog } from "@/dashboard/Client/components/payment-confirmation-dialog"
+import { MainLayout } from "@/dashboard/component/main-layout"
 
 export default function MySessions() {
   const [activeTab, setActiveTab] = useState("upcoming")
@@ -36,7 +36,7 @@ export default function MySessions() {
       duration: "30 minutes",
       status: "pending_payment" as const,
       paymentRequired: {
-        timeRemaining: "300",
+        timeRemaining: 300,
       },
     },
   ]

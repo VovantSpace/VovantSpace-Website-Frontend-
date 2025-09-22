@@ -9,7 +9,7 @@ import {
 } from "@/dashboard/Innovator/components/ui/select";
 import {Input} from "@/dashboard/Innovator/components/ui/input";
 import {X, AlertCircle, Loader2, Save, Calendar, Clock} from "lucide-react";
-import {MainLayout} from "../../components/layout/main-layout";
+import {MainLayout} from "../../../component/main-layout";
 import {Switch} from "@/dashboard/Innovator/components/ui/switch";
 import {useAvailability, Availability} from "@/hooks/useMentor";
 import {toast} from "react-toastify";

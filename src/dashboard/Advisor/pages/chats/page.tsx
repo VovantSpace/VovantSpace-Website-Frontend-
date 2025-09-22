@@ -5,7 +5,7 @@ import { cn } from "@innovator/lib/utils"
 import { Input } from "@innovator/components/ui/input"
 import { ScrollArea } from "@innovator/components/ui/scroll-area"
 import { Separator } from "@innovator/components/ui/separator"
-import { MainLayout } from "../../components/layout/main-layout";
+import { MainLayout } from "../../../component/main-layout";
 import { ChatInterface } from "@innovator/components/chat/chat-interface"
 import { ChatHeader } from "@innovator/components/chat/chat-header"
 import { users, currentUser } from "@innovator/data/user"

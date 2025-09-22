@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { Calendar, Clock,MessageSquare  } from "lucide-react";
-import { AvatarInitial } from "@client/components/avatar-initial";
-import { StatusBadge } from "@client/components/status-badge";
-import { Button } from "@innovator/components/ui/button";
-import { StarRating } from "@client/components/star-rating";
+import { AvatarInitial } from "@/dashboard/Client/components/avatar-initial";
+import { StatusBadge } from "@/dashboard/Client/components/status-badge";
+import { Button } from "@/dashboard/Innovator/components/ui/button";
+import StarRating from "@/dashboard/Client/components/star-rating";
 
 interface SessionCardProps {
   mentor: {

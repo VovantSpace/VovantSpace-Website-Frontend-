@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Button } from "@innovator/components/ui/button"
 import { Card } from "@innovator/components/ui/card"
-import { MainLayout } from "../../components/layout/main-layout";
+import { MainLayout } from "../../../component/main-layout";
 import { WithdrawFundDialog } from "@problemsolver/components/modals/WithdrawFundsDialog"
 import {SolverSendDialog} from "@problemsolver/components/modals/SolverSendDialog"
 import { SendFundSettingsDialog } from "@innovator/components/modals/SendFundSettingsDialog"

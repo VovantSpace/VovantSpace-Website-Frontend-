@@ -1,9 +1,9 @@
 import { useState } from "react"
 import { Clock, BarChart2, Calendar, UserPlus, MessageSquare, GraduationCapIcon as Graduation } from "lucide-react"
-import { Button } from "@innovator/components/ui/button"
-import { SessionCard } from "@client/components/session-card"
-import { PaymentConfirmationDialog } from "@client/components/payment-confirmation-dialog"
-import { MainLayout } from "../components/layout/main-layout"
+import { Button } from "@/dashboard/Innovator/components/ui/button"
+import { SessionCard } from "@/dashboard/Client/components/session-card"
+import { PaymentConfirmationDialog } from "@/dashboard/Client/components/payment-confirmation-dialog"
+import { MainLayout } from "@/dashboard/component/main-layout"
 import { Link } from "react-router-dom"
 
 export default function HomePage() {
@@ -55,7 +55,7 @@ export default function HomePage() {
       duration: "30 minutes",
       status: "pending_payment" as const,
       paymentRequired: {
-        timeRemaining: "4:56",
+        timeRemaining: 4.56,
       },
     },
   ]

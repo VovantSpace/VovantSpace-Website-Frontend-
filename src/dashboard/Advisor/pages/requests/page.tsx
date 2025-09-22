@@ -8,7 +8,7 @@ import {
     DialogTitle,
     DialogTrigger
 } from "@/dashboard/Innovator/components/ui/dialog";
-import {MainLayout} from "../../components/layout/main-layout";
+import {MainLayout} from "../../../component/main-layout";
 import {Input} from "@/dashboard/Innovator/components/ui/input";
 import {Label} from "@/dashboard/Innovator/components/ui/label";
 import {Badge} from "@/dashboard/Innovator/components/ui/badge";

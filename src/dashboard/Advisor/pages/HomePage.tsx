@@ -4,7 +4,7 @@ import {Button} from '@/components/ui/button'
 import {StatsCard} from "../components/modals/StatsCard";
 import {DaySelector} from "../components/modals/DaySelector";
 import {SessionCard} from "../components/modals/SessionCard";
-import {MainLayout} from "../components/layout/main-layout";
+import {MainLayout} from "../../component/main-layout";
 import {Link} from "react-router-dom";
 import {useDashboardStats, useMentorSessions} from "@/hooks/useMentor";
 

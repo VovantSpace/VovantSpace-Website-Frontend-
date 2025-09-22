@@ -9,7 +9,7 @@ import {Input} from "@/dashboard/Innovator/components/ui/input"
 import {Switch} from "@/dashboard/Innovator/components/ui/switch"
 import {Separator} from "@/dashboard/Innovator/components/ui/separator"
 import {Label} from "@/dashboard/Innovator/components/ui/label"
-import {MainLayout} from "../../../component/main-layout";
+import {MainLayout} from "@/dashboard/component/main-layout";
 import {ChangePasswordDialog} from "@/dashboard/Innovator/components/modals/change-password-dialog"
 import {UploadImageDialog} from "@/dashboard/Innovator/components/modals/upload-image-dialog"
 import CountryandTime from "@/dashboard/ProblemSolver/pages/profile/CountryandTime"
@@ -31,7 +31,7 @@ import {CertificationEntry} from "@/dashboard/ProblemSolver/components/modals/Ce
 import ReauthenticateDialog from "@/dashboard/Client/components/Reauthenticatedialog";
 import EditableField from "@/dashboard/Client/components/EditableField";
 import Select from "react-select";
-import {WorkExperienceEntry} from "../../components/modals/WorkExperienceEntry";
+import {WorkExperienceEntry} from "@/dashboard/Advisor/components/modals/WorkExperienceEntry";
 import {useUserService, NotificationPreferences} from '@/hooks/userService'
 import {valueContainerCSS} from "react-select/dist/declarations/src/components/containers";
 

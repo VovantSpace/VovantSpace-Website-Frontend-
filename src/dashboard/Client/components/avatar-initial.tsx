@@ -1,4 +1,4 @@
-import { cn } from "@innovator/lib/utils"
+import { cn } from "../../Innovator/lib/utils"
 
 interface AvatarInitialProps {
   initial: string
@@ -42,3 +42,4 @@ export function AvatarInitial({ initial, size = "md", className }: AvatarInitial
   )
 }
 
+export default AvatarInitial;
