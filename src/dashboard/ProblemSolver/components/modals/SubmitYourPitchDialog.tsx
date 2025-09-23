@@ -1,11 +1,11 @@
 import type React from "react"
 
 import { useState } from "react"
-import { Dialog, DialogContent } from "@innovator/components/ui/dialog"
-import { Input } from "@innovator/components/ui/input"
-import { Button } from "@innovator/components/ui/button"
-import { Badge } from "@innovator/components/ui/badge"
-import { X, PaperclipIcon } from "lucide-react"
+import { Dialog, DialogContent } from "@/dashboard/Innovator/components/ui/dialog"
+import { Input } from "@/dashboard/Innovator/components/ui/input"
+import { Button } from "@/dashboard/Innovator/components/ui/button"
+import { Badge } from "@/dashboard/Innovator/components/ui/badge"
+import { PaperclipIcon } from "lucide-react"
 import { useDropzone } from "react-dropzone"
 import RichTextEditor from "@/dashboard/Innovator/components/modals/RichTextEditor"
 

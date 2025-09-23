@@ -1,11 +1,7 @@
 import {useState, useEffect} from "react"
-import {Camera, Edit2, Check, X} from "lucide-react"
-import {
-    FaChartLine
-} from 'react-icons/fa';
+import {Camera, Edit2} from "lucide-react";
 import {Button} from "@/components/ui/button"
 import {Card} from "@/components/ui/card"
-import {Input} from "@/dashboard/Innovator/components/ui/input"
 import {Switch} from "@/dashboard/Innovator/components/ui/switch"
 import {Separator} from "@/dashboard/Innovator/components/ui/separator"
 import {Label} from "@/dashboard/Innovator/components/ui/label"
@@ -30,7 +26,6 @@ import EditableField from "@/dashboard/Client/components/EditableField";
 import Select from "react-select";
 import {WorkExperienceEntry} from "@/dashboard/Advisor/components/modals/WorkExperienceEntry";
 import {useUserService, NotificationPreferences} from '@/hooks/userService'
-import {valueContainerCSS} from "react-select/dist/declarations/src/components/containers";
 
 interface FormValues {
     firstName: string;
@@ -330,7 +325,7 @@ export default function ProfilePage() {
                 toast.success('Profile updated successfully!')
             } catch (error: any) {
                 console.error('Failed to update Profile:', error)
-                toast.error(error || "Failed to update Profile:", error)
+                toast.error(error.message || "Failed to update Profile")
             }
         }
     });
@@ -453,10 +448,7 @@ export default function ProfilePage() {
     }
 
     const handleImageUploaded = (imageUrl: string) => {
-        setTempProfileData(prev => ({
-            ...prev,
-            profilePicture: imageUrl
-        }))
+        toast.success("Profile Picture updated successfully")
         refreshProfile()
     }
 
@@ -540,9 +532,10 @@ export default function ProfilePage() {
             await updateNotificationPreferences({
                 [key]: value
             })
+            toast.success('Notification preferences updated')
         } catch (error: any) {
             console.error('Failed to update notification preferences:', error)
-            toast.error("Failed to update notification preferences:", error)
+            toast.error(error.message ||"Failed to update notification preferences")
         }
     }
 
