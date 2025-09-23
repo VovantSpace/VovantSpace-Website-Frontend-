@@ -1,8 +1,8 @@
 // Create a new component EditableSection.tsx
 import { useState } from "react"
-import { ReauthenticateDialog } from "../../components/modals/ReauthencticateDialog"
-import { Button } from "@innovator/components/ui/button"
-import { Edit2, X, Check } from "lucide-react"
+import ReauthenticateDialog  from "@/dashboard/Client/components/Reauthenticatedialog"
+import { Button } from "@/dashboard/Innovator/components/ui/button"
+import { Edit2} from "lucide-react"
 
 export function EditableSection({
   title,
