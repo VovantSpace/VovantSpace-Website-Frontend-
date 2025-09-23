@@ -1,9 +1,8 @@
 import { Routes, Route } from 'react-router-dom';
 import HomePage from './pages/HomePage';
-import ChallengesPage from './pages/mentor/page';
 import ChatsPage from './pages/chats/page';
 import WalletPage from './pages/wallet/page';
-import ProfilePage from './pages/profile/page';
+import ProfilePage from '@/dashboard/component/Profile';
 import AlertPage from './pages/alert/Page';
 import Mentors from './pages/mentor/page';
 import MySessions from './pages/sessions/page';
