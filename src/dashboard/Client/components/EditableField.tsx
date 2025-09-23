@@ -1,5 +1,5 @@
-import { Label } from "@innovator/components/ui/label"
-import { Input } from "@innovator/components/ui/input"
+import { Label } from "@/dashboard/Innovator/components/ui/label"
+import { Input } from "@/dashboard/Innovator/components/ui/input"
 
 export default function EditableField({
   label,

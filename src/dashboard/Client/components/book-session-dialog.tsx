@@ -1,8 +1,8 @@
 import { useState } from "react"
 import { Clock, MessageSquare } from "lucide-react"
-import { Dialog, DialogContent, DialogTitle } from "@innovator/components/ui/dialog"
-import { Button } from "@innovator/components/ui/button"
-import { Input } from "@innovator/components/ui/input"
+import { Dialog, DialogContent, DialogTitle } from "@/dashboard/Innovator/components/ui/dialog"
+import { Button } from "@/dashboard/Innovator/components/ui/button"
+import { Input } from "@/dashboard/Innovator/components/ui/input"
 
 interface TimeSlot {
   id: string

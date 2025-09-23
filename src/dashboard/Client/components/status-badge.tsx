@@ -1,5 +1,5 @@
-import { Badge } from "@innovator/components/ui/badge"
-import { cn } from "@innovator/lib/utils"
+import { Badge } from "@/dashboard/Innovator/components/ui/badge"
+import { cn } from "../../Innovator/lib/utils"
 
 interface StatusBadgeProps {
   status: "confirmed" | "completed" | "cancelled" | "pending_payment"

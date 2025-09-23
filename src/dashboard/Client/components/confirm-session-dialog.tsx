@@ -1,6 +1,6 @@
 import { User, Calendar, Clock, MessageSquare, HelpCircle } from "lucide-react"
-import { Dialog, DialogContent, DialogTitle } from "@innovator/components/ui/dialog"
-import { Button } from "@innovator/components/ui/button"
+import { Dialog, DialogContent, DialogTitle } from "@/dashboard/Innovator/components/ui/dialog"
+import { Button } from "@/dashboard/Innovator/components/ui/button"
 
 interface ConfirmSessionDialogProps {
   open: boolean
