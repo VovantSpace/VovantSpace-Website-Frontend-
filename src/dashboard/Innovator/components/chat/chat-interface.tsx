@@ -1,15 +1,15 @@
 import React, { useState, useRef, useEffect } from "react"
 import { Send, Plus, File, Mic, ImageIcon, PlusSquare } from 'lucide-react'
-import { Button } from "@innovator/components/ui/button"
-import { Input } from "@innovator/components/ui/input"
-import { ScrollArea } from "@innovator/components/ui/scroll-area"
+import { Button } from "@/dashboard/Innovator/components/ui/button"
+import { Input } from "@/dashboard/Innovator/components/ui/input"
+import { ScrollArea } from "@/dashboard/Innovator/components/ui/scroll-area"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@innovator/components/ui/dropdown-menu"
-import type { ChatMessage, User, MessageAction, PollData } from "./types"
+} from "@/dashboard/Innovator/components/ui/dropdown-menu"
+import type { ChatMessage, User, MessageAction, PollData } from "@/dashboard/Innovator/types"
 import { ChatMessageItem } from "./chat-message-item"
 import { VideoCallDialog } from "./video-call-dialog"
 import { EmojiPickerPopover } from "./emoji-picker-popover"

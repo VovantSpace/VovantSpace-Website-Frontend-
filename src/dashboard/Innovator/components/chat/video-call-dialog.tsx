@@ -1,11 +1,7 @@
 import { useState, useEffect } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@innovator/components/ui/dialog"
-import { Button } from "@innovator/components/ui/button"
-import { Input } from "@innovator/components/ui/input"
-import { Label } from "@innovator/components/ui/label"
-import { Calendar } from "@innovator/components/ui/calendar"
-
-import { Monitor, Mic, Video, VideoOff, MicOff, PhoneOff, Users, Phone } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/dashboard/Innovator/components/ui/dialog"
+import { Button } from "@/dashboard/Innovator/components/ui/button"
+import { Monitor, Mic, Video, VideoOff, MicOff, PhoneOff, Users} from "lucide-react"
 import type { CallData } from "./types"
 
 interface VideoCallDialogProps {
@@ -17,7 +13,7 @@ interface VideoCallDialogProps {
   initialData?: CallData
 }
 
-export function VideoCallDialog({ isOpen, onClose, mode, type = 'video' }) {
+export function VideoCallDialog({ isOpen, onClose, onSchedule, mode, type = 'video' }: VideoCallDialogProps) {
   const [isVideoEnabled, setIsVideoEnabled] = useState(true)
   const [isAudioEnabled, setIsAudioEnabled] = useState(true)
   const [isScreenSharing, setIsScreenSharing] = useState(false)
