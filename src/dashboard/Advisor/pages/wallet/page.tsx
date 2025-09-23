@@ -1,5 +1,3 @@
-
-
 import { useState } from "react"
 import { Button } from "@/dashboard/Innovator/components/ui/button"
 import { Card } from "@/dashboard/Innovator/components/ui/card"
@@ -9,14 +7,12 @@ import {SolverSendDialog} from "@/dashboard/ProblemSolver/components/modals/Solv
 import { SendFundSettingsDialog } from "@/dashboard/Innovator/components/modals/SendFundSettingsDialog"
 import { ArrowDownRight, ArrowUpRight, RefreshCw } from "lucide-react"
 
-
 export default function WalletPage() {
   const [WithdrawFundOpen, setIsWithdrawFundOpen] = useState(false)
   const [isSendFundsOpen, setIsSendFundsOpen] = useState(false)
   const [isSendFundsSettingsOpen, setIsSendFundsSettingsOpen] = useState(false)
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [selectedPeriod, setSelectedPeriod] = useState("All Time")
-
 
   const RecentTransactions = [
     {
@@ -32,7 +28,6 @@ export default function WalletPage() {
       amount: "-$100",
     },
   ];
-
 
   return (
     <MainLayout>
@@ -86,10 +81,8 @@ export default function WalletPage() {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-
           <Card
             className="dashbutton  p-6 transition-colors hover:secondbg cursor-pointer"
-
             onClick={() => setIsWithdrawFundOpen(true)}
           >
             <div className="flex items-center gap-4">
@@ -102,20 +95,6 @@ export default function WalletPage() {
               </div>
             </div>
           </Card>
-          {/* <Card
-            className="dashbutton  p-6 transition-colors hover:secondbg cursor-pointer"
-            onClick={() => setIsSendFundsOpen(true)}
-          >
-            <div className="flex items-center gap-4">
-              <div className="rounded-full secondbg p-3">
-              <ArrowUpRight className="h-6 w-6 text-[#00bf8f]" />
-              </div>
-              <div className="">
-                <h3 className="font-semibold  text-white">Send Funds</h3>
-                <p className="text-sm text-gray-300">Send funds to others</p>
-              </div>
-            </div>
-          </Card> */}
         </div>
 
         <div className="rounded-xl">
@@ -222,4 +201,3 @@ export default function WalletPage() {
     </MainLayout>
   )
 }
-
