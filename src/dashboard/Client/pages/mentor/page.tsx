@@ -1,11 +1,11 @@
 import { useState } from "react"
 import { Search } from "lucide-react"
-import { Input } from "@innovator/components/ui/input"
-import { MentorCard } from "@client/components/mentor-card"
-import { MentorProfileDialog } from "@client/components/mentor-profile-dialog"
-import { BookSessionDialog } from "@client/components/book-session-dialog"
-import { ConfirmSessionDialog } from "@client/components/confirm-session-dialog"
-import { MainLayout } from "../../components/layout/main-layout"
+import { Input } from "@/dashboard/Innovator/components/ui/input"
+import { MentorCard } from "@/dashboard/Client/components/mentor-card"
+import { MentorProfileDialog } from "@/dashboard/Client/components/mentor-profile-dialog"
+import { BookSessionDialog } from "@/dashboard/Client/components/book-session-dialog"
+import { ConfirmSessionDialog } from "@/dashboard/Client/components/confirm-session-dialog"
+import { MainLayout } from "@/dashboard/component/main-layout"
 
 export default function Mentors() {
   const [searchQuery, setSearchQuery] = useState("")
