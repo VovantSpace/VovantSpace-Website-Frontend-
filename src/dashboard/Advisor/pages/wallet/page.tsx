@@ -1,12 +1,12 @@
 
 
 import { useState } from "react"
-import { Button } from "@innovator/components/ui/button"
-import { Card } from "@innovator/components/ui/card"
-import { MainLayout } from "../../../component/main-layout";
-import { WithdrawFundDialog } from "@problemsolver/components/modals/WithdrawFundsDialog"
-import {SolverSendDialog} from "@problemsolver/components/modals/SolverSendDialog"
-import { SendFundSettingsDialog } from "@innovator/components/modals/SendFundSettingsDialog"
+import { Button } from "@/dashboard/Innovator/components/ui/button"
+import { Card } from "@/dashboard/Innovator/components/ui/card"
+import { MainLayout } from "@/dashboard/component/main-layout";
+import { WithdrawFundDialog } from "@/dashboard/ProblemSolver/components/modals/WithdrawFundsDialog"
+import {SolverSendDialog} from "@/dashboard/ProblemSolver/components/modals/SolverSendDialog"
+import { SendFundSettingsDialog } from "@/dashboard/Innovator/components/modals/SendFundSettingsDialog"
 import { ArrowDownRight, ArrowUpRight, RefreshCw } from "lucide-react"
 
 
