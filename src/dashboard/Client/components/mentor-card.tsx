@@ -1,6 +1,6 @@
-import { Button } from "@innovator/components/ui/button"
-import { StarRating } from "@client/components/star-rating"
-import { AvatarInitial } from "@client/components/avatar-initial"
+import { Button } from "@/dashboard/Innovator/components/ui/button"
+import  StarRating  from "@/dashboard/Client/components/star-rating"
+import { AvatarInitial } from "@/dashboard/Client/components/avatar-initial"
 
 interface MentorCardProps {
   mentor: {
