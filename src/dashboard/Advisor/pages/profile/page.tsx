@@ -392,7 +392,7 @@ export default function ProfilePage() {
             // validate using formik
             const errors = await formik.validateForm()
             if (Object.keys(errors).length > 0) {
-                formik.setTouched(
+                await formik.setTouched(
                     Object.keys(errors).reduce((acc, key) => ({...acc, [key]: true}), {})
                 )
                 return;
