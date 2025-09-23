@@ -398,18 +398,69 @@ export default function ProfilePage() {
                 return;
             }
 
+
             const profileUpdateData = {
-                ...tempProfileData,
-                ...formik.values
+                firstName: tempProfileData.firstName,
+                lastName: tempProfileData.lastName,
+                email: tempProfileData.email,
+                phone: tempProfileData.phone,
+                bio: tempProfileData.bio,
+                industry: tempProfileData.industry,
+                organization: tempProfileData.organization,
+                website: tempProfileData.website,
+                linkedin: tempProfileData.linkedin,
+                skills: formik.values.skills,
+                experience: formik.values.experience,
+                portfolio: formik.values.portfolio,
+                expertise: formik.values.expertise,
+                specialties: formik.values.specialties,
+                languages: formik.values.languages,
+                advisorType: formik.values.advisorType,
+                reason: formik.values.reason,
+                experienceLevel: formik.values.experienceLevel,
             }
+
 
             await updateProfile(profileUpdateData)
             setIsEditing(false)
+
+            // Update the original data after a successful save
+            const updatedProfileData = {
+                firstName: tempProfileData.firstName,
+                lastName: tempProfileData.lastName,
+                email: tempProfileData.email,
+                phone: tempProfileData.phone,
+                bio: tempProfileData.bio,
+                industry: tempProfileData.industry,
+                organization: tempProfileData.organization,
+                website: tempProfileData.website,
+                linkedin: tempProfileData.linkedin,
+                skills: formik.values.skills,
+                experience: formik.values.experience || "",
+                portfolio: formik.values.portfolio || "",
+                expertise: formik.values.expertise,
+                specialties: formik.values.specialties,
+                languages: formik.values.languages,
+                advisorType: formik.values.advisorType || "",
+                reason: formik.values.reason || [],
+                experienceLevel: formik.values.experienceLevel || "",
+            }
+
+            setOriginalProfileData(updatedProfileData)
+
             toast.success('Profile updated successfully!')
-        }catch (error: any) {
+        } catch (error: any) {
             console.error('Failed to update Profile:', error)
             toast.error(error)
         }
+    }
+
+    const handleImageUploaded = (imageUrl: string) => {
+        setTempProfileData(prev => ({
+            ...prev,
+            profilePicture: imageUrl
+        }))
+        refreshProfile()
     }
 
     const filteredSkills = skillsList.filter(skill =>
@@ -425,7 +476,6 @@ export default function ProfilePage() {
         setIsEditing(true)
         setShowAuthDialog(false)
     }
-
 
 
     const handleCancel = () => {
@@ -461,7 +511,8 @@ export default function ProfilePage() {
             <MainLayout>
                 <div className={'flex items-center justify-center min-h-screen'}>
                     <div className={'text-center'}>
-                        <div className={'animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto'}></div>
+                        <div
+                            className={'animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto'}></div>
                         <p className={'mt-4 text-gray-600'}>Loading profile...</p>
                     </div>
                 </div>
@@ -490,9 +541,9 @@ export default function ProfilePage() {
     const handleNotificationUpdate = async (key: keyof NotificationPreferences, value: boolean) => {
         try {
             await updateNotificationPreferences({
-                [key]: valueContainerCSS
+                [key]: value
             })
-        }catch (error: any) {
+        } catch (error: any) {
             console.error('Failed to update notification preferences:', error)
             toast.error("Failed to update notification preferences:", error)
         }
@@ -944,7 +995,13 @@ export default function ProfilePage() {
                                         workExperience={exp}
                                         isEditing={isEditingExperience}
                                         showRemove={workExperiences.length > 1}
-                                        onChange={(updated: { id: number; company: string; role: string; startDate: string; endDate: string; }) => {
+                                        onChange={(updated: {
+                                            id: number;
+                                            company: string;
+                                            role: string;
+                                            startDate: string;
+                                            endDate: string;
+                                        }) => {
                                             const updatedExperiences = [...workExperiences];
                                             updatedExperiences[index] = updated;
                                             setWorkExperiences(updatedExperiences);
@@ -996,7 +1053,7 @@ export default function ProfilePage() {
                                         via email</p>
                                 </div>
                                 <Switch
-                                    checked={notificationPreferences?.challengeUpdates || false}
+                                    checked={notificationPreferences?.emailNotifications || false}
                                     onCheckedChange={(checked) =>
                                         handleNotificationUpdate('emailNotifications', checked)
                                     }
@@ -1049,7 +1106,8 @@ export default function ProfilePage() {
                     onSuccess={handleAuthSuccess}
                 />
                 <ChangePasswordDialog isOpen={isPasswordDialogOpen} onClose={() => setIsPasswordDialogOpen(false)}/>
-                <UploadImageDialog isOpen={isUploadDialogOpen} onClose={() => setIsUploadDialogOpen(false)}/>
+                <UploadImageDialog isOpen={isUploadDialogOpen} onClose={() => setIsUploadDialogOpen(false)}
+                                   onImageUploaded={handleImageUploaded} uploadFunction={uploadProfilePicture} isUpLoading={profileLoading}/>
                 <IdentityVerificationDialog isOpen={isGetVerifiedDialogueOpen}
                                             onClose={() => setIsGetVerifiedDialogueOpen(false)}/>
             </div>

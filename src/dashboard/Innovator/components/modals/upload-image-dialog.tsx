@@ -5,7 +5,7 @@ import type React from "react"
 import { useState, useRef } from "react"
 import { Camera, Upload, X } from "lucide-react"
 
-import { Button } from "@innovator/components/ui/button"
+import { Button } from "@/dashboard/Innovator/components/ui/button"
 import {
   Dialog,
   DialogContent,
@@ -14,15 +14,27 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../ui/dialog"
+import {toast} from 'react-hot-toast'
+
+interface UploadImageDialogProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onImageUploaded?: (imageUrl: string) => void;
+    uploadFunction: (file: File) => Promise<string>;
+    isUpLoading: boolean;
+}
 
 export function UploadImageDialog({
   isOpen,
   onClose,
-}: {
-  isOpen: boolean
-  onClose: () => void
-}) {
+    onImageUploaded,
+    uploadFunction,
+    isUpLoading
+}: UploadImageDialogProps) {
+
   const [preview, setPreview] = useState<string | null>(null)
+    const [selectedFile, setSelectedFile] = useState<File | null>(null)
+    const [uploading, setUpLoading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -52,8 +64,34 @@ export function UploadImageDialog({
     event.preventDefault()
   }
 
+  const handleUpLoad = async () => {
+      if (!selectedFile) return
+      try {
+          setUpLoading(true)
+          const imageUrl = await uploadFunction(selectedFile)
+
+          if (onImageUploaded) {
+              onImageUploaded(imageUrl)
+          }
+
+          toast.success('Profile picture uploaded successfully.')
+          handleClose()
+      }catch (error: any) {
+          console.error('Upload failed:', error)
+          toast.error(error.message || 'Failed to upload image')
+      } finally {
+          setUpLoading(false)
+      }
+  }
+
+  const handleClose = () => {
+      setPreview(null)
+      setSelectedFile(null)
+      onClose()
+  }
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[425px] secondbg dashtext max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -78,7 +116,10 @@ export function UploadImageDialog({
                 variant="ghost"
                 size="icon"
                 className="absolute -right-2 -top-2 h-8 w-8 rounded-full secondbg"
-                onClick={() => setPreview(null)}
+                onClick={() => {
+                    setPreview(null)
+                    setSelectedFile(null)
+                }}
               >
                 <X className="h-4 w-4" />
               </Button>
@@ -96,7 +137,7 @@ export function UploadImageDialog({
           <p className="text-sm text-gray-400">Supported formats: JPG, PNG, GIF (max 5MB)</p>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} className="secondbg">
+          <Button variant="outline" onClick={handleClose} className="secondbg">
             Cancel
           </Button>
           <Button className="bg-[#00bf8f] hover:bg-[#31473A]" disabled={!preview}>
@@ -107,4 +148,3 @@ export function UploadImageDialog({
     </Dialog>
   )
 }
-
