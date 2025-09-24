@@ -1057,7 +1057,7 @@ export default function ProfilePage() {
                                     <p className="text-sm text-gray-400">Receive updates about your Sessions</p>
                                 </div>
                                 <Switch
-                                    checked={notificationPreferences?.challengeUpdates}
+                                    checked={notificationPreferences?.challengeUpdates || false}
                                     onCheckedChange={(checked) => handleNotificationUpdate('challengeUpdates', checked)}
                                     disabled={notificationLoading}
                                 />
@@ -1069,7 +1069,7 @@ export default function ProfilePage() {
                                     <p className="text-sm text-gray-400">Receive updates about new messages</p>
                                 </div>
                                 <Switch
-                                    checked={notificationPreferences?.newMessages}
+                                    checked={notificationPreferences?.newMessages || false}
                                     onCheckedChange={(checked) => handleNotificationUpdate('newMessages', checked)}
                                     disabled={notificationLoading}
                                 />
@@ -1081,7 +1081,7 @@ export default function ProfilePage() {
                                     <p className="text-sm text-gray-400">Receive marketing emails</p>
                                 </div>
                                 <Switch
-                                    checked={notificationPreferences?.marketingEmails}
+                                    checked={notificationPreferences?.marketingEmails || false}
                                     onCheckedChange={(checked) => handleNotificationUpdate('marketingEmails', checked)}
                                     disabled={notificationLoading}
                                 />
