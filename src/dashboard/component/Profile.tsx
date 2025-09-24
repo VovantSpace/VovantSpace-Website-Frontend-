@@ -880,10 +880,6 @@ export default function ProfilePage() {
                                     <EducationEntry
                                         key={edu.id}
                                         education={edu}
-                                        degree
-                                        field
-                                        startYear
-                                        endYear
                                         isEditing={isEditingEducation}
                                         showRemove={tempEducations.length > 1}
                                         onChange={(updated) => {
