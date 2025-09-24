@@ -4,7 +4,7 @@ import AvailabilityPage from './pages/availability/page';
 import RequestPage from './pages/requests/page';
 import ChatsPage from './pages/chats/page';
 import WalletPage from './pages/wallet/page';
-import ProfilePage from '@/dashboard/component/Profile';
+import ProfilePage from '@/dashboard/Advisor/pages/profile/Profile';
 import './styles/globals.css'
 import AlertPage from './pages/alert/Page';
 import {Toaster} from 'react-hot-toast'
