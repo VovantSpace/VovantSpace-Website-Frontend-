@@ -116,7 +116,7 @@ const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
         localStorage.getItem('token') ||
         localStorage.getItem('accessToken');
 
-    const response = await fetch(`${API_BASE_URL}/user${endpoint}`, {
+    const response = await fetch(`${API_BASE_URL}/api/user${endpoint}`, {
         headers: {
             'Content-Type': 'application/json',
             ...(token && { 'Authorization': `Bearer ${token}` }),

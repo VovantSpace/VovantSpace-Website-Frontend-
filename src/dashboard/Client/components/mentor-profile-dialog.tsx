@@ -186,7 +186,7 @@ export function MentorProfileDialog({open, onOpenChange, mentor, onBookSession}:
                                             <span>{exp.startDate} - {exp.endDate}</span>
                                         </div>
                                     </div>
-                                ))}
+                                ))}f
                             </div>
                         ) : (
                             <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">No work experience

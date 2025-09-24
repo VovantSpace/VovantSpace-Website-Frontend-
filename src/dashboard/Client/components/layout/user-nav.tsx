@@ -11,8 +11,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@innovator/components/ui/dropdown-menu"
-import { Button } from "@innovator/components/ui/button"
+} from "@/dashboard/Innovator/components/ui/dropdown-menu"
+import { Button } from "@/dashboard/Innovator/components/ui/button"
 
 export function UserNav() {
   return (
@@ -32,13 +32,14 @@ export function UserNav() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+
         <DropdownMenuGroup>
           <DropdownMenuItem>
             <Settings className="mr-2 h-4 w-4" />
             <Link to={'/dashboard/ps/profile'}>Settings</Link>
           </DropdownMenuItem>
-
         </DropdownMenuGroup>
+
         <DropdownMenuSeparator />
         <DropdownMenuItem>
           <LogOut className="mr-2 h-4 w-4" />
@@ -48,4 +49,3 @@ export function UserNav() {
     </DropdownMenu>
   )
 }
-
