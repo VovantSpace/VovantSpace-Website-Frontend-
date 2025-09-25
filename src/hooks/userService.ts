@@ -168,7 +168,7 @@ export const useAuth = () => {
     // Initialize auth state
     useEffect(() => {
         const initializeAuth = async () => {
-            const token = localStorage.getItem('token');
+            const token = localStorage.getItem('authToken');
 
             if (token) {
                 try {
@@ -177,7 +177,7 @@ export const useAuth = () => {
                         setUser(response.user);
                         setIsAuthenticated(true);
                     } else {
-                        localStorage.removeItem('token');
+                        localStorage.removeItem('authToken');
                         setIsAuthenticated(false);
                     }
                 } catch (err) {
@@ -206,7 +206,7 @@ export const useAuth = () => {
             });
 
             if (response.success) {
-                localStorage.setItem('token', response.token);
+                localStorage.setItem('authToken', response.token);
                 setUser(response.user);
                 setIsAuthenticated(true);
             }
