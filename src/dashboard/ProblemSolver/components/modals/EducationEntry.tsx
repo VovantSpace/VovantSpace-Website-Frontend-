@@ -1,5 +1,5 @@
-import { X } from "lucide-react"
-import { Input } from "@/dashboard/Innovator/components/ui/input"
+import {X} from "lucide-react"
+import {Input} from "@/dashboard/Innovator/components/ui/input"
 
 export function EducationEntry({
                                    education,
@@ -28,7 +28,7 @@ export function EducationEntry({
                     onClick={onRemove}
                     className="absolute top-2 right-2 text-red-500 hover:text-red-700"
                 >
-                    <X className="h-4 w-4" />
+                    <X className="h-4 w-4"/>
                 </button>
             )}
 
@@ -40,7 +40,7 @@ export function EducationEntry({
                         <Input
                             value={education.institution || ""}
                             onChange={(e) =>
-                                onChange({ ...education, institution: e.target.value })
+                                onChange({...education, institution: e.target.value})
                             }
                         />
                     ) : (
@@ -54,7 +54,7 @@ export function EducationEntry({
                     {isEditing ? (
                         <Input
                             value={education.degree || ""}
-                            onChange={(e) => onChange({ ...education, degree: e.target.value })}
+                            onChange={(e) => onChange({...education, degree: e.target.value})}
                         />
                     ) : (
                         <p className="text-sm dark:text-white">{education.degree || "N/A"}</p>
@@ -67,7 +67,7 @@ export function EducationEntry({
                     {isEditing ? (
                         <Input
                             value={education.field || ""}
-                            onChange={(e) => onChange({ ...education, field: e.target.value })}
+                            onChange={(e) => onChange({...education, field: e.target.value})}
                         />
                     ) : (
                         <p className="text-sm dark:text-white">{education.field || "N/A"}</p>
@@ -81,7 +81,7 @@ export function EducationEntry({
                         <Input
                             type="month"
                             value={education.startYear || ""}
-                            onChange={(e) => onChange({ ...education, startYear: e.target.value })}
+                            onChange={(e) => onChange({...education, startYear: e.target.value})}
                         />
                     ) : (
                         <p className="text-sm dark:text-white">
@@ -102,7 +102,7 @@ export function EducationEntry({
                         <Input
                             type="month"
                             value={education.endYear || ""}
-                            onChange={(e) => onChange({ ...education, endYear: e.target.value })}
+                            onChange={(e) => onChange({...education, endYear: e.target.value})}
                         />
                     ) : (
                         <p className="text-sm dark:text-white">

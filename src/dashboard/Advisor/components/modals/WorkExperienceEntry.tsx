@@ -1,5 +1,5 @@
-import { X } from "lucide-react"
-import { Input } from "@/dashboard/Innovator/components/ui/input"
+import {X} from "lucide-react"
+import {Input} from "@/dashboard/Innovator/components/ui/input"
 
 export function WorkExperienceEntry({
                                         workExperience,
@@ -27,7 +27,7 @@ export function WorkExperienceEntry({
                     onClick={onRemove}
                     className="absolute top-2 right-2 text-red-500 hover:text-red-700"
                 >
-                    <X className="h-4 w-4" />
+                    <X className="h-4 w-4"/>
                 </button>
             )}
 
@@ -39,7 +39,7 @@ export function WorkExperienceEntry({
                         <Input
                             value={workExperience.company || ""}
                             onChange={(e) =>
-                                onChange({ ...workExperience, company: e.target.value })
+                                onChange({...workExperience, company: e.target.value})
                             }
                         />
                     ) : (
@@ -54,7 +54,7 @@ export function WorkExperienceEntry({
                         <Input
                             value={workExperience.role || ""}
                             onChange={(e) =>
-                                onChange({ ...workExperience, role: e.target.value })
+                                onChange({...workExperience, role: e.target.value})
                             }
                         />
                     ) : (
@@ -70,7 +70,7 @@ export function WorkExperienceEntry({
                             type="month"
                             value={workExperience.startDate || ""}
                             onChange={(e) =>
-                                onChange({ ...workExperience, startDate: e.target.value })
+                                onChange({...workExperience, startDate: e.target.value})
                             }
                         />
                     ) : (
@@ -93,7 +93,7 @@ export function WorkExperienceEntry({
                             type="month"
                             value={workExperience.endDate || ""}
                             onChange={(e) =>
-                                onChange({ ...workExperience, endDate: e.target.value })
+                                onChange({...workExperience, endDate: e.target.value})
                             }
                         />
                     ) : (

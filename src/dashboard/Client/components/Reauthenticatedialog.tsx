@@ -30,46 +30,28 @@ export default function ReauthenticateDialog({
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md p-6 rounded-md dark:bg-[#131313] border border-gray-700">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-semibold dashtext">Re-enter Password</DialogTitle>
-          <p className="text-sm text-gray-400 mt-1">We need to verify it's really you.</p>
-        </DialogHeader>
-        <div className="space-y-4 mt-4">
-          <div className="flex items-center justify-between text-sm">
-            <span className=" text-black dark:text-white">v...@gmail.com</span>
-            <Link to={'/login'}>
-              <button className="text-xs text-emerald-500 hover:underline">Not you?</button>
-            </Link>
+      isOpen && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+              <div className="bg-white dark:bg-[#131313] p-6 rounded-md w-[400px]">
+                  <h2 className="text-xl font-semibold dashtext mb-2">Re-enter Password</h2>
+                  <p className="text-sm text-gray-400 mb-4">We need to verify it's really you.</p>
+
+                  <input
+                      type="password"
+                      placeholder="Enter your password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="border p-2 rounded w-full mb-3"
+                  />
+
+                  {error && <p className="text-sm text-red-500 mb-3">{error}</p>}
+
+                  <div className="flex justify-end gap-2">
+                      <button onClick={onClose} className="px-4 py-2 border rounded">Cancel</button>
+                      <button onClick={handleSubmit} className="px-4 py-2 bg-emerald-600 text-white rounded">Continue</button>
+                  </div>
+              </div>
           </div>
-          <Label htmlFor="password" className="block text-sm dashtext">
-            Password
-          </Label>
-          <Input
-            id="password"
-            type="password"
-            placeholder="Enter your password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="mt-1"
-          />
-          {error && <p className="text-sm text-red-500">{error}</p>}
-          <div className="flex items-center justify-between">
-            <Link to={'/forget'}>
-              <button className="text-xs text-emerald-500 hover:underline">Forgot password?</button>
-            </Link>
-          </div>
-          <div className="flex justify-end space-x-2 mt-4">
-            <Button variant="outline" onClick={onClose} className="dashbutton text-white">
-              Cancel
-            </Button>
-            <Button onClick={handleSubmit} className="dashbutton">
-              Continue
-            </Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+      )
   )
 }

@@ -1,8 +1,8 @@
 import { useState, useRef, useCallback } from "react"
-import { Dialog, DialogContent } from "@innovator/components/ui/dialog"
-import { Button } from "@innovator/components/ui/button"
-import { RadioGroup, RadioGroupItem } from "@innovator/components/ui/radio-group"
-import { Label } from "@innovator/components/ui/label"
+import { Dialog, DialogContent } from "@/dashboard/Innovator/components/ui/dialog"
+import { Button } from "@/dashboard/Innovator/components/ui/button"
+import { RadioGroup, RadioGroupItem } from "@/dashboard/Innovator/components/ui/radio-group"
+import { Label } from "@/dashboard/Innovator/components/ui/label"
 import { Camera, Upload, Globe, CheckCircle2, ArrowLeft, RefreshCcw } from "lucide-react"
 import Webcam from "react-webcam"
 import { useDropzone } from "react-dropzone"
@@ -285,7 +285,7 @@ export function IdentityVerificationDialog({ isOpen, onClose }: IdentityVerifica
 
             <Button
               onClick={handleSubmit}
-              size="md"
+              size="lg"
               className="w-full bg-emerald-600 hover:bg-emerald-700 py-2 text-sm dashbutton mt-auto"
             >
               Submit Verification
