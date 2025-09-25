@@ -112,52 +112,28 @@ export interface NotificationPreferences {
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
 const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
-    const token =
-        localStorage.getItem("token")
+    const token = localStorage.getItem("token")
 
-    let response: Response;
-    try {
-        response = await fetch(`${API_BASE_URL}/api/user${endpoint}`, {
-            cache: "no-store", // 👈 prevents 304 caching issues
+    const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/api/user${endpoint}`,
+        {
             headers: {
                 "Content-Type": "application/json",
                 ...(token && { Authorization: `Bearer ${token}` }),
                 ...options.headers,
-
             },
             ...options,
-        });
-    } catch (networkError) {
-        throw new Error("Network request failed. Please check your connection.");
-    }
-
-    // Handle non-2xx responses gracefully
-    if (!response.ok) {
-        let errorMessage = `HTTP error! status: ${response.status}`;
-        try {
-            const errData = await response.json();
-            if (errData?.message) errorMessage = errData.message;
-        } catch {
-            // ignore JSON parse errors here
         }
-        throw new Error(errorMessage);
+    )
+
+    if (!response.ok) {
+        const errData = await response.json().catch(() => ({}))
+        throw new Error(errData.message || `Request failed: ${response.status}`)
     }
 
-    // Parse JSON safely
-    let data: any;
-    try {
-        data = await response.json();
-    } catch {
-        throw new Error("Empty or invalid JSON response from server.");
-    }
+    return response.json()
+}
 
-    // Ensure a consistent return shape
-    if (typeof data !== "object" || data === null) {
-        throw new Error("Invalid response format from server.");
-    }
-
-    return data;
-};
 // Hook for authentication
 export const useAuth = () => {
     const [user, setUser] = useState<User | null>(null);
@@ -476,72 +452,65 @@ export const usePassword = () => {
 
 // Hook for notification preferences
 export const useNotifications = () => {
-    const [preferences, setPreferences] = useState<NotificationPreferences | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [preferences, setPreferences] = useState<NotificationPreferences | null>(
+        null
+    )
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
 
     const getNotificationPreferences = useCallback(async () => {
+        setLoading(true)
+        setError(null)
+
         try {
-            setLoading(true);
-            setError(null);
-
-            const response = await apiRequest('/notifications/preferences');
-
+            const response = await apiRequest("/notifications/preferences")
             if (response.success) {
-                startTransition(() => {
-                    setPreferences(response.preferences);
-                })
-
-            }
-        } catch (err: any) {
-            startTransition(() => {
-                setError(err instanceof Error ? err.message : 'Failed to fetch notification preferences');
-            })
-
-        } finally {
-            startTransition(() => {
-                setLoading(false);
-            })
-        }
-    }, []);
-
-    const updateNotificationPreferences = async (newPreferences: Partial<NotificationPreferences>): Promise<void> => {
-        try {
-            setLoading(true);
-            setError(null);
-
-            const response = await apiRequest('/notifications/preferences', {
-                method: 'PUT',
-                body: JSON.stringify(newPreferences),
-            });
-
-            if (response.success) {
-                startTransition(() => {
-                    setPreferences(response.preferences);
-                })
-
-            } else {
-                startTransition(() => {
-                    setError(response.message || "failed to update notification preferences");
-                })
-
+                setPreferences(response.preferences)
             }
         } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Failed to update notification preferences';
-            startTransition(() => {
-                setError(errorMessage);
-            })
-            throw new Error(errorMessage);
+            setError(
+                err instanceof Error
+                    ? err.message
+                    : "Failed to fetch notification preferences"
+            )
         } finally {
-            startTransition(() => {
-                setLoading(false);
-            })
+            setLoading(false)
         }
-    };
+    }, [])
+
+    const updateNotificationPreferences = useCallback(
+        async (newPreferences: Partial<NotificationPreferences>) => {
+            setLoading(true)
+            setError(null)
+
+            try {
+                const response = await apiRequest("/notifications/preferences", {
+                    method: "PUT",
+                    body: JSON.stringify(newPreferences),
+                })
+
+                if (response.success) {
+                    setPreferences(response.preferences)
+                } else {
+                    setError(response.message || "Failed to update notification preferences")
+                }
+            } catch (err) {
+                const errorMessage =
+                    err instanceof Error
+                        ? err.message
+                        : "Failed to update notification preferences"
+                setError(errorMessage)
+                throw new Error(errorMessage)
+            } finally {
+                setLoading(false)
+            }
+        },
+        []
+    )
 
     useEffect(() => {
-        getNotificationPreferences();
-    }, [getNotificationPreferences]);
+        getNotificationPreferences()
+    }, [getNotificationPreferences])
 
     return {
         preferences,
@@ -549,9 +518,8 @@ export const useNotifications = () => {
         error,
         refetch: getNotificationPreferences,
         updatePreferences: updateNotificationPreferences,
-    };
-};
-
+    }
+}
 // Hook for account verification
 export const useVerification = () => {
     const [loading, setLoading] = useState(false);
@@ -654,17 +622,14 @@ export const useUserService = () => {
     const notifications = useNotifications();
     const verification = useVerification();
 
-    const updateUserAndRefresh = async (profileData: UpdateProfileData): Promise<User> => {
-        try {
-            const updatedUser = await profile.updateProfile(profileData);
-            startTransition(() => {
-                auth.setUser(updatedUser);
-            })
-            return updatedUser;
-        } catch (err) {
-            throw err;
-        }
-    };
+    // Derived helpers that wrap the hooks
+    const updateUserAndRefresh = async (
+        profileData: UpdateProfileData
+    ): Promise<User> => {
+        const updatedUser = await profile.updateProfile(profileData)
+        auth.setUser(updatedUser)
+        return updatedUser
+    }
 
     const refreshUser = async (): Promise<void> => {
         try {
@@ -679,40 +644,46 @@ export const useUserService = () => {
         }
     };
 
-    return {
-        // Auth methods
-        ...auth,
 
-        // Profile methods
+    return {
+        // ✅ Auth
+        user: auth.user,
+        isAuthenticated: auth.isAuthenticated,
+        authLoading: auth.loading,
+        authError: auth.error,
+        login: auth.login,
+        signup: auth.signup,
+        logout: auth.logout,
+        clearAuthError: auth.clearError,
+        setUser: auth.setUser,
+
+        // ✅ Profile
         updateProfile: updateUserAndRefresh,
         refreshProfile: refreshUser,
         uploadProfilePicture: profile.uploadProfilePicture,
         updateUserRole: profile.updateUserRole,
+        profileLoading: profile.loading,
+        profileError: profile.error,
 
-        // Password methods
+        // ✅ Password
         changePassword: password.changePassword,
         forgotPassword: password.forgotPassword,
         resetPassword: password.resetPassword,
+        passwordLoading: password.loading,
+        passwordError: password.error,
 
-        // Notification methods
+        // ✅ Notifications
         notificationPreferences: notifications.preferences,
         updateNotificationPreferences: notifications.updatePreferences,
+        refetchNotifications: notifications.refetch,
+        notificationLoading: notifications.loading,
+        notificationError: notifications.error,
 
-        // Verification methods
+        // ✅ Verification
         requestVerification: verification.requestVerification,
         verifyEmail: verification.verifyEmail,
         submitIdentityVerification: verification.submitIdentityVerification,
-
-        // Loading states
-        profileLoading: profile.loading,
-        passwordLoading: password.loading,
-        notificationLoading: notifications.loading,
         verificationLoading: verification.loading,
-
-        // Error states
-        profileError: profile.error,
-        passwordError: password.error,
-        notificationError: notifications.error,
         verificationError: verification.error,
-    };
+    }
 };
