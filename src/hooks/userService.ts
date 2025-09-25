@@ -112,27 +112,53 @@ export interface NotificationPreferences {
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
 const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
-    const token = localStorage.getItem('authToken') ||
-        localStorage.getItem('token') ||
-        localStorage.getItem('accessToken');
+    const token =
+        localStorage.getItem("authToken") ||
+        localStorage.getItem("token") ||
+        localStorage.getItem("accessToken");
 
-    const response = await fetch(`${API_BASE_URL}/api/user${endpoint}`, {
-        headers: {
-            'Content-Type': 'application/json',
-            ...(token && { 'Authorization': `Bearer ${token}` }),
-            ...options.headers,
-        },
-        ...options
-    });
-
-    if (!response.ok) {
-        const error = await response.json().catch(() => ({ message: 'Network error' }));
-        throw new Error(error.message || `HTTP error! status: ${response.status}`);
+    let response: Response;
+    try {
+        response = await fetch(`${API_BASE_URL}/api/user${endpoint}`, {
+            cache: "no-store", // 👈 prevents 304 caching issues
+            headers: {
+                "Content-Type": "application/json",
+                ...(token && { Authorization: `Bearer ${token}` }),
+                ...options.headers,
+            },
+            ...options,
+        });
+    } catch (networkError) {
+        throw new Error("Network request failed. Please check your connection.");
     }
 
-    return response.json();
-};
+    // Handle non-2xx responses gracefully
+    if (!response.ok) {
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        try {
+            const errData = await response.json();
+            if (errData?.message) errorMessage = errData.message;
+        } catch {
+            // ignore JSON parse errors here
+        }
+        throw new Error(errorMessage);
+    }
 
+    // Parse JSON safely
+    let data: any;
+    try {
+        data = await response.json();
+    } catch {
+        throw new Error("Empty or invalid JSON response from server.");
+    }
+
+    // Ensure a consistent return shape
+    if (typeof data !== "object" || data === null) {
+        throw new Error("Invalid response format from server.");
+    }
+
+    return data;
+};
 // Hook for authentication
 export const useAuth = () => {
     const [user, setUser] = useState<User | null>(null);
