@@ -476,6 +476,7 @@ export const usePassword = () => {
 
 // Hook for notification preferences
 export const useNotifications = () => {
+    // const {logout} = useAuth()
     const [preferences, setPreferences] = useState<NotificationPreferences | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -490,7 +491,7 @@ export const useNotifications = () => {
             if (response.success) {
                 setPreferences(response.preferences);
             }
-        } catch (err) {
+        } catch (err: any) {
             setError(err instanceof Error ? err.message : 'Failed to fetch notification preferences');
         } finally {
             setLoading(false);
