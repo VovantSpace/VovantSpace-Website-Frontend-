@@ -113,9 +113,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000
 
 const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
     const token =
-        localStorage.getItem("authToken") ||
-        localStorage.getItem("token") ||
-        localStorage.getItem("accessToken");
+        localStorage.getItem("authToken")
 
     let response: Response;
     try {
@@ -125,6 +123,7 @@ const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
                 "Content-Type": "application/json",
                 ...(token && { Authorization: `Bearer ${token}` }),
                 ...options.headers,
+
             },
             ...options,
         });
