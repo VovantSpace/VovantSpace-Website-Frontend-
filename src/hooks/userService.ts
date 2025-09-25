@@ -232,7 +232,7 @@ export const useAuth = () => {
             });
 
             if (response.success) {
-                localStorage.setItem('token', response.token);
+                localStorage.setItem('authToken', response.token);
                 setUser(response.user);
                 setIsAuthenticated(true);
             }
@@ -248,7 +248,7 @@ export const useAuth = () => {
     };
 
     const logout = () => {
-        localStorage.removeItem('token');
+        localStorage.removeItem('authToken');
         setUser(null);
         setIsAuthenticated(false);
         setError(null);
@@ -353,7 +353,7 @@ export const useProfile = () => {
             const formData = new FormData();
             formData.append('profilePicture', file);
 
-            const token = localStorage.getItem('token');
+            const token = localStorage.getItem('authToken');
             const response = await fetch(`${API_BASE_URL}/user/profile-picture`, {
                 method: 'POST',
                 headers: {
@@ -590,7 +590,7 @@ export const useVerification = () => {
             setLoading(true);
             setError(null);
 
-            const token = localStorage.getItem('token');
+            const token = localStorage.getItem('authToken');
             const response = await fetch(`${API_BASE_URL}/user/verification/identity`, {
                 method: 'POST',
                 headers: {
