@@ -113,7 +113,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000
 
 const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
     const token =
-        localStorage.getItem("authToken")
+        localStorage.getItem("token")
 
     let response: Response;
     try {
@@ -168,7 +168,7 @@ export const useAuth = () => {
     // Initialize auth state
     useEffect(() => {
         const initializeAuth = async () => {
-            const token = localStorage.getItem('authToken');
+            const token = localStorage.getItem('token');
 
             if (token) {
                 try {
@@ -177,7 +177,7 @@ export const useAuth = () => {
                         setUser(response.user);
                         setIsAuthenticated(true);
                     } else {
-                        localStorage.removeItem('authToken');
+                        localStorage.removeItem('token');
                         setIsAuthenticated(false);
                     }
                 } catch (err) {
@@ -206,7 +206,7 @@ export const useAuth = () => {
             });
 
             if (response.success) {
-                localStorage.setItem('authToken', response.token);
+                localStorage.setItem('token', response.token);
                 setUser(response.user);
                 setIsAuthenticated(true);
             }
@@ -232,7 +232,7 @@ export const useAuth = () => {
             });
 
             if (response.success) {
-                localStorage.setItem('authToken', response.token);
+                localStorage.setItem('token', response.token);
                 setUser(response.user);
                 setIsAuthenticated(true);
             }
@@ -248,7 +248,7 @@ export const useAuth = () => {
     };
 
     const logout = () => {
-        localStorage.removeItem('authToken');
+        localStorage.removeItem('token');
         setUser(null);
         setIsAuthenticated(false);
         setError(null);
@@ -353,7 +353,7 @@ export const useProfile = () => {
             const formData = new FormData();
             formData.append('profilePicture', file);
 
-            const token = localStorage.getItem('authToken');
+            const token = localStorage.getItem('token');
             const response = await fetch(`${API_BASE_URL}/user/profile-picture`, {
                 method: 'POST',
                 headers: {
@@ -590,7 +590,7 @@ export const useVerification = () => {
             setLoading(true);
             setError(null);
 
-            const token = localStorage.getItem('authToken');
+            const token = localStorage.getItem('token');
             const response = await fetch(`${API_BASE_URL}/user/verification/identity`, {
                 method: 'POST',
                 headers: {
