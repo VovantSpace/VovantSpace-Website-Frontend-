@@ -10,9 +10,9 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@innovator/components/ui/dropdown-menu"
-import { Button } from "@innovator/components/ui/button"
-import { ScrollArea } from "@innovator/components/ui/scroll-area"
+} from "@/dashboard/Innovator/components/ui/dropdown-menu"
+import { Button } from "@/dashboard/Innovator/components/ui/button"
+import { ScrollArea } from "@/dashboard/Innovator/components/ui/scroll-area"
 
 const notifications = [
   {
@@ -40,7 +40,7 @@ const notifications = [
 
 export function NotificationsDropdown() {
   return (
-    <DropdownMenu className="">
+    <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="relative text-gray-400 dashtext !bg-transparent">
           <Bell className="h-5 w-5" />

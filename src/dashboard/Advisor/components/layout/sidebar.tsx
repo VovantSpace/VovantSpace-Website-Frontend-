@@ -4,7 +4,7 @@ import { Home, FileText, MessageSquare, BarChart2, Wallet, User } from "lucide-r
 import logo from '@/assets/logo.png'
 import { useLocation, Link } from "react-router-dom"
 import { Bell } from "lucide-react"
-import { cn } from "@innovator/lib/utils"
+import { cn } from "@/dashboard/Innovator/lib/utils"
 
 const sidebarLinks = [
   { icon: Home, label: "Home", href: "/dashboard/advisor" },

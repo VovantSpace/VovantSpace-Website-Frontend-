@@ -1,4 +1,4 @@
-import {useState, useEffect} from "react"
+import {startTransition, useState, useEffect} from "react"
 import {Camera, Edit2} from "lucide-react";
 import {Button} from "@/components/ui/button"
 import {Card} from "@/components/ui/card"
@@ -25,7 +25,7 @@ import ReauthenticateDialog from "@/dashboard/Client/components/Reauthenticatedi
 import EditableField from "@/dashboard/Client/components/EditableField";
 import Select from "react-select";
 import {WorkExperienceEntry} from "@/dashboard/Advisor/components/modals/WorkExperienceEntry";
-import {useUserService, NotificationPreferences} from '@/hooks/userService'
+import {useUserService, NotificationPreferences, UpdateProfileData} from '@/hooks/userService'
 
 interface FormValues {
     firstName: string;
@@ -354,8 +354,10 @@ export default function ProfilePage() {
                 experienceLevel: user.experienceLevel || "",
             }
 
-            setTempProfileData(profileData)
-            setOriginalProfileData(profileData)
+            startTransition(() => {
+                setTempProfileData(profileData)
+                setOriginalProfileData(profileData)
+            })
 
             // Update formik values
             formik.setValues({
@@ -381,15 +383,13 @@ export default function ProfilePage() {
     // Handle Save
     const handleSave = async () => {
         try {
-            // validate using formik
-            const errors = await formik.validateForm()
+            const errors = await formik.validateForm();
             if (Object.keys(errors).length > 0) {
                 await formik.setTouched(
-                    Object.keys(errors).reduce((acc, key) => ({...acc, [key]: true}), {})
-                )
+                    Object.keys(errors).reduce((acc, key) => ({ ...acc, [key]: true }), {})
+                );
                 return;
             }
-
 
             const profileUpdateData = {
                 firstName: tempProfileData.firstName,
@@ -410,42 +410,63 @@ export default function ProfilePage() {
                 advisorType: formik.values.advisorType,
                 reason: formik.values.reason,
                 experienceLevel: formik.values.experienceLevel,
-            }
+            };
 
+            await updateProfile(profileUpdateData);
 
-            await updateProfile(profileUpdateData)
-            setIsEditing(false)
-
-            // Update the original data after a successful save
-            const updatedProfileData = {
-                firstName: tempProfileData.firstName,
-                lastName: tempProfileData.lastName,
-                email: tempProfileData.email,
-                phone: tempProfileData.phone,
-                bio: tempProfileData.bio,
-                industry: tempProfileData.industry,
-                organization: tempProfileData.organization,
-                website: tempProfileData.website,
-                linkedin: tempProfileData.linkedin,
-                skills: formik.values.skills,
-                experience: formik.values.experience || "",
-                portfolio: formik.values.portfolio || "",
-                expertise: formik.values.expertise,
-                specialties: formik.values.specialties,
-                languages: formik.values.languages,
-                advisorType: formik.values.advisorType || "",
+            // Explicitly type updatedProfileData to match originalProfileData
+            const updatedProfileData: {
+                firstName: string;
+                lastName: string;
+                email: string;
+                phone: string;
+                bio: string;
+                industry: string;
+                organization: string;
+                website: string;
+                linkedin: string;
+                skills: string[];
+                experience: string;
+                portfolio: string;
+                expertise: string;
+                specialties: string[];
+                languages: string[];
+                advisorType: string;
+                reason: string[];
+                experienceLevel: string;
+            } = {
+                firstName: tempProfileData.firstName || '',
+                lastName: tempProfileData.lastName || '',
+                email: tempProfileData.email || '',
+                phone: tempProfileData.phone || '',
+                bio: tempProfileData.bio || '',
+                industry: tempProfileData.industry || '',
+                organization: tempProfileData.organization || '',
+                website: tempProfileData.website || '',
+                linkedin: tempProfileData.linkedin || '',
+                skills: formik.values.skills || [],
+                experience: formik.values.experience || '',
+                portfolio: formik.values.portfolio || '',
+                expertise: formik.values.expertise || '',
+                specialties: formik.values.specialties || [],
+                languages: formik.values.languages || [],
+                advisorType: formik.values.advisorType || '',
                 reason: formik.values.reason || [],
-                experienceLevel: formik.values.experienceLevel || "",
-            }
+                experienceLevel: formik.values.experienceLevel || '',
+            };
 
-            setOriginalProfileData(updatedProfileData)
-
-            toast.success('Profile updated successfully!')
+            startTransition(() => {
+                setIsEditing(false);
+                setOriginalProfileData(updatedProfileData);
+            });
+            toast.success('Profile updated successfully!');
         } catch (error: any) {
-            console.error('Failed to update Profile:', error)
-            toast.error(error)
+            console.error('Failed to update Profile:', error);
+            startTransition(() => {
+                toast.error(error.message || 'Failed to update profile');
+            });
         }
-    }
+    };
 
     const handleImageUploaded = (imageUrl: string) => {
         toast.success("Profile Picture updated successfully")
@@ -468,31 +489,32 @@ export default function ProfilePage() {
 
 
     const handleCancel = () => {
-        setIsEditing(false)
-        // Reset both tempProfileData and formik to original data
-        setTempProfileData(originalProfileData)
-        if (user) {
-            formik.resetForm({
-                values: {
-                    firstName: user.firstName || "",
-                    lastName: user.lastName || "",
-                    email: user.email || "",
-                    phone: user.phone || "",
-                    bio: user.bio || "",
-                    industry: user.industry || "",
-                    skills: Array.isArray(user.skills) ? user.skills : (user.skills ? [user.skills] : []),
-                    expertise: user.expertise || "",
-                    specialties: Array.isArray(user.specialties) ? user.specialties : [],
-                    languages: Array.isArray(user.languages) ? user.languages : [],
-                    experience: user.experience || "",
-                    portfolio: user.portfolio || "",
-                    advisorType: user.advisorType || "",
-                    reason: Array.isArray(user.reason) ? user.reason : [],
-                    experienceLevel: user.experienceLevel || "",
-                }
-            })
-        }
-    }
+        startTransition(() => {
+            setIsEditing(false);
+            setTempProfileData(originalProfileData);
+            if (user) {
+                formik.resetForm({
+                    values: {
+                        firstName: user.firstName || '',
+                        lastName: user.lastName || '',
+                        email: user.email || '',
+                        phone: user.phone || '',
+                        bio: user.bio || '',
+                        industry: user.industry || '',
+                        skills: Array.isArray(user.skills) ? user.skills : (user.skills ? [user.skills] : []),
+                        expertise: user.expertise || '',
+                        specialties: Array.isArray(user.specialties) ? user.specialties : [],
+                        languages: Array.isArray(user.languages) ? user.languages : [],
+                        experience: user.experience || '',
+                        portfolio: user.portfolio || '',
+                        advisorType: user.advisorType || '',
+                        reason: Array.isArray(user.reason) ? user.reason : [],
+                        experienceLevel: user.experienceLevel || '',
+                    },
+                });
+            }
+        });
+    };
 
     // Loading states and error handling
     if (authLoading || profileLoading) {
@@ -535,7 +557,7 @@ export default function ProfilePage() {
             toast.success('Notification preferences updated')
         } catch (error: any) {
             console.error('Failed to update notification preferences:', error)
-            toast.error(error.message ||"Failed to update notification preferences")
+            toast.error(error.message || "Failed to update notification preferences")
         }
     }
 
@@ -1093,7 +1115,8 @@ export default function ProfilePage() {
                 />
                 <ChangePasswordDialog isOpen={isPasswordDialogOpen} onClose={() => setIsPasswordDialogOpen(false)}/>
                 <UploadImageDialog isOpen={isUploadDialogOpen} onClose={() => setIsUploadDialogOpen(false)}
-                                   onImageUploaded={handleImageUploaded} uploadFunction={uploadProfilePicture} isUpLoading={profileLoading}/>
+                                   onImageUploaded={handleImageUploaded} uploadFunction={uploadProfilePicture}
+                                   isUpLoading={profileLoading}/>
                 <IdentityVerificationDialog isOpen={isGetVerifiedDialogueOpen}
                                             onClose={() => setIsGetVerifiedDialogueOpen(false)}/>
             </div>

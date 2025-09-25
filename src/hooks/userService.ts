@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, startTransition } from 'react'
 
 export interface User {
     _id: string;
@@ -476,7 +476,6 @@ export const usePassword = () => {
 
 // Hook for notification preferences
 export const useNotifications = () => {
-    // const {logout} = useAuth()
     const [preferences, setPreferences] = useState<NotificationPreferences | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -489,12 +488,20 @@ export const useNotifications = () => {
             const response = await apiRequest('/notifications/preferences');
 
             if (response.success) {
-                setPreferences(response.preferences);
+                startTransition(() => {
+                    setPreferences(response.preferences);
+                })
+
             }
         } catch (err: any) {
-            setError(err instanceof Error ? err.message : 'Failed to fetch notification preferences');
+            startTransition(() => {
+                setError(err instanceof Error ? err.message : 'Failed to fetch notification preferences');
+            })
+
         } finally {
-            setLoading(false);
+            startTransition(() => {
+                setLoading(false);
+            })
         }
     }, []);
 
@@ -509,16 +516,26 @@ export const useNotifications = () => {
             });
 
             if (response.success) {
-                setPreferences(response.preferences);
+                startTransition(() => {
+                    setPreferences(response.preferences);
+                })
+
             } else {
-               setError("failed to update notification preferences");
+                startTransition(() => {
+                    setError(response.message || "failed to update notification preferences");
+                })
+
             }
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to update notification preferences';
-            setError(errorMessage);
+            startTransition(() => {
+                setError(errorMessage);
+            })
             throw new Error(errorMessage);
         } finally {
-            setLoading(false);
+            startTransition(() => {
+                setLoading(false);
+            })
         }
     };
 
@@ -640,7 +657,9 @@ export const useUserService = () => {
     const updateUserAndRefresh = async (profileData: UpdateProfileData): Promise<User> => {
         try {
             const updatedUser = await profile.updateProfile(profileData);
-            auth.setUser(updatedUser);
+            startTransition(() => {
+                auth.setUser(updatedUser);
+            })
             return updatedUser;
         } catch (err) {
             throw err;
