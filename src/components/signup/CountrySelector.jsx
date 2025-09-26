@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import Select from 'react-select'
 import countryList from 'react-select-country-list'
+import PropTypes from 'prop-types';
 
 const customTheme = (theme) => ({
     ...theme,
@@ -58,6 +59,27 @@ const CountrySelector = ({ value, onChange, disabled, customStyles = {} }) => {
             isDisabled={disabled}
         />
     )
+}
+
+CountrySelector.propTypes = {
+    value: PropTypes.shape({
+        value: PropTypes.string,
+        label: PropTypes.string,
+    }),
+    onChange: PropTypes.func.isRequired,
+    disabled: PropTypes.bool,
+    customStyles: PropTypes.shape({
+        control: PropTypes.func,
+        singleValue: PropTypes.func,
+        placeholder: PropTypes.string,
+    })
+}
+
+// Default props
+CountrySelector.defaultProps = {
+    value: null,
+    disabled: false,
+    customStyles: {},
 }
 
 export default CountrySelector
