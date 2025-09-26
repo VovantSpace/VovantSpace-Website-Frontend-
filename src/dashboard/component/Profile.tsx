@@ -201,6 +201,8 @@ const languageOptions = [
 
 type ExpertiseKey = keyof typeof EXPERTISE_SPECIALTIES;
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+
 const validationSchema = Yup.object().shape({
     firstName: Yup.string().required('First Name is required'),
     lastName: Yup.string().required('Last Name is required'),
@@ -210,9 +212,6 @@ const validationSchema = Yup.object().shape({
         .max(3, 'Maximum 3 specialties allowed')
         .required('At least one specialty is required'),
     languages: Yup.array().min(1, 'At least one language is required'),
-    bio: Yup.string()
-        .max(300, 'Maximum 300 characters')
-        .required('Bio is required'),
     experience: Yup.string(),
     skills: Yup.array()
         .of(Yup.string())
@@ -376,12 +375,22 @@ export default function ProfilePage() {
     // Handle Save
     const handleSave = async () => {
         try {
-            // validate using formik
-            const errors = await formik.validateForm()
+            console.log('handleSave called'); // Debug log
+
+            // Use formik's validateForm method (returns Promise<FormikErrors>)
+            const errors = await formik.validateForm();
+
             if (Object.keys(errors).length > 0) {
-                await formik.setTouched(
-                    Object.keys(errors).reduce((acc, key) => ({...acc, [key]: true}), {})
-                )
+                console.log('Validation errors:', errors); // Debug log
+
+                // Set all fields as touched to show validation errors
+                const touchedFields = Object.keys(errors).reduce((acc, key) => ({
+                    ...acc,
+                    [key]: true
+                }), {});
+
+                formik.setTouched(touchedFields);
+                toast.error('Please fix validation errors before saving');
                 return;
             }
 
@@ -395,25 +404,25 @@ export default function ProfilePage() {
                 organization: tempProfileData.organization,
                 website: tempProfileData.website,
                 linkedin: tempProfileData.linkedin,
-                skills: formik.values.skills,
-                experience: formik.values.experience,
-                portfolio: formik.values.portfolio,
-                expertise: formik.values.expertise,
-                specialties: formik.values.specialties,
-                languages: formik.values.languages,
-                advisorType: formik.values.advisorType,
-                reason: formik.values.reason,
-                experienceLevel: formik.values.experienceLevel,
-                education: tempEducations,
-                certification: tempCertifications,
-                workExperience: workExperiences,
+                skills: formik.values.skills || [],
+                experience: formik.values.experience || "",
+                portfolio: formik.values.portfolio || "",
+                expertise: formik.values.expertise || "",
+                specialties: formik.values.specialties || [],
+                languages: formik.values.languages || [],
+                advisorType: formik.values.advisorType || "",
+                reason: formik.values.reason || [],
+                experienceLevel: formik.values.experienceLevel || "",
+                education: tempEducations || [],
+                certification: tempCertifications || [],
+                workExperience: workExperiences || [],
             };
 
-            const updatedUser = await updateProfile(profileUpdateData)
-            setIsEditing(false)
+            console.log('Saving profile data:', profileUpdateData); // Debug log
 
-            toast.success('Profile updated successfully!')
-            // Update the original data after a successful save
+            const updatedUser = await updateProfile(profileUpdateData);
+
+            // Update original data after successful save
             const updatedProfileData = {
                 firstName: tempProfileData.firstName,
                 lastName: tempProfileData.lastName,
@@ -424,25 +433,34 @@ export default function ProfilePage() {
                 organization: tempProfileData.organization,
                 website: tempProfileData.website,
                 linkedin: tempProfileData.linkedin,
-                skills: formik.values.skills,
+                skills: formik.values.skills || [],
                 experience: formik.values.experience || "",
                 portfolio: formik.values.portfolio || "",
-                expertise: formik.values.expertise,
-                specialties: formik.values.specialties,
-                languages: formik.values.languages,
+                expertise: formik.values.expertise || "",
+                specialties: formik.values.specialties || [],
+                languages: formik.values.languages || [],
                 advisorType: formik.values.advisorType || "",
                 reason: formik.values.reason || [],
                 experienceLevel: formik.values.experienceLevel || "",
+            };
+
+            setOriginalProfileData(updatedProfileData);
+            setIsEditing(false);
+            toast.success('Profile updated successfully!');
+
+        } catch (error) {
+            console.error('Failed to update Profile:', error);
+
+            let errorMessage = 'Failed to update profile';
+            if (error instanceof Error) {
+                errorMessage = error.message;
+            } else if (typeof error === 'string') {
+                errorMessage = error;
             }
 
-            setOriginalProfileData(updatedProfileData)
-
-            toast.success('Profile updated successfully!')
-        } catch (error: any) {
-            console.error('Failed to update Profile:', error)
-            toast.error(error)
+            toast.error(errorMessage);
         }
-    }
+    };
 
     const handleImageUploaded = (imageUrl: string) => {
         toast.success("Profile Picture updated successfully")
@@ -536,10 +554,14 @@ export default function ProfilePage() {
             toast.success('Notification preferences updated')
         } catch (error: any) {
             console.error('Failed to update notification preferences:', error)
-            toast.error(error.message ||"Failed to update notification preferences")
+            toast.error(error.message || "Failed to update notification preferences")
         }
     }
 
+    const getUserInitials = () => {
+        if (!user?.firstName || !user?.lastName) return "U"
+        return `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase()
+    }
 
 
     return (
@@ -562,8 +584,9 @@ export default function ProfilePage() {
                                 <Button variant="outline" onClick={handleCancel} size="sm">
                                     Cancel
                                 </Button>
-                                <Button onClick={handleSave} className='dashbutton' size="sm">
-                                    Save Changes
+                                <Button type={'submit'} onClick={handleSave} className='dashbutton' size="sm"
+                                        disabled={formik.isSubmitting}>
+                                    {formik.isSubmitting ? "Saving..." : "Save Changes"}
                                 </Button>
                             </div>
                         )}
@@ -577,8 +600,12 @@ export default function ProfilePage() {
                             <div className="mb-6 flex items-center md:gap-6 gap-3">
                                 <div className="relative">
                                     <div
-                                        className="flex h-24 w-24 items-center justify-center rounded-full bg-[#00bf8f] text-3xl dashtext">
-                                        VS
+                                        className=" relative flex h-24 w-24 items-center justify-center rounded-full bg-[#00bf8f] text-3xl dashtext">
+                                        {user?.profilePicture ? (
+                                            <img src={`${API_BASE_URL}${user.profilePicture}`} alt="" className={'h-full w-full object-cover'}/>
+                                        ) : (
+                                            getUserInitials()
+                                        )}
                                     </div>
                                     <Button
                                         size="icon"
@@ -1056,7 +1083,8 @@ export default function ProfilePage() {
                 />
                 <ChangePasswordDialog isOpen={isPasswordDialogOpen} onClose={() => setIsPasswordDialogOpen(false)}/>
                 <UploadImageDialog isOpen={isUploadDialogOpen} onClose={() => setIsUploadDialogOpen(false)}
-                                   onImageUploaded={handleImageUploaded} uploadFunction={uploadProfilePicture} isUpLoading={profileLoading}/>
+                                   onImageUploaded={handleImageUploaded} uploadFunction={uploadProfilePicture}
+                                   isUpLoading={profileLoading}/>
                 <IdentityVerificationDialog isOpen={isGetVerifiedDialogueOpen}
                                             onClose={() => setIsGetVerifiedDialogueOpen(false)}/>
             </div>

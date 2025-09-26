@@ -360,23 +360,19 @@ export const useProfile = () => {
             formData.append('profilePicture', file);
 
             const token = localStorage.getItem('token');
-            const response = await fetch(`${API_BASE_URL}/user/profile-picture`, {
+            const response = await fetch(`${API_BASE_URL}/api/user/upload-profile-picture`, {
                 method: 'POST',
                 headers: {
-                    ...(token && {'Authorization': `Bearer ${token}`}),
+                    ...(token && { 'Authorization': `Bearer ${token}` }),
                 },
                 body: formData,
             });
 
-            if (!response.ok) {
-                const error = await response.json().catch(() => ({message: 'Upload failed'}));
-                setError(error.message || "Failed to upload picture");
-            }
+            const result = await response.json().catch(() => ({}));
 
-            const result = await response.json();
-
-            if (!result.success) {
-                setError("Failed to upload picture");
+            if (!response.ok || !result.success) {
+                setError(result.message || "Failed to upload picture");
+                throw new Error(result.message || "Failed to upload picture");
             }
 
             return result.profilePictureUrl;
