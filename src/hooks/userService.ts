@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, startTransition } from 'react'
+import {useState, useEffect, useCallback, startTransition} from 'react'
 
 export interface User {
     _id: string;
@@ -36,6 +36,33 @@ export interface User {
 
     createdAt: string;
     updatedAt: string;
+
+    education?: Education[];
+    certification?: Certification[];
+    workExperience?: WorkExperience[];
+}
+
+export interface Certification {
+    name: string;
+    issuer: string;
+    date: string;
+    id: number;
+}
+
+export interface Education {
+    institution: string;
+    degree: string;
+    field: string;
+    startYear: string;
+    endYear: string;
+}
+
+export interface WorkExperience {
+    id: number;
+    company: string;
+    role: string;
+    startDate: string;
+    endDate: string;
 }
 
 export interface AuthResponse {
@@ -87,6 +114,9 @@ export interface UpdateProfileData {
     linkedin?: string;
     skills?: string[];
     experience?: string;
+    education?: Education[];
+    certification?: Certification[];
+    workExperience?: WorkExperience[];
     portfolio?: string;
     expertise?: string;
     specialties?: string[];
@@ -115,11 +145,11 @@ const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
     const token = localStorage.getItem("token")
 
     const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/api/user${endpoint}`,
+        `${API_BASE_URL}/api/user${endpoint}`,
         {
             headers: {
                 "Content-Type": "application/json",
-                ...(token && { Authorization: `Bearer ${token}` }),
+                ...(token && {Authorization: `Bearer ${token}`}),
                 ...options.headers,
             },
             ...options,
@@ -304,7 +334,7 @@ export const useProfile = () => {
 
             const response = await apiRequest('/update-role', {
                 method: 'PUT',
-                body: JSON.stringify({ role }),
+                body: JSON.stringify({role}),
             });
 
             if (!response.success) {
@@ -333,13 +363,13 @@ export const useProfile = () => {
             const response = await fetch(`${API_BASE_URL}/user/profile-picture`, {
                 method: 'POST',
                 headers: {
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
+                    ...(token && {'Authorization': `Bearer ${token}`}),
                 },
                 body: formData,
             });
 
             if (!response.ok) {
-                const error = await response.json().catch(() => ({ message: 'Upload failed' }));
+                const error = await response.json().catch(() => ({message: 'Upload failed'}));
                 setError(error.message || "Failed to upload picture");
             }
 
@@ -404,7 +434,7 @@ export const usePassword = () => {
 
             const response = await apiRequest('/forgot-password', {
                 method: 'POST',
-                body: JSON.stringify({ email }),
+                body: JSON.stringify({email}),
             });
 
             if (!response.success) {
@@ -426,11 +456,11 @@ export const usePassword = () => {
 
             const response = await apiRequest('/reset-password', {
                 method: 'POST',
-                body: JSON.stringify({ token, newPassword }),
+                body: JSON.stringify({token, newPassword}),
             });
 
             if (!response.success) {
-               setError(response.message || "failed to reset password")
+                setError(response.message || "failed to reset password")
             }
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to reset password';
@@ -532,12 +562,12 @@ export const useVerification = () => {
 
             const response = await apiRequest('/verification/request', {
                 method: 'POST',
-                body: JSON.stringify({ type: verificationType }),
+                body: JSON.stringify({type: verificationType}),
             });
 
             if (!response.success) {
-               setError(response.message || 'Failed to request verification');
-               return;
+                setError(response.message || 'Failed to request verification');
+                return;
             }
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to request verification';
@@ -555,7 +585,7 @@ export const useVerification = () => {
 
             const response = await apiRequest('/verification/email', {
                 method: 'POST',
-                body: JSON.stringify({ token }),
+                body: JSON.stringify({token}),
             });
 
             if (!response.success) {
@@ -580,13 +610,13 @@ export const useVerification = () => {
             const response = await fetch(`${API_BASE_URL}/user/verification/identity`, {
                 method: 'POST',
                 headers: {
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
+                    ...(token && {'Authorization': `Bearer ${token}`}),
                 },
                 body: documents,
             });
 
             if (!response.ok) {
-                const error = await response.json().catch(() => ({ message: 'Verification failed' }));
+                const error = await response.json().catch(() => ({message: 'Verification failed'}));
                 setError("Failed to verify identity")
             }
 
