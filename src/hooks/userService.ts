@@ -138,6 +138,30 @@ export interface NotificationPreferences {
     marketingEmails: boolean;
 }
 
+export interface Notification {
+    _id: string;
+    userId: string;
+    title: string;
+    description: string;
+    type: 'submission' | 'review' | 'deadline' | 'message' | 'challenge' | 'system';
+    isRead: boolean;
+    createdAt: string;
+    updatedAt: string;
+    metaData?: {
+        challengeId?: string;
+        submissionId?: string;
+        messageId?: string;
+        [key: string]: any;
+    }
+}
+
+export interface NotificationResponse {
+    success: boolean;
+    notification: Notification[]; // Note: keeping your property name
+    unreadCount: number;
+    total: number;
+}
+
 // Base API configuration
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
@@ -146,6 +170,30 @@ const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
 
     const response = await fetch(
         `${API_BASE_URL}/api/user${endpoint}`,
+        {
+            headers: {
+                "Content-Type": "application/json",
+                ...(token && {Authorization: `Bearer ${token}`}),
+                ...options.headers,
+            },
+            ...options,
+        }
+    )
+
+    if (!response.ok) {
+        const errData = await response.json().catch(() => ({}))
+        throw new Error(errData.message || `Request failed: ${response.status}`)
+    }
+
+    return response.json()
+}
+
+// Separate API request function for notifications
+const notificationApiRequest = async (endpoint: string, options: RequestInit = {}) => {
+    const token = localStorage.getItem("token")
+
+    const response = await fetch(
+        `${API_BASE_URL}/api/notifications${endpoint}`,
         {
             headers: {
                 "Content-Type": "application/json",
@@ -363,7 +411,7 @@ export const useProfile = () => {
             const response = await fetch(`${API_BASE_URL}/api/user/upload-profile-picture`, {
                 method: 'POST',
                 headers: {
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
+                    ...(token && {'Authorization': `Bearer ${token}`}),
                 },
                 body: formData,
             });
@@ -476,76 +524,179 @@ export const usePassword = () => {
     };
 };
 
-// Hook for notification preferences
+// Hook for notifications
 export const useNotifications = () => {
-    const [preferences, setPreferences] = useState<NotificationPreferences | null>(
-        null
-    )
-    const [loading, setLoading] = useState(false)
-    const [error, setError] = useState<string | null>(null)
+    const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [unreadCount, setUnreadCount] = useState(0);
+    const [preferences, setPreferences] = useState<NotificationPreferences | null>(null);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
+    // Fetch notifications
+    const fetchNotifications = useCallback(async (limit = 20, offset = 0) => {
+        try {
+            setLoading(true);
+            setError(null);
+
+            const response: NotificationResponse = await notificationApiRequest(`?limit=${limit}&offset=${offset}`);
+
+            if (response.success) {
+                setNotifications(response.notification); // Using your property name
+                setUnreadCount(response.unreadCount);
+            }
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : "Failed to fetch notifications";
+            setError(errorMessage);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    // Mark the notification as read
+    const markAsRead = useCallback(async (notificationId: string) => {
+        try {
+            const response = await notificationApiRequest(`/${notificationId}/read`, {
+                method: 'PATCH'
+            });
+
+            if (response.success) {
+                setNotifications(prev =>
+                    prev.map(notif =>
+                        notif._id === notificationId
+                            ? {...notif, isRead: true}
+                            : notif
+                    )
+                );
+                setUnreadCount(prev => Math.max(0, prev - 1));
+            }
+        } catch (err) {
+            console.error('Failed to mark notification as read:', err);
+        }
+    }, []);
+
+    // Mark all notifications as read (fixed function name)
+    const markAllAsRead = useCallback(async () => {
+        try {
+            setLoading(true);
+            const response = await notificationApiRequest('/mark-all-read',  {
+                method: 'PATCH'
+            });
+
+            if (response.success) {
+                setNotifications(prev =>
+                    prev.map(notif => ({...notif, isRead: true}))
+                );
+                setUnreadCount(0);
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Failed to mark all as read");
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    // Delete notification
+    const deleteNotification = useCallback(async (notificationId: string) => {
+        try {
+            const response = await notificationApiRequest(`/${notificationId}`, {
+                method: 'DELETE',
+            });
+
+            if (response.success) {
+                setNotifications(prev => prev.filter(notif => notif._id !== notificationId));
+                setUnreadCount(prev => {
+                    const deletedNotif = notifications.find(n => n._id === notificationId);
+                    return deletedNotif && !deletedNotif.isRead ? Math.max(0, prev - 1) : prev;
+                });
+            }
+        } catch (err) {
+            console.error('Failed to delete notification:', err);
+        }
+    }, [notifications]);
+
+    // Get notification preferences
     const getNotificationPreferences = useCallback(async () => {
-        setLoading(true)
-        setError(null)
+        setLoading(true);
+        setError(null);
 
         try {
-            const response = await apiRequest("/notifications/preferences")
+            const response = await apiRequest("/notifications/preferences");
             if (response.success) {
-                setPreferences(response.preferences)
+                setPreferences(response.preferences);
             }
         } catch (err) {
             setError(
                 err instanceof Error
                     ? err.message
                     : "Failed to fetch notification preferences"
-            )
+            );
         } finally {
-            setLoading(false)
+            setLoading(false);
         }
-    }, [])
+    }, []);
 
+    // Update notification preferences
     const updateNotificationPreferences = useCallback(
         async (newPreferences: Partial<NotificationPreferences>) => {
-            setLoading(true)
-            setError(null)
+            setLoading(true);
+            setError(null);
 
             try {
                 const response = await apiRequest("/notifications/preferences", {
                     method: "PUT",
                     body: JSON.stringify(newPreferences),
-                })
+                });
 
                 if (response.success) {
-                    setPreferences(response.preferences)
+                    setPreferences(response.preferences);
                 } else {
-                    setError(response.message || "Failed to update notification preferences")
+                    setError(response.message || "Failed to update notification preferences");
                 }
             } catch (err) {
                 const errorMessage =
                     err instanceof Error
                         ? err.message
-                        : "Failed to update notification preferences"
-                setError(errorMessage)
-                throw new Error(errorMessage)
+                        : "Failed to update notification preferences";
+                setError(errorMessage);
+                throw new Error(errorMessage);
             } finally {
-                setLoading(false)
+                setLoading(false);
             }
         },
         []
-    )
+    );
 
     useEffect(() => {
-        getNotificationPreferences()
-    }, [getNotificationPreferences])
+        getNotificationPreferences();
+        fetchNotifications();
+
+        const interval = setInterval(() => {
+            fetchNotifications();
+        }, 30000);
+
+        return () => clearInterval(interval);
+    }, [getNotificationPreferences, fetchNotifications]);
 
     return {
+        // Real-time notifications
+        notifications,
+        unreadCount,
+        fetchNotifications,
+        markAsRead,
+        markAllAsRead,
+        deleteNotification,
+
+        // Notification preferences
         preferences,
+        updateNotificationPreferences,
+        getNotificationPreferences,
+
+        // States
         loading,
         error,
-        refetch: getNotificationPreferences,
-        updatePreferences: updateNotificationPreferences,
-    }
-}
+    };
+};
+
 // Hook for account verification
 export const useVerification = () => {
     const [loading, setLoading] = useState(false);
@@ -613,7 +764,7 @@ export const useVerification = () => {
 
             if (!response.ok) {
                 const error = await response.json().catch(() => ({message: 'Verification failed'}));
-                setError("Failed to verify identity")
+                setError("Failed to verify identity");
             }
 
             const result = await response.json();
@@ -652,10 +803,10 @@ export const useUserService = () => {
     const updateUserAndRefresh = async (
         profileData: UpdateProfileData
     ): Promise<User> => {
-        const updatedUser = await profile.updateProfile(profileData)
-        auth.setUser(updatedUser)
-        return updatedUser
-    }
+        const updatedUser = await profile.updateProfile(profileData);
+        auth.setUser(updatedUser);
+        return updatedUser;
+    };
 
     const refreshUser = async (): Promise<void> => {
         try {
@@ -669,7 +820,6 @@ export const useUserService = () => {
             throw err;
         }
     };
-
 
     return {
         // ✅ Auth
@@ -698,12 +848,20 @@ export const useUserService = () => {
         passwordLoading: password.loading,
         passwordError: password.error,
 
-        // ✅ Notifications
+        // ✅ Real-time Notifications
+        notifications: notifications.notifications,
+        unreadNotificationsCount: notifications.unreadCount,
+        fetchNotifications: notifications.fetchNotifications,
+        markNotificationAsRead: notifications.markAsRead,
+        markAllNotificationsAsRead: notifications.markAllAsRead,
+        deleteNotification: notifications.deleteNotification,
+        notificationsLoading: notifications.loading,
+        notificationsError: notifications.error,
+
+        // ✅ Notification Preferences
         notificationPreferences: notifications.preferences,
-        updateNotificationPreferences: notifications.updatePreferences,
-        refetchNotifications: notifications.refetch,
-        notificationLoading: notifications.loading,
-        notificationError: notifications.error,
+        updateNotificationPreferences: notifications.updateNotificationPreferences,
+        refetchNotificationPreferences: notifications.getNotificationPreferences,
 
         // ✅ Verification
         requestVerification: verification.requestVerification,
@@ -711,5 +869,5 @@ export const useUserService = () => {
         submitIdentityVerification: verification.submitIdentityVerification,
         verificationLoading: verification.loading,
         verificationError: verification.error,
-    }
+    };
 };

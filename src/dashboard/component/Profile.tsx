@@ -232,7 +232,7 @@ export default function ProfilePage() {
         profileError,
         notificationPreferences,
         updateNotificationPreferences,
-        notificationLoading
+        notificationsLoading
     } = useUserService()
 
     const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false)
@@ -1033,7 +1033,7 @@ export default function ProfilePage() {
                                     onCheckedChange={(checked) =>
                                         handleNotificationUpdate('emailNotifications', checked)
                                     }
-                                    disabled={notificationLoading}
+                                    disabled={notificationsLoading}
                                 />
                             </div>
                             <Separator className="secondbg"/>
@@ -1045,7 +1045,7 @@ export default function ProfilePage() {
                                 <Switch
                                     checked={notificationPreferences?.challengeUpdates || false}
                                     onCheckedChange={(checked) => handleNotificationUpdate('challengeUpdates', checked)}
-                                    disabled={notificationLoading}
+                                    disabled={notificationsLoading}
                                 />
                             </div>
                             <Separator className="secondbg"/>
@@ -1057,7 +1057,7 @@ export default function ProfilePage() {
                                 <Switch
                                     checked={notificationPreferences?.newMessages || false}
                                     onCheckedChange={(checked) => handleNotificationUpdate('newMessages', checked)}
-                                    disabled={notificationLoading}
+                                    disabled={notificationsLoading}
                                 />
                             </div>
                             <Separator className="secondbg"/>
@@ -1069,7 +1069,7 @@ export default function ProfilePage() {
                                 <Switch
                                     checked={notificationPreferences?.marketingEmails || false}
                                     onCheckedChange={(checked) => handleNotificationUpdate('marketingEmails', checked)}
-                                    disabled={notificationLoading}
+                                    disabled={notificationsLoading}
                                 />
                             </div>
                         </div>

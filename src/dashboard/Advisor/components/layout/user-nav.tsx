@@ -47,7 +47,7 @@ export function UserNav() {
               )}
           </div>
 
-            <ChevronDown className={'h-4 w-4 text-gray-500 transition-transform duration-200 data-[state=open]:rotate-180'}/>
+            <ChevronDown className={'h-4 w-4 text-gray-500 transition-transform duration-200 group-hover:rotate-180'}/>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-48 mr-10" align="end" forceMount>

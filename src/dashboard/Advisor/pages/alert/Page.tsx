@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Bell, CheckCircle, Info, AlertCircle } from "lucide-react";
 
-import { Card } from "@innovator/components/ui/card";
-import { Button } from "@innovator/components/ui/button";
+import { Card } from "@/dashboard/Innovator/components/ui/card";
+import { Button } from "@/dashboard/Innovator/components/ui/button";
 import { MainLayout } from "../../../component/main-layout";
 
 export default function AlertPage() {
@@ -41,21 +41,6 @@ export default function AlertPage() {
     },
   ]);
 
-  //   const renderIcon = (type) => {
-  //     switch (type) {
-  //       case "success":
-  //         return <CheckCircle className="h-5 w-5 text-[#00bf8f]" />;
-  //       case "info":
-  //         return <Info className="h-5 w-5 text-blue-500" />;
-  //       case "warning":
-  //         return <AlertCircle className="h-5 w-5 text-yellow-500" />;
-  //       case "error":
-  //         return <AlertCircle className="h-5 w-5 text-red-600" />;
-  //       default:
-  //         return <Bell className="h-5 w-5 text-gray-500" />;
-  //     }
-  //   };
-
   return (
     <MainLayout>
       <div className="space-y-6 md:p-6 px-3 pt-2">
@@ -78,12 +63,6 @@ export default function AlertPage() {
               className="p-4 flex items-start secondbg gap-4 transition-colors hover:secondbg cursor-pointer  border-l-4 border-[#175047]"
 
             >
-              {/* Icon */}
-              {/* <div className="flex-shrink-0">
-                <div className="rounded-full secondbg p-2">
-                  {renderIcon(notification.type)}
-                </div>
-              </div> */}
 
               {/* Notification Content */}
               <div className="flex-1">
