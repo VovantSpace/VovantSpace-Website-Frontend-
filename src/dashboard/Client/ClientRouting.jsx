@@ -12,7 +12,7 @@ function ProblemSolverRouting() {
   return (
     <div className='dashbg'>
       <Routes>
-        <Route path="/" element={<HomePage />} />
+        <Route index element={<HomePage />} />
         <Route path="find-a-mentor" element={<Mentors />} />
         <Route path="chats" element={<ChatsPage />} />
         <Route path="wallet" element={<WalletPage />} />

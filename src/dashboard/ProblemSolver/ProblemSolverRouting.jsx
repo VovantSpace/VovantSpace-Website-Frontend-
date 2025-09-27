@@ -22,7 +22,7 @@ function ProblemSolverRouting() {
             />
 
             <Routes>
-                <Route path="/" element={<HomePage/>}/>
+                <Route index element={<HomePage/>}/>
                 <Route path="my-challenges" element={<ChallengesPage/>}/>
                 <Route path="chats" element={<ChatsPage/>}/>
                 <Route path="wallet" element={<WalletPage/>}/>

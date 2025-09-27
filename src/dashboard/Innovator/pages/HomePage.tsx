@@ -3,7 +3,7 @@ import { FileText, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
-import { MainLayout } from '../components/layout/main-layout';
+import { MainLayout } from '@/dashboard/Innovator/components/layout/main-layout';
 import { CreateChallengeDialog } from '../components/modals/create-challenge-dialog';
 import { useDashboardStats, useChallenges } from '@/hooks/useChallenges';
 import { toast } from 'react-hot-toast';

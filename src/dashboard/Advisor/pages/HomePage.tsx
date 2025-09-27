@@ -29,14 +29,14 @@ const getWeekDays = () => {
     return days;
 }
 
-// Fixed: Helper function to group sessions by day using full date as key
+// Fixed: Helper functions to group sessions by day using the full date as a key
 const groupSessionsByDay = (sessions: any[]) => {
-    const grouped: { [key: string]: any[] } = {}; // Changed to string key
+    const grouped: { [key: string]: any[] } = {}; // Changed to a string key
 
     sessions.forEach(session => {
         const sessionDate = new Date(session.scheduledDate);
-        // Use full date string as key instead of just day number to avoid conflicts
-        const dayKey = sessionDate.toDateString(); // e.g., "Wed Dec 25 2024"
+        // Use a full date string as a key instead of just a day number to avoid conflicts
+        const dayKey = sessionDate.toDateString();
 
         if (!grouped[dayKey]) {
             grouped[dayKey] = [];

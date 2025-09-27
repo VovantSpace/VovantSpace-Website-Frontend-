@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Menu, Sun, Moon } from "lucide-react";
 
 import { Button } from "@/dashboard/Innovator/components/ui/button";
