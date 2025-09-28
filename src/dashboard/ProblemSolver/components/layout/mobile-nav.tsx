@@ -3,9 +3,9 @@
 import { Home, MessageSquare, FileText, BarChart2, Wallet, User, X } from "lucide-react"
 import { useLocation, Link } from "react-router-dom"
 import logo from '@/assets/logo.png'
-import { Button } from "@innovator/components/ui/button"
-import { Sheet, SheetContent } from "@innovator/components/ui/sheet"
-import { cn } from "@innovator/lib/utils"
+import { Button } from "@/dashboard/ProblemSolver/components/ui/button"
+import { Sheet, SheetContent } from "@/dashboard/ProblemSolver/components/ui/sheet"
+import { cn } from "@/lib/utils"
 import { Bell } from "lucide-react"
 
 const mobileLinks = [

@@ -206,7 +206,7 @@ export default function ExploreChallenges() {
                   <div className="flex items-center gap-2">
   
                     <Button className="dashbutton text-white shadow-md hover:shadow-lg transition-all font-semibold rounded-lg" onClick={() => {
-                        setSelectedChallenge(challenge);setIsOpenPitchPopupShow(true);}}>
+                        setSelectedChallenge(challenge); setIsOpenPitchPopupShow(true);}}>
                       Pitch Now
                       <ArrowUpRight className="ml-2 h-4 w-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                     </Button>

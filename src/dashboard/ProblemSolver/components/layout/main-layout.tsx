@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { Menu, Sun, Moon } from "lucide-react";
 
-import { Button } from "@/dashboard/Innovator/components/ui/button";
-import { Sidebar } from "./sidebar";
-import { UserNav } from "./user-nav";
-import { MobileNav } from "./mobile-nav";
-import { NotificationsDropdown } from "@/dashboard/Innovator/components/notifications-dropdown";
+import { Button } from "@/dashboard/ProblemSolver/components/ui/button";
+import { Sidebar } from "@/dashboard/ProblemSolver/components/layout/sidebar"
+import { UserNav } from "@/dashboard/ProblemSolver/components/layout/user-nav";
+import { MobileNav } from "@/dashboard/ProblemSolver/components/layout/mobile-nav";
+import { NotificationsDropdown } from "@/dashboard/ProblemSolver/components/notifications-dropdown";
 
 export function MainLayout({ children }: { children: React.ReactNode }) {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);

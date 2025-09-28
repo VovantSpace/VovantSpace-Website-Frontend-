@@ -1,5 +1,3 @@
-
-
 import { Home, FileText, MessageSquare, BarChart2, Wallet, User } from "lucide-react"
 import logo from '@/assets/logo.png'
 import { useLocation, Link } from "react-router-dom"
@@ -72,4 +70,3 @@ export function Sidebar() {
     </div>
   )
 }
-
