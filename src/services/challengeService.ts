@@ -106,6 +106,11 @@ export interface CreateChallengeData {
         url: string;
         fileType: string;
     }>;
+    paymentVerified?: boolean;
+    location: {
+        country: string;
+        city: string;
+    }
 }
 
 // Challenge API endpoints

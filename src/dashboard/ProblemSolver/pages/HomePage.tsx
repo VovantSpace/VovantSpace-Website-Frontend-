@@ -230,9 +230,10 @@ export default function HomePage() {
 
                                 <Badge className="mb-4">{challenge.industry}</Badge>
 
+                                {/*Description*/}
                                 <p className="text-gray-600 dark:text-gray-300 mb-4 text-sm leading-relaxed">
                                     {expandedDescriptions.includes(challenge._id) ? (
-                                        <div dangerouslySetInnerHTML={{ __html: challenge.description }} />
+                                        <div dangerouslySetInnerHTML={{__html: challenge.description}}/>
                                     ) : (
                                         <div
                                             dangerouslySetInnerHTML={{
@@ -249,6 +250,29 @@ export default function HomePage() {
                                             : "more"}
                                     </button>
                                 </p>
+                                <div
+                                    className={'flex flex-wrap items-center gap-4 mt-2 text-xs text-gray-500 dark:text-gray-400'}>
+                                    {/*  Payment verified  */}
+                                    {challenge.paymentVerified && (
+                                        <div className={'flex items-center gap-1 text-emerald-600'}>
+                                            <DollarSign className={'h-4 w-4'}/>
+                                            <span>Payment Verified</span>
+                                        </div>
+                                    )}
+
+                                    {/* Location */}
+                                    {challenge.location?.country && (
+                                        <div className={'flex items-center gap-1'}>
+                                            <MapPin className={'h-4 w-4'}/>
+                                            <span>
+                                                {challenge.location.city
+                                                    ? `${challenge.location.city},`
+                                                    : ""}
+                                                {challenge.location.country}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
 
                                 <div className="flex items-center justify-between">
                   <span className="text-xs text-gray-500 dark:text-gray-400">
