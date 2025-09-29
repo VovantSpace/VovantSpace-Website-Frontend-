@@ -1,4 +1,4 @@
-import { useState, JSX, SetStateAction } from "react";
+import {useState, JSX, SetStateAction} from "react";
 import {
     ArrowUpRight,
     MapPin,
@@ -10,9 +10,9 @@ import {
     Trophy,
 } from "lucide-react";
 
-import { Card } from "@/dashboard/Innovator/components/ui/card";
-import { Badge } from "@/dashboard/Innovator/components/ui/badge";
-import { Button } from "@/dashboard/Innovator/components/ui/button";
+import {Card} from "@/dashboard/Innovator/components/ui/card";
+import {Badge} from "@/dashboard/Innovator/components/ui/badge";
+import {Button} from "@/dashboard/Innovator/components/ui/button";
 import {
     Select,
     SelectContent,
@@ -20,9 +20,9 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/dashboard/Innovator/components/ui/select";
-import { MainLayout } from "@/dashboard/ProblemSolver/components/layout/main-layout";
-import { CreateChallengeDialog } from "@/dashboard/Innovator/components/modals/create-challenge-dialog";
-import { ApplyChallengeDialog } from "@/dashboard/ProblemSolver/components/modals/ApplyChallengeDialog";
+import {MainLayout} from "@/dashboard/ProblemSolver/components/layout/main-layout";
+import {CreateChallengeDialog} from "@/dashboard/Innovator/components/modals/create-challenge-dialog";
+import {ApplyChallengeDialog} from "@/dashboard/ProblemSolver/components/modals/ApplyChallengeDialog";
 
 // ✅ Hooks for Problem Solver dashboard
 import {
@@ -51,7 +51,7 @@ const ErrorMessage = ({
 }) => (
     <div className="flex items-center justify-center p-8 text-center">
         <div className="max-w-md">
-            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4"/>
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
                 Something went wrong
             </h3>
@@ -88,8 +88,9 @@ export default function HomePage() {
         loading: challengesLoading,
         error: challengesError,
         refetch: refetchChallenges,
+        isFirstLoad
     } = useExploreChallenges(
-        { industry: industryFilter !== "all" ? industryFilter : undefined },
+        {industry: industryFilter !== "all" ? industryFilter : undefined},
         page,
         limit
     );
@@ -116,9 +117,9 @@ export default function HomePage() {
 
                 {/* Stats Section */}
                 {statsLoading ? (
-                    <LoadingStats />
+                    <LoadingStats/>
                 ) : statsError ? (
-                    <ErrorMessage message={statsError} onRetry={refetchStats} />
+                    <ErrorMessage message={statsError} onRetry={refetchStats}/>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
                         {/* Card 1: Submissions */}
@@ -133,7 +134,7 @@ export default function HomePage() {
                                     </h2>
                                 </div>
                                 <div className="h-10 w-10 rounded-full bg-emerald-800 flex items-center justify-center">
-                                    <ChartBar className="h-5 w-5 text-white" />
+                                    <ChartBar className="h-5 w-5 text-white"/>
                                 </div>
                             </div>
                         </Card>
@@ -150,7 +151,7 @@ export default function HomePage() {
                                     </h2>
                                 </div>
                                 <div className="h-10 w-10 rounded-full bg-emerald-500 flex items-center justify-center">
-                                    <DollarSign className="h-5 w-5 text-white" />
+                                    <DollarSign className="h-5 w-5 text-white"/>
                                 </div>
                             </div>
                         </Card>
@@ -167,7 +168,7 @@ export default function HomePage() {
                                     </h2>
                                 </div>
                                 <div className="h-10 w-10 rounded-full bg-amber-500 flex items-center justify-center">
-                                    <Trophy className="h-5 w-5 text-white" />
+                                    <Trophy className="h-5 w-5 text-white"/>
                                 </div>
                             </div>
                         </Card>
@@ -184,8 +185,8 @@ export default function HomePage() {
                             value={industryFilter}
                             onValueChange={(val) => setIndustryFilter(val)}
                         >
-                            <SelectTrigger  className="secondbg text-center text-sm">
-                                <SelectValue placeholder="All Industries" />
+                            <SelectTrigger className="secondbg text-center text-sm">
+                                <SelectValue placeholder="All Industries"/>
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="all">All Industries</SelectItem>
@@ -196,18 +197,25 @@ export default function HomePage() {
                     </div>
                 </div>
 
-                {challengesLoading ? (
-                    <p>Loading challenges...</p>
+                {challengesLoading && isFirstLoad ? (
+                    <p>
+                        Loading challenges...
+                    </p>
                 ) : challengesError ? (
-                    <ErrorMessage message={challengesError} onRetry={refetchChallenges} />
+                    <ErrorMessage message={challengesError} onRetry={refetchChallenges}/>
+                ) : challenges.length === 0 ? (
+                    <p className={'text-center text-gray-600 dark:text-gray-400'}>
+                        No challenges found
+                    </p>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {challenges.map((challenge) => (
-                            <Card key={challenge._id} className="md:p-4 p-2 secondbg">
+                            <Card key={challenge._id} className={'md:p-4 p-2 secondbg'}>
                                 <div className="flex justify-between items-start mb-2">
                                     <div>
-                                        <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
-                                            <Clock className="h-4 w-4" />
+                                        <div
+                                            className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
+                                            <Clock className="h-4 w-4"/>
                                             <span>
                         Posted{" "}
                                                 {new Date(challenge.createdAt).toLocaleDateString()}
@@ -223,9 +231,15 @@ export default function HomePage() {
                                 <Badge className="mb-4">{challenge.industry}</Badge>
 
                                 <p className="text-gray-600 dark:text-gray-300 mb-4 text-sm leading-relaxed">
-                                    {expandedDescriptions.includes(challenge._id)
-                                        ? challenge.description
-                                        : `${challenge.description.slice(0, 150)}...`}
+                                    {expandedDescriptions.includes(challenge._id) ? (
+                                        <div dangerouslySetInnerHTML={{ __html: challenge.description }} />
+                                    ) : (
+                                        <div
+                                            dangerouslySetInnerHTML={{
+                                                __html: challenge.description.slice(0, 150) + "...",
+                                            }}
+                                        />
+                                    )}
                                     <button
                                         onClick={() => toggleDescription(challenge._id)}
                                         className="ml-1 text-emerald-600 dark:text-emerald-400 hover:underline"
@@ -245,7 +259,7 @@ export default function HomePage() {
                                         className="dashbutton text-white"
                                     >
                                         Pitch Now
-                                        <ArrowUpRight className="ml-2 h-4 w-4" />
+                                        <ArrowUpRight className="ml-2 h-4 w-4"/>
                                     </Button>
                                 </div>
                             </Card>

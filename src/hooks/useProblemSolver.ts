@@ -12,7 +12,7 @@ export const useProblemSolverStats = () => {
     const fetchStats = useCallback(async () => {
         try {
             setLoading(true);
-            const res = await axios.get(`${API_BASE_URL}/api/ps/dashboard/stats`, {withCredentials: true})
+            const res = await axios.get(`${API_BASE_URL}/api/problem-solvers/dashboard/stats`, {withCredentials: true})
             if (res.data.success) {
                 setStats(res.data.data.stats || null);
             } else {
@@ -34,38 +34,61 @@ export const useProblemSolverStats = () => {
 
 
 // Fetches challenges for the problems solvers
-export const useExploreChallenges = (filters: any = {}, page: number = 1, limit: number = 10) => {
+export const useExploreChallenges = (
+    filters: any = {},
+    page: number = 1,
+    limit: number = 10
+) => {
     const [challenges, setChallenges] = useState<any[]>([]);
-    const [pagination, setPagination] = useState({currentPage: 1, totalPages: 1, totalChallenges: 0})
+    const [pagination, setPagination] = useState({
+        currentPage: 1,
+        totalPages: 1,
+        totalChallenges: 0,
+    });
     const [loading, setLoading] = useState(true);
+    const [isFirstLoad, setIsFirstLoad] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const fetchChallenges = useCallback(async () => {
+    const fetchChallenges = async () => {
         try {
-            setLoading(true)
-            const res = await axios.get(`${API_BASE_URL}/api/ps/challenges/explore`, {
-                params: {...filters, page, limit},
-                withCredentials: true
-            })
+            setLoading(true);
+
+            const res = await axios.get(
+                `${API_BASE_URL}/api/problem-solvers/challenges/explore`,
+                {
+                    params: { ...filters, page, limit },
+                    withCredentials: true,
+                }
+            );
+
             if (res.data.success) {
                 setChallenges(res.data.data.challenges || []);
-                setPagination(res.data.data.pagination || {currentPage: 1, totalPages: 1, totalChallenges: 0})
+                setPagination(
+                    res.data.data.pagination || {
+                        currentPage: 1,
+                        totalPages: 1,
+                        totalChallenges: 0,
+                    }
+                );
+                setError(null);
             } else {
                 setError(res.data.message);
             }
         } catch (err: any) {
             setError(err.response?.data?.message || "Failed to fetch challenges");
         } finally {
-            setLoading(false)
+            setLoading(false);
+            setIsFirstLoad(false);
         }
-    }, [filters, page, limit])
+    };
 
     useEffect(() => {
-        fetchChallenges()
-    }, [fetchChallenges])
+        fetchChallenges();
+        // 👇 stringify filters so effect runs only when values change
+    }, [page, limit, JSON.stringify(filters)]);
 
-    return {challenges, pagination, loading, error, refetch: fetchChallenges};
-}
+    return { challenges, pagination, loading, isFirstLoad, error, refetch: fetchChallenges };
+};
 
 // API that handles the pitches
 export const useMySubmissions = (status?: string, page: number = 1, limit: number = 10) => {
@@ -77,7 +100,7 @@ export const useMySubmissions = (status?: string, page: number = 1, limit: numbe
     const fetchSubmissions = useCallback(async () => {
         try {
             setLoading(true)
-            const res = await axios.get(`${API_BASE_URL}/api/ps/submissions`, {
+            const res = await axios.get(`${API_BASE_URL}/api/problem-solvers/submissions`, {
                 params: {status, page, limit},
                 withCredentials: true
             })

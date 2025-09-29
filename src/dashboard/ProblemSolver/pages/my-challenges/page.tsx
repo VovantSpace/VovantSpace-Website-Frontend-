@@ -1,11 +1,11 @@
 import { useState } from "react"
 import { Search, Moon, Sun, Heart, ArrowUpRight, MapPin, Star, Clock, DollarSign } from "lucide-react"
-import { Button } from "@innovator/components/ui/button"
-import { Input } from "@innovator/components/ui/input"
-import { Card } from "@innovator/components/ui/card"
-import { Badge } from "@innovator/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@innovator/components/ui/tabs"
-import { MainLayout } from "@problemsolver/components/layout/main-layout"
+import { Button } from "@/dashboard/ProblemSolver/components/ui/button"
+import { Input } from "@/dashboard/Innovator/components/ui/input"
+import { Card } from "@/dashboard/Innovator/components/ui/card"
+import { Badge } from "@/dashboard/Innovator/components/ui/badge"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/dashboard/Innovator/components/ui/tabs"
+import { MainLayout } from "@/dashboard/ProblemSolver/components/layout/main-layout"
 import { ChallengeDetailsDialog } from "../../components/modals/ChallengeDetailsDialogue"
 
 
