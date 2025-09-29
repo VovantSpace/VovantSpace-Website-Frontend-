@@ -1,4 +1,4 @@
-import {useState, JSX, SetStateAction} from "react";
+import {useState, JSX, SetStateAction, Key} from "react";
 import {
     ArrowUpRight,
     MapPin,
@@ -250,6 +250,19 @@ export default function HomePage() {
                                             : "more"}
                                     </button>
                                 </p>
+                                <div className={'mt-3 space-y-2 text-sm'}>
+                                    <div className={'flex items-center gap-2'}>
+                                        <span className={'font-semibold'}>Skills Needed:</span>
+                                        {challenge.requiredSkills?.map((skill: string, i: Key | null | undefined) => (
+                                            <span
+                                                key={i}
+                                                className={'px-2 py-1 text-xs rounded-full bg-gray-200 dark:bg-gray-700'}
+                                            >
+                                                {skill}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
                                 <div
                                     className={'flex flex-wrap items-center gap-4 mt-2 text-xs text-gray-500 dark:text-gray-400'}>
                                     {/*  Payment verified  */}

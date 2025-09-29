@@ -1,9 +1,9 @@
-import { Dialog, DialogContent } from "@innovator/components/ui/dialog"
-import { Button } from "@innovator/components/ui/button"
-import { Badge } from "@innovator/components/ui/badge"
-import { Separator } from "@innovator/components/ui/separator"
-import { ScrollArea } from "@innovator/components/ui/scroll-area"
-import { ArrowLeft, CheckCircle2, MapPin, Calendar, Building2, Clock, Star, ChevronRight } from "lucide-react"
+import { Dialog, DialogContent } from "@/dashboard/Innovator/components/ui/dialog"
+import { Button } from "@/dashboard/Innovator/components/ui/button"
+import { Badge } from "@/dashboard/Innovator/components/ui/badge"
+import { Separator } from "@/dashboard/Innovator/components/ui/separator"
+import { ScrollArea } from "@/dashboard/Innovator/components/ui/scroll-area"
+import { ArrowLeft, CheckCircle2, MapPin, Calendar, Clock, Star, ChevronRight } from "lucide-react"
 import { useState } from "react"
 import { SubmitPitchDialog } from "./SubmitYourPitchDialog"
 
@@ -41,7 +41,7 @@ interface ChallengeDetailsDialogProps {
     description?: string
     technologies?: string[]
     paymentVerified?: boolean
-    solutionsubmitted?: string
+    solutionSubmitted?: string
     industry?: string
     postedAt?: string
     reward?: number
@@ -96,7 +96,7 @@ export function ChallengeDetailsDialog({
     industry: challenge?.industry ?? "Unknown Industry",
     budget: challenge?.reward ?? 0,
     deadline: challenge?.deadline ?? null,
-    submissions: challenge?.solutionsubmitted ?? "N/A",
+    submissions: challenge?.solutionSubmitted ?? "N/A",
     problemSolversNeeded: 1, // default value
     description: challenge?.description ?? "No description provided.",
     requirements: challenge?.requirements ?? ["No requirements specified."],
@@ -293,7 +293,7 @@ export function ChallengeDetailsDialog({
                       {Array.from({ length: 5 }).map((_, i) => (
                         <Star
                           key={i}
-                          className={`h-4 w-4 ${i < innovatorData.rating ? "text-yellow-400 fill-current" : "text-gray-300"}`}
+                          className={`h-4 w-4 ${i < (innovatorData.rating ?? 0) ? "text-yellow-400 fill-current" : "text-gray-300"}`}
                         />
                       ))}
                     </div>
@@ -320,7 +320,6 @@ export function ChallengeDetailsDialog({
                       <span className=" dark:text-white">Challenges posted</span>
                       <span className="dark:text-white">
                         {innovatorData.challengesPosted} ({innovatorData.hireRate}% hire rate)
-                        {/* {innovatorData.openChallenges} open) */}
                       </span>
                     </div>
                     <div className="flex justify-between text-xs">
@@ -361,7 +360,7 @@ export function ChallengeDetailsDialog({
           </div>
 
         </ScrollArea>
-        <SubmitPitchDialog isOpen={isDialogOpen} onClose={() => setIsDialogOpen(false)} challenge={challenge} />
+        <SubmitPitchDialog isOpen={isDialogOpen} onClose={() => setIsDialogOpen(false)} challenge={challengeData} />
       </DialogContent>
     </Dialog>
   )
