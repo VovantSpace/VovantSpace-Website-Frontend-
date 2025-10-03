@@ -1,5 +1,5 @@
 import {JSX, useEffect, useState, useMemo} from "react"
-import {Search, ArrowUpRight, MapPin, Star, Clock, DollarSign, AlertCircle, Heart} from "lucide-react"
+import {Search, MapPin, Star, Clock, DollarSign, AlertCircle, Heart} from "lucide-react"
 import {Button} from "@/dashboard/ProblemSolver/components/ui/button"
 import {Input} from "@/dashboard/Innovator/components/ui/input"
 import {Card} from "@/dashboard/Innovator/components/ui/card"
@@ -8,22 +8,23 @@ import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/dashboard/Innovator/co
 import {MainLayout} from "@/dashboard/ProblemSolver/components/layout/main-layout"
 import {ChallengeDetailsDialog} from "../../components/modals/ChallengeDetailsDialogue"
 import {useExploreChallenges} from "@/hooks/useProblemSolver";
+import type {ChallengeSummary} from '../../components/modals/ChallengeDetailsDialogue'
 
-type ChallengeType = {
-    id: string;
-    title?: string;
-    company?: {name?: string; rating?: number; spent?: string}
-    location?: string;
-    description?: string;
-    technologies: string[];
-    paymentVerified?: boolean;
-    solutionSubmitted?: string;
-    industry?: string;
-    postedAt?: string;
-    reward?: number;
-    deadline?: string;
-    requirements?: string[]
-}
+const mapToChallengeSummary = (c: any): ChallengeSummary => ({
+    id: c._id || c.id,
+    title: c.title ?? "No title",
+    description: c.description ?? "",
+    industry: c.industry ?? "Unknown",
+    totalBudget: c.totalBudget ?? 0,
+    dueDate: c.dueDate,
+    requiredSkills: c.requiredSkills ?? [],
+    skillBudgets: c.skillBudgets ?? [],
+    problemSolversNeeded: c.problemSolversNeeded ?? 1,
+    location: c.location ?? { city: "Unknown", country: "" },
+    createdAt: c.createdAt,
+    paymentVerified: c.paymentVerified ?? false,
+    submissions: c.submissions ?? [],
+})
 
 const LoadingStats = (): JSX.Element => (
     <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-3">
@@ -62,7 +63,7 @@ export default function ExploreChallenges() {
     const [savedChallenges, setSavedChallenges] = useState<string[]>([])
     const [isDarkMode, setIsDarkMode] = useState(false)
     const [expandedDescriptions, setExpandedDescriptions] = useState<string[]>([])
-    const [selectedChallenge, setSelectedChallenge] = useState<ChallengeType | null>(null);
+    const [selectedChallenge, setSelectedChallenge] = useState<ChallengeSummary | null>(null);
     const [isOpenPitchPopupShow, setIsOpenPitchPopupShow] = useState(false)
     const [activeTab, setActiveTab] = useState("best-matches")
 
@@ -138,6 +139,7 @@ export default function ExploreChallenges() {
     }
 
     const ChallengeCard = ({challenge}: { challenge: any }) => {
+        const id = challenge._id || challenge.id
         const isSaved = savedChallenges.includes(challenge.id)
 
         return (
@@ -204,7 +206,6 @@ export default function ExploreChallenges() {
                     {expandedDescriptions.includes(challenge._id) ? "less" : "more"}
                 </button>
 
-
                 <div className={'flex items-center justify-between mb-4'}>
                     <div className={'flex items-center gap-4'}>
                         <div className={'flex items-center gap-2'}>
@@ -235,9 +236,13 @@ export default function ExploreChallenges() {
                     <div className={'flex items-center gap-2'}>
                         <MapPin className={'h-5 w-5 text-gray-400'}/>
                         <span className={'text-xs dark:text-white'}>
-                             {typeof challenge.location === "string"
-                                 ? challenge.location
-                                 : `${challenge.location?.city ?? ""}, ${challenge.location?.country ?? ""}`}
+                            {challenge.location
+                                ? `${challenge.location.city ?? ""}${
+                                    challenge.location.city && challenge.location.country
+                                        ? ", "
+                                        : ""
+                                }${challenge.location.country ?? ""}`
+                                : "Unknown"}
                         </span>
                     </div>
                 </div>
@@ -249,7 +254,7 @@ export default function ExploreChallenges() {
                     <Button
                         className={'dashbutton text-white shadow-md hover:shadow-lg transition-all font-semibold rounded-lg'}
                         onClick={() => {
-                            setSelectedChallenge(challenge)
+                            setSelectedChallenge(mapToChallengeSummary(challenge))
                             setIsOpenPitchPopupShow(true)
                         }}
                     >
@@ -348,7 +353,7 @@ export default function ExploreChallenges() {
             {/*  Challenge details Modal  */}
             {isOpenPitchPopupShow && selectedChallenge && (
                 <ChallengeDetailsDialog isOpen={isOpenPitchPopupShow} onClose={() => setIsOpenPitchPopupShow(false)}
-                                        challenge={selectedChallenge}/>
+                                         challenge={selectedChallenge} />
             )}
         </MainLayout>
     )

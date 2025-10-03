@@ -1,82 +1,45 @@
 import type React from "react"
-
 import {useState} from "react"
 import {Dialog, DialogContent} from "@/dashboard/Innovator/components/ui/dialog"
 import {Input} from "@/dashboard/Innovator/components/ui/input"
 import {Button} from "@/dashboard/Innovator/components/ui/button"
 import {Badge} from "@/dashboard/Innovator/components/ui/badge"
-import {PaperclipIcon} from "lucide-react"
+import {PaperclipIcon, XCircle, CheckCircle2, Trash2} from "lucide-react"
 import {useDropzone} from "react-dropzone"
 import RichTextEditor from "@/dashboard/Innovator/components/modals/RichTextEditor"
+import {useProblemSolverProfile, useSubmitPitch} from "@/hooks/useProblemSolver"
+import {useFileUpload} from "@/hooks/useFileUpload"
 
 interface SubmitPitchDialogProps {
     isOpen: boolean
     onClose: () => void
     challenge: {
+        id: string
         title: string
         skills: { name: string; budget: number }[]
     }
 }
 
-export function SubmitPitchDialog({isOpen, onClose, challenge}: SubmitPitchDialogProps) {
-    const [name, setName] = useState("")
-    const [files, setFiles] = useState<File[]>([])
-    const [selectedSkill, setSelectedSkill] = useState<string>('');
-    const [searchQuery, setSearchQuery] = useState('');
+interface UploadedAttachment {
+    filename: string
+    url: string
+    fileType: string
+    status: "pending" | "success" | "error"
+}
 
-    const skillsList = [
-        "Frontend Development",
-        "Backend Development",
-        "Full Stack Development",
-        "Mobile App Development",
-        "Game Development",
-        "Software Engineering",
-        "Data Science & Analytics",
-        "Machine Learning & AI",
-        "Blockchain Development",
-        "Cybersecurity",
-        "Cloud Computing",
-        "Internet of Things (IoT)",
-        "DevOps & Automation",
-        "Database Management",
-        "API Development & Integration",
-        "Business Strategy & Growth Hacking",
-        "Entrepreneurship & Startups",
-        "Digital Marketing",
-        "Branding & Personal Branding",
-        "Sales & Lead Generation",
-        "Market Research & Consumer Insights",
-        "Financial Analysis & Investment Strategy",
-        "E-commerce Strategy",
-        "Project Management",
-        "Electrical Engineering",
-        "Mechanical Engineering",
-        "Civil & Structural Engineering",
-        "Robotics & Automation",
-        "Product Design & Prototyping",
-        "Medical Research & Data Analysis",
-        "HealthTech & Telemedicine Solutions",
-        "Biotechnology & Biomedical Engineering",
-        "Mental Health & Therapy Counseling",
-        "Nutrition & Dietetics",
-        "UI/UX Design",
-        "Graphic Design",
-        "Video Editing & Motion Graphics",
-        "Content Writing & Copywriting",
-        "Music Production & Sound Engineering",
-        "Photography & Digital Arts",
-        "Renewable Energy Solutions",
-        "Climate Change & Environmental Science",
-        "Sustainable Agriculture & Food Tech",
-        "Smart Cities & Urban Planning",
-        "Teaching & Coaching",
-        "Curriculum Development & E-learning",
-        "Research & Academic Writing",
-        "Nonprofit & Social Entrepreneurship",
-        "CivicTech & Government Innovation",
-        "Diversity, Equity & Inclusion Initiatives"
-    ];
+export function SubmitPitchDialog({
+                                      isOpen,
+                                      onClose,
+                                      challenge,
+                                  }: SubmitPitchDialogProps) {
+    const [attachments, setAttachments] = useState<UploadedAttachment[]>([])
+    const [selectedSkill, setSelectedSkill] = useState<string>("")
+    const [solutionSummary, setSolutionSummary] = useState<string>("")
+    const {uploadFile} = useFileUpload()
+    const {submitPitch, loading, error, success} = useSubmitPitch()
+    const {profile, loading: profileLoading} = useProblemSolverProfile()
 
+    // File dropzone
     const {getRootProps, getInputProps, isDragActive} = useDropzone({
         accept: {
             "application/pdf": [".pdf"],
@@ -84,105 +47,144 @@ export function SubmitPitchDialog({isOpen, onClose, challenge}: SubmitPitchDialo
             "image/jpeg": [".jpg", ".jpeg"],
             "image/png": [".png"],
         },
-        maxSize: 10 * 1024 * 1024, // 10MB
-        onDrop: (acceptedFiles) => {
-            setFiles((prev) => [...prev, ...acceptedFiles])
+        maxSize: 10 * 1024 * 1024,
+        onDrop: async (acceptedFiles) => {
+            const pending = acceptedFiles.map((file) => ({
+                filename: file.name,
+                url: URL.createObjectURL(file),
+                fileType: file.type,
+                status: "pending" as const,
+            }))
+
+            setAttachments((prev) => [...prev, ...pending])
+
+            for (const file of acceptedFiles) {
+                const uploaded = await uploadFile(file)
+                setAttachments((prev) =>
+                    prev.map((att) =>
+                        att.filename === file.name && att.status === "pending"
+                            ? uploaded
+                                ? {...att, url: uploaded.url, status: "success"}
+                                : {...att, status: "error"}
+                            : att
+                    )
+                )
+            }
         },
     })
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault()
-        // Handle form submission logic here
-        onClose()
+    // Remove file from preview
+    const handleRemoveFile = (filename: string) => {
+        setAttachments((prev) => prev.filter((att) => att.filename !== filename))
     }
 
+    // Submit pitch
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault()
+
+        const successfulAttachments = attachments.filter(
+            (a) => a.status === "success"
+        )
+
+        const payload = {
+            solutionSummary,
+            skillTags: selectedSkill ? [selectedSkill] : [],
+            attachments: successfulAttachments.map(({filename, url, fileType}) => ({
+                filename,
+                url,
+                fileType,
+            })),
+        }
+
+        // ✅ Always submit with challenge.id
+        await submitPitch(challenge.id, payload)
+
+        if (success) {
+            setAttachments([])
+            setSolutionSummary("")
+            setSelectedSkill("")
+            onClose()
+        }
+    }
 
     const handleSkillSelection = (skill: string) => {
-        setSelectedSkill(prev => prev === skill ? '' : skill);
-    };
-
+        setSelectedSkill((prev) => (prev === skill ? "" : skill))
+    }
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent
                 className="
-          sm:max-w-[600px] 
-          secondbg 
-          dark:bg-[#1a1a1a] 
-          dark:text-white 
-          p-6 
-          max-h-[90vh] 
-          overflow-y-auto 
+          sm:max-w-[600px]
+          secondbg
+          dark:bg-[#1a1a1a]
+          dark:text-white
+          p-6
+          max-h-[90vh]
+          overflow-y-auto
           rounded-md
         "
             >
                 {/* Header */}
                 <div className="flex justify-between items-start mb-0">
                     <div>
-                        <h2 className="text-2xl font-bold mb-2 dark:text-white">Submit Your Pitch</h2>
+                        <h2 className="text-2xl font-bold mb-2 dark:text-white">
+                            Submit Your Pitch
+                        </h2>
                         <p className="text-sm ">
-                            Share your solution for <span className="dark:text-white">"{challenge.title}"</span>
+                            Share your solution for{" "}
+                            <span className="dark:text-white">"{challenge.title}"</span>
                         </p>
                     </div>
-
                 </div>
 
                 {/* Form */}
                 <form onSubmit={handleSubmit} className="space-y-5">
                     {/* Challenge Title */}
                     <div className="space-y-2">
-                        <label className="text-sm font-medium dark:text-white">Challenge Title</label>
-                        <Input
-                            value={challenge.title}
-                            disabled
-                            className="
-                secondbg 
-                border 
-                border-gray-300 
-                dark:border-gray-700 
-                dark:bg-[#2a2a2a] 
-                dark:text-white
-                text-black
-                font-medium
-              "
-                        />
+                        <label className="text-sm font-medium dark:text-white">
+                            Challenge Title
+                        </label>
+                        <Input value={challenge.title} disabled/>
                     </div>
 
                     {/* Your Name */}
                     <div className="space-y-2">
-                        <label className="text-sm font-medium dark:text-white">Your Name</label>
+                        <label className="text-sm font-medium dark:text-white">
+                            Your Name
+                        </label>
                         <Input
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            disabled
-                            className="
-            secondbg 
-                border 
-                border-gray-300 
-                dark:border-gray-700 
-                dark:bg-[#2a2a2a] 
-                dark:text-white
-                text-black
-                font-medium
-              "
+                            value={profileLoading ? "Loading..." : profile?.fullName || "Unknown"}
+                            readOnly
                         />
                     </div>
 
                     {/* Solution Summary */}
                     <div className="space-y-2">
-                        <label className="text-sm font-medium dark:text-white">Solution Summary</label>
-                        <RichTextEditor/>
+                        <label className="text-sm font-medium dark:text-white">
+                            Solution Summary
+                        </label>
+                        <RichTextEditor
+                            value={solutionSummary}
+                            onChange={setSolutionSummary}
+                        />
                     </div>
 
                     {/* Skills */}
                     <div className="space-y-2">
-                        <label className="text-sm font-medium dark:text-white">Select Skill/Expertise:</label>
+                        <label className="text-sm font-medium dark:text-white">
+                            Select Skill/Expertise:
+                        </label>
                         <div className="flex flex-wrap gap-2">
                             {challenge.skills.map((skill) => (
                                 <Badge
                                     key={skill.name}
                                     onClick={() => handleSkillSelection(skill.name)}
-                                    className={`cursor-pointer hover:bg-muted ${selectedSkill === skill.name ? "bg-emerald-600 hover:text-black text-white" : "bg-muted hover:text-black text-black"}`}
+                                    className={`cursor-pointer hover:bg-muted ${
+                                        selectedSkill === skill.name
+                                            ? "bg-emerald-600 hover:text-black text-white"
+                                            : "bg-muted hover:text-black text-black"
+                                    }`}
                                 >
                                     {skill.name}
                                 </Badge>
@@ -190,10 +192,11 @@ export function SubmitPitchDialog({isOpen, onClose, challenge}: SubmitPitchDialo
                         </div>
                     </div>
 
-
                     {/* Supporting Documents */}
                     <div className="space-y-2">
-                        <label className="text-sm font-medium dark:text-white">Supporting Documents</label>
+                        <label className="text-sm font-medium dark:text-white">
+                            Supporting Documents
+                        </label>
                         <div
                             {...getRootProps()}
                             className={`
@@ -208,35 +211,77 @@ export function SubmitPitchDialog({isOpen, onClose, challenge}: SubmitPitchDialo
                         >
                             <input {...getInputProps()} />
                             <PaperclipIcon className="h-8 w-8 text-gray-500 mb-2 dark:text-gray-400"/>
-                            <p className="text-center mb-1 dark:text-white">Upload files or drag and drop</p>
+                            <p className="text-center mb-1 dark:text-white">
+                                Upload files or drag and drop
+                            </p>
                             <p className="text-sm text-gray-500 dark:text-gray-400">
                                 PDF, DOC, JPEG or PNG up to 10MB
                             </p>
                         </div>
-                        {files.length > 0 && (
-                            <ul className="mt-2 space-y-1">
-                                {files.map((file, index) => (
-                                    <li key={index} className="text-sm text-gray-400 dark:text-gray-300">
-                                        {file.name}
-                                    </li>
+
+                        {/* Preview uploads with status + remove */}
+                        {attachments.length > 0 && (
+                            <div className="flex gap-3 mt-3 flex-wrap">
+                                {attachments.map((file) => (
+                                    <div
+                                        key={file.filename}
+                                        className="group relative flex flex-col items-center text-xs text-gray-500 dark:text-gray-300"
+                                    >
+                                        {file.fileType.startsWith("image/") ? (
+                                            <img
+                                                src={file.url}
+                                                alt={file.filename}
+                                                className="h-16 w-16 object-cover rounded"
+                                            />
+                                        ) : (
+                                            <span className="truncate max-w-[80px]">
+                        {file.filename}
+                      </span>
+                                        )}
+
+                                        {/* Status indicator */}
+                                        {file.status === "pending" && (
+                                            <span className="text-yellow-500 mt-1">Uploading...</span>
+                                        )}
+                                        {file.status === "success" && (
+                                            <CheckCircle2 className="text-emerald-500 h-4 w-4 mt-1"/>
+                                        )}
+                                        {file.status === "error" && (
+                                            <div className="flex items-center gap-1 text-red-500 mt-1">
+                                                <XCircle className="h-4 w-4"/>
+                                                <span>Error</span>
+                                            </div>
+                                        )}
+
+                                        {/* Remove button (hover only) */}
+                                        <button
+                                            type="button"
+                                            onClick={() => handleRemoveFile(file.filename)}
+                                            className="absolute top-0 right-0 -mt-2 -mr-2 bg-white dark:bg-gray-700 rounded-full p-1 shadow opacity-0 group-hover:opacity-100 transition-opacity"
+                                        >
+                                            <Trash2 className="h-4 w-4 text-red-500"/>
+                                        </button>
+                                    </div>
                                 ))}
-                            </ul>
+                            </div>
                         )}
                     </div>
 
                     {/* Submit Button */}
                     <Button
                         type="submit"
-                        className="
-              w-full 
-              bg-emerald-600 
-              hover:bg-emerald-700 
-              text-white 
-              dashbutton
-            "
+                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white dashbutton"
+                        disabled={loading}
                     >
-                        Submit Pitch
+                        {loading ? "Submitting..." : "Submit Pitch"}
                     </Button>
+
+                    {error && <p className="text-sm text-red-500 mt-2">{error}</p>}
+                    {success && (
+                        <p className="text-sm text-green-500 mt-2">
+                            Pitch Submitted Successfully
+                        </p>
+                    )}
                 </form>
             </DialogContent>
         </Dialog>

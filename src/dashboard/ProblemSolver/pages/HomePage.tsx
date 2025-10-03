@@ -95,7 +95,7 @@ export default function HomePage() {
         limit
     );
 
-    // handle pitch apply
+    // handle pitch applies
     const handleApplyNow = (challenge: SetStateAction<null>) => {
         setSelectedChallenge(challenge);
         setIsApplyDialogOpen(true);

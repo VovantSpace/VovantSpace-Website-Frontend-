@@ -1,5 +1,8 @@
 import {useState, useEffect, useCallback} from "react";
 import axios from "axios";
+import api from '../utils/api'
+import {toast} from "react-toastify";
+import success = toast.success;
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
@@ -12,8 +15,9 @@ export const useProblemSolverStats = () => {
     const fetchStats = useCallback(async () => {
         try {
             setLoading(true);
-            const res = await axios.get(`${API_BASE_URL}/api/problem-solvers/dashboard/stats`, {withCredentials: true})
+            const res = await api.get(`${API_BASE_URL}/api/problem-solvers/dashboard/stats`, {withCredentials: true})
             if (res.data.success) {
+                console.log("Problem Solver Stats:", res.data.data.stats);
                 setStats(res.data.data.stats || null);
             } else {
                 setError(res.data.message);
@@ -53,10 +57,10 @@ export const useExploreChallenges = (
         try {
             setLoading(true);
 
-            const res = await axios.get(
+            const res = await api.get(
                 `${API_BASE_URL}/api/problem-solvers/challenges/explore`,
                 {
-                    params: { ...filters, page, limit },
+                    params: {...filters, page, limit},
                     withCredentials: true,
                 }
             );
@@ -87,7 +91,7 @@ export const useExploreChallenges = (
         // 👇 stringify filters so effect runs only when values change
     }, [page, limit, JSON.stringify(filters)]);
 
-    return { challenges, pagination, loading, isFirstLoad, error, refetch: fetchChallenges };
+    return {challenges, pagination, loading, isFirstLoad, error, refetch: fetchChallenges};
 };
 
 // API that handles the pitches
@@ -100,7 +104,7 @@ export const useMySubmissions = (status?: string, page: number = 1, limit: numbe
     const fetchSubmissions = useCallback(async () => {
         try {
             setLoading(true)
-            const res = await axios.get(`${API_BASE_URL}/api/problem-solvers/submissions`, {
+            const res = await api.get(`${API_BASE_URL}/api/problem-solvers/submissions`, {
                 params: {status, page, limit},
                 withCredentials: true
             })
@@ -123,3 +127,73 @@ export const useMySubmissions = (status?: string, page: number = 1, limit: numbe
 
     return {submissions, pagination, loading, error, refetch: fetchSubmissions}
 }
+
+export const useSubmitPitch = () => {
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [success, setSuccess] = useState(false)
+
+    const submitPitch = useCallback(
+        async (challengeId: string, payload: any) => {
+            try {
+                setLoading(true);
+                setError(null);
+                setSuccess(false)
+
+                const res = await api.post(
+                    `${API_BASE_URL}/api/problem-solver/challenges/${challengeId}/pitch`, {
+                        payload
+                    },
+                    {withCredentials: true}
+                )
+
+                if (res.data.success) {
+                    setSuccess(true)
+                    return res.data.data
+                } else {
+                    setError(res.data.message || "Failed to submit pitch");
+                }
+            } catch (err: any) {
+                setError(err.response?.data?.message || "Error Submitting pitch!");
+            } finally {
+                setLoading(false)
+            }
+        },
+
+        []
+    )
+    return {submitPitch, loading, error, success}
+}
+
+export const useProblemSolverProfile = () => {
+    const [profile, setProfile] = useState<any | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    const fetchProfile = useCallback(async () => {
+        try {
+            setLoading(true);
+            const res = await api.get(
+                `${API_BASE_URL}/api/problem-solvers/profile`,
+                { withCredentials: true }
+            );
+
+            if (res.data.success) {
+                setProfile(res.data.data);
+            } else {
+                setError(res.data.message || "Failed to fetch profile");
+            }
+        } catch (err: any) {
+            setError(err.response?.data?.message || "Failed to fetch profile");
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    // ✅ only run once on mount
+    useEffect(() => {
+        fetchProfile();
+    }, [fetchProfile]);
+
+    return { profile, loading, error, refetch: fetchProfile };
+};

@@ -180,6 +180,12 @@ const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
         }
     )
 
+    if (response.status === 401) {
+        localStorage.removeItem("token");
+        window.location.href = '/login';
+        throw new Error("Session expired. Please log in again")
+    }
+
     if (!response.ok) {
         const errData = await response.json().catch(() => ({}))
         throw new Error(errData.message || `Request failed: ${response.status}`)
@@ -203,6 +209,13 @@ const notificationApiRequest = async (endpoint: string, options: RequestInit = {
             ...options,
         }
     )
+
+    if (response.status === 401) {
+        localStorage.removeItem("token");
+        window.location.href = '/login';
+        throw new Error("Session expired. Please log in again")
+    }
+
 
     if (!response.ok) {
         const errData = await response.json().catch(() => ({}))
