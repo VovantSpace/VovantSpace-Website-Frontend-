@@ -88,13 +88,15 @@ export function SubmitPitchDialog({
 
         const payload = {
             solutionSummary,
-            skillTags: selectedSkill ? [selectedSkill] : [],
-            attachments: successfulAttachments.map(({filename, url, fileType}) => ({
+            skillsTag: selectedSkill ? [selectedSkill] : [],
+            supportingDocuments: successfulAttachments.map(({filename, url, fileType}) => ({
                 filename,
                 url,
                 fileType,
             })),
         }
+
+        console.log("Submitting pitch payload:", payload)
 
         // ✅ Always submit with challenge.id
         await submitPitch(challenge.id, payload)
@@ -166,7 +168,7 @@ export function SubmitPitchDialog({
                         </label>
                         <RichTextEditor
                             value={solutionSummary}
-                            onChange={setSolutionSummary}
+                            onChange={(val) => setSolutionSummary(val)}
                         />
                     </div>
 

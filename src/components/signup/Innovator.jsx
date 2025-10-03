@@ -11,13 +11,6 @@ const Innovator = ({ formik}) => {
             <div className="flex-1 space-y-8 !max-w-[28rem]">
                 <DetailsForm formik={formik} />
 
-                {/* Debug info - remove in production */}
-                <div className="mb-4 p-2 bg-gray-100 rounded text-xs">
-                    <div>Organization: {formik.values.organization || 'empty'}</div>
-                    <div>Industry: {formik.values.industry || 'empty'}</div>
-                    <div>Agree Terms: {formik.values.agreeTerms ? 'true' : 'false'}</div>
-                </div>
-
                 {/* Professional Details Section */}
                 <div className="w-full">
                     <h1 className="text-2xl font-semibold mb-6 text-[#00674F]">Professional Details</h1>

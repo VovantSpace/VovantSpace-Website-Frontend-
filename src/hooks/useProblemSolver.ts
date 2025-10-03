@@ -141,9 +141,8 @@ export const useSubmitPitch = () => {
                 setSuccess(false)
 
                 const res = await api.post(
-                    `${API_BASE_URL}/api/problem-solver/challenges/${challengeId}/pitch`, {
-                        payload
-                    },
+                    `${API_BASE_URL}/api/problem-solvers/challenges/${challengeId}/pitch`,
+                        payload,
                     {withCredentials: true}
                 )
 

@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types'
-import {FaGoogle, FaGithub, FaUser, FaEnvelope, FaLock} from 'react-icons/fa'
+import {FaUser, FaEnvelope, FaLock} from 'react-icons/fa'
 import CountryandTime from './CountryandTime'
 
 const DetailsForm = ({formik}) => {
@@ -10,13 +10,6 @@ const DetailsForm = ({formik}) => {
     const hasLowercase = /[a-z]/.test(password)
     const hasSymbol = /[^A-Za-z0-9]/.test(password)
     const hasNumber = /\d/.test(password);
-
-    // Handle social login buttons (prevent form submission)
-    // const handleSocialLogin = (provider) => {
-    //     // Add your social login logic here
-    //     console.log(`Login with ${provider}`);
-    //     // This should not submit the form
-    // };
 
     return (
         <>

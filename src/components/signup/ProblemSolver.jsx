@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
-import StickyCardContainer from './StickyCardContainer'
+import StickyCardContainer from './StickyCardContainer';
 import DetailsForm from './DetailsForm';
 
-const ProblemSolver = ({ formik}) => {
+const ProblemSolver = ({ formik }) => {
     const skillsList = [
         "Frontend Development",
         "Backend Development",
@@ -63,25 +63,6 @@ const ProblemSolver = ({ formik}) => {
         skill.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    const handleSkillSelection = (skill) => {
-        const currentSkills = formik.values.skills || [];
-        const isSelected = currentSkills.includes(skill);
-
-        if (isSelected) {
-            // Remove skill if already selected
-            const updatedSkills = currentSkills.filter(s => s !== skill);
-            formik.setFieldValue('skills', updatedSkills);
-        } else {
-            // Add skill if not selected
-            formik.setFieldValue('skills', [...currentSkills, skill]);
-        }
-    };
-
-    const removeSkill = (skillToRemove) => {
-        const updatedSkills = formik.values.skills.filter(skill => skill !== skillToRemove);
-        formik.setFieldValue('skills', updatedSkills);
-    };
-
     return (
         <>
             <div className='flex flex-col lg:flex-row gap-8 p-4 mx-auto'>
@@ -91,15 +72,9 @@ const ProblemSolver = ({ formik}) => {
                     <div className="max-w-xl mx-auto">
                         <h2 className="text-2xl font-semibold mb-6 text-[#00674F]">Professional Details</h2>
 
-                        {/* Debug info - remove in production */}
-                        <div className="mb-4 p-2 bg-gray-100 rounded text-xs">
-                            <div>Skills: {JSON.stringify(formik.values.skills)}</div>
-                            <div>Experience: {formik.values.experience}</div>
-                            <div>Agree Terms: {formik.values.agreeTerms ? 'true' : 'false'}</div>
-                        </div>
-
+                        {/* Skills/Expertise - Single Selection */}
                         <div className="mb-4">
-                            <label className="block text-gray-700 font-medium mb-2">Skills/Expertise</label>
+                            <label className="block text-gray-700 font-medium mb-2">Skill/Expertise</label>
                             <input
                                 type="text"
                                 placeholder="Search skills..."
@@ -111,44 +86,42 @@ const ProblemSolver = ({ formik}) => {
                                 {filteredSkills.map((skill, index) => (
                                     <div key={index} className="flex items-center mb-2">
                                         <input
-                                            type="checkbox"
+                                            type="radio"
                                             id={`skill-${index}`}
+                                            name="skill" // ✅ all radios share the same name
                                             className="mr-2"
-                                            checked={formik.values.skills?.includes(skill) || false}
-                                            onChange={() => handleSkillSelection(skill)}
+                                            checked={formik.values.skill === skill}
+                                            onChange={() => formik.setFieldValue('skill', skill)}
                                         />
-                                        <label htmlFor={`skill-${index}`} className="text-gray-700 text-sm">{skill}</label>
+                                        <label htmlFor={`skill-${index}`} className="text-gray-700 text-sm">
+                                            {skill}
+                                        </label>
                                     </div>
                                 ))}
                             </div>
-                            {formik.touched.skills && formik.errors.skills && (
-                                <div className="text-red-500 text-sm mt-1">{formik.errors.skills}</div>
+                            {formik.touched.skill && formik.errors.skill && (
+                                <div className="text-red-500 text-sm mt-1">{formik.errors.skill}</div>
                             )}
                         </div>
 
-                        {formik.values.skills && formik.values.skills.length > 0 && (
+                        {/* Show selected skill */}
+                        {formik.values.skill && (
                             <div className="mt-4 mb-4">
-                                <h3 className="text-lg font-medium text-gray-700 mb-2">Selected Skills:</h3>
-                                <div className="flex flex-wrap gap-2">
-                                    {formik.values.skills.map((skill, index) => (
-                                        <span
-                                            key={index}
-                                            className="bg-green-700 text-sm px-3 py-1 text-white rounded-xl flex items-center gap-2"
-                                        >
-                                            {skill}
-                                            <button
-                                                type="button"
-                                                onClick={() => removeSkill(skill)}
-                                                className="text-white hover:text-red-200 text-lg leading-none"
-                                            >
-                                                ×
-                                            </button>
-                                        </span>
-                                    ))}
+                                <h3 className="text-lg font-medium text-gray-700 mb-2">Selected Skill:</h3>
+                                <div className="bg-green-700 text-sm px-3 py-1 text-white rounded-xl flex items-center gap-2">
+                                    {formik.values.skill}
+                                    <button
+                                        type="button"
+                                        onClick={() => formik.setFieldValue('skill', '')}
+                                        className="text-white hover:text-red-200 text-lg leading-none"
+                                    >
+                                        ×
+                                    </button>
                                 </div>
                             </div>
                         )}
 
+                        {/* Years of Experience */}
                         <div className="mb-4">
                             <label className="block text-gray-700 font-medium mb-2">Years of Experience</label>
                             <select
@@ -170,6 +143,7 @@ const ProblemSolver = ({ formik}) => {
                             )}
                         </div>
 
+                        {/* Portfolio */}
                         <div className="mb-4">
                             <label className="block text-gray-700 font-medium mb-2">Portfolio or GitHub Link (Optional)</label>
                             <input
@@ -186,6 +160,7 @@ const ProblemSolver = ({ formik}) => {
                             )}
                         </div>
 
+                        {/* LinkedIn */}
                         <div className="mb-4">
                             <label className="block text-gray-700 font-medium mb-2">LinkedIn Profile (Optional)</label>
                             <input
@@ -202,6 +177,7 @@ const ProblemSolver = ({ formik}) => {
                             )}
                         </div>
 
+                        {/* Send Tips */}
                         <div className="mb-4">
                             <label className="inline-flex items-center">
                                 <input
@@ -211,10 +187,13 @@ const ProblemSolver = ({ formik}) => {
                                     checked={formik.values.sendTips}
                                     onChange={formik.handleChange}
                                 />
-                                <span className="ml-2 text-gray-700">Send me emails with tips on how to discover and solve challenges that match my skills on VovantSpace.</span>
+                                <span className="ml-2 text-gray-700">
+                  Send me emails with tips on how to discover and solve challenges that match my skills on VovantSpace.
+                </span>
                             </label>
                         </div>
 
+                        {/* Terms */}
                         <div className="mb-4">
                             <label className="inline-flex items-center">
                                 <input
@@ -224,7 +203,9 @@ const ProblemSolver = ({ formik}) => {
                                     checked={formik.values.agreeTerms}
                                     onChange={formik.handleChange}
                                 />
-                                <span className="ml-2 text-gray-700">Yes, I understand and agree to the VovantSpace Terms of Service, including the User Agreement and Privacy Policy.</span>
+                                <span className="ml-2 text-gray-700">
+                  Yes, I understand and agree to the VovantSpace Terms of Service, including the User Agreement and Privacy Policy.
+                </span>
                             </label>
                             {formik.touched.agreeTerms && formik.errors.agreeTerms && (
                                 <div className="text-red-500 text-sm mt-1">{formik.errors.agreeTerms}</div>
@@ -232,15 +213,21 @@ const ProblemSolver = ({ formik}) => {
                         </div>
                     </div>
                 </div>
+
                 <StickyCardContainer
                     heading="Problem Solver Sign-Up Page"
-                    para={<>Are you passionate about solving real-world challenges? As a problem solver on VovantSpace, you&#39;ll collaborate with innovators to develop groundbreaking solutions. Showcase your skills, tackle exciting projects, and make a lasting impact-all while building a powerful portfolio. <br /> <i> Join now and be part of solutions that drive change!</i></>}
+                    para={
+                        <>
+                            Are you passionate about solving real-world challenges? As a problem solver on VovantSpace, you&#39;ll collaborate with innovators to develop groundbreaking solutions. Showcase your skills, tackle exciting projects, and make a lasting impact—all while building a powerful portfolio.
+                            <br /> <i>Join now and be part of solutions that drive change!</i>
+                        </>
+                    }
                     subheading="Solve Challenges. Create Impact."
                 />
             </div>
         </>
-    )
-}
+    );
+};
 
 // PropTypes definition
 ProblemSolver.propTypes = {
