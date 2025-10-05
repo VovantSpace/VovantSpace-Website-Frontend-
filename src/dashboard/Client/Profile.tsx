@@ -5,7 +5,7 @@ import {Card} from "@/components/ui/card"
 import {Switch} from "@/dashboard/Innovator/components/ui/switch"
 import {Separator} from "@/dashboard/Innovator/components/ui/separator"
 import {Label} from "@/dashboard/Innovator/components/ui/label"
-import {MainLayout} from "@/dashboard/ProblemSolver/components/layout/main-layout";
+import {MainLayout} from "@/dashboard/Client/components/layout/main-layout";
 import {ChangePasswordDialog} from "@/dashboard/Innovator/components/modals/change-password-dialog"
 import {UploadImageDialog} from "@/dashboard/Innovator/components/modals/upload-image-dialog"
 import CountryandTime from "@/dashboard/ProblemSolver/pages/profile/CountryandTime"
@@ -17,24 +17,15 @@ import "react-phone-input-2/lib/style.css"
 import {toast} from 'react-hot-toast';
 import * as Yup from 'yup';
 import {useFormik} from 'formik';
+import {EditableSection} from "@/dashboard/ProblemSolver/components/modals/EditableSection"
+import {EducationEntry} from "@/dashboard/ProblemSolver/components/modals/EducationEntry"
+import {CertificationEntry} from "@/dashboard/ProblemSolver/components/modals/CertificationEntry"
 
 import ReauthenticateDialog from "@/dashboard/Client/components/Reauthenticatedialog";
 import EditableField from "@/dashboard/Client/components/EditableField";
+import Select from "react-select";
+import {WorkExperienceEntry} from "@/dashboard/Advisor/components/modals/WorkExperienceEntry";
 import {useUserService, NotificationPreferences} from '@/hooks/userService'
-
-interface Education {
-    institution: string;
-    degree: string;
-    field: string;
-    startDate: string;
-    endDate: string;
-}
-
-interface Certification {
-    certificationName: string;
-    issuingOrganization: string;
-    dateObtained: string;
-}
 
 interface FormValues {
     firstName: string;
@@ -52,8 +43,7 @@ interface FormValues {
     advisorType?: string;
     reason?: string[];
     experienceLevel?: string;
-    education?: Education[];
-    certifications?: Certification[];
+    education?: string[];
 }
 
 const skillsList = [
@@ -109,12 +99,107 @@ const skillsList = [
     "Diversity, Equity & Inclusion Initiatives"
 ];
 
+const EXPERTISE_SPECIALTIES = {
+    'Business & Entrepreneurship': [
+        'Startup Growth & Scaling',
+        'Leadership & Executive Coaching',
+        'Business Strategy',
+        'Marketing & Branding',
+        'Product Development',
+        'Fundraising & Venture Capital',
+        'Sales & Client Acquisition',
+        'E-commerce'
+    ],
+    'Mental Health & Therapy': [
+        'Anxiety & Stress Management',
+        'Depression & Emotional Well-being',
+        'Cognitive Behavioral Therapy (CBT)',
+        'Family & Relationship Counseling',
+        'Trauma & PTSD Support',
+        'Grief Counseling',
+        'Addiction Recovery'
+    ],
+    'Career Coaching & Personal Development': [
+        'Resume & LinkedIn Optimization',
+        'Interview Preparation',
+        'Salary Negotiation',
+        'Public Speaking & Communication',
+        'Confidence & Motivation Coaching',
+        'Productivity & Time Management',
+        'Work-Life Balance'
+    ],
+    'Technology & Software Development': [
+        'Software Engineering (Frontend, Backend, Full-Stack)',
+        'Artificial Intelligence (AI) & Machine Learning',
+        'Data Science & Analytics',
+        'Cybersecurity & Ethical Hacking',
+        'Blockchain & Web3 Development',
+        'UI/UX Design',
+        'Mobile App Development'
+    ],
+    'Finance, Investing & Wealth Management': [
+        'Personal Finance & Budgeting',
+        'Investing & Stock Market Strategies',
+        'Cryptocurrency & Blockchain Investments',
+        'Real Estate Investing',
+        'Tax Planning',
+        'Retirement Planning'
+    ],
+    'Relationships': [
+        'Dating & Romantic Relationships',
+        'Marriage Counseling',
+        'Conflict Resolution',
+        'Family Relationships'
+    ],
+    'Life Coaching': [
+        'Goal Setting & Achievement',
+        'Mindfulness & Meditation',
+        'Work-Life Balance',
+        'Spiritual Growth'
+    ],
+    'Cryptocurrency & Blockchain': [
+        'Crypto Investing',
+        'DeFi (Decentralized Finance)',
+        'NFT & Web3 Development',
+        'Smart Contracts'
+    ],
+    'Health, Wellness & Nutrition': [
+        'Diet & Nutrition Planning',
+        'Weight Loss & Fitness Coaching',
+        'Sleep Optimization',
+        'Women’s Health',
+        'Chronic Illness Management'
+    ],
+    'Legal & Compliance Consulting': [
+        'Business & Corporate Law',
+        'Intellectual Property (IP) & Trademarks',
+        'Contract Law & Negotiation',
+        'Employment & Labor Law',
+        'Data Privacy & GDPR Compliance'
+    ],
+    'Education & Learning': [
+        'Study & Exam Preparation',
+        'Language Learning',
+        'College Admissions & Scholarships',
+        'E-learning & Online Course Creation'
+    ],
+    'Creative & Media Coaching': [
+        'Graphic Design & Branding',
+        'Content Writing & Copywriting',
+        'Video Production & Editing',
+        'Social Media Growth',
+        'Public Relations & Brand Management'
+    ]
+} as const;
+
 const languageOptions = [
     {value: 'English', label: 'English'},
     {value: 'Spanish', label: 'Spanish'},
     {value: 'French', label: 'French'},
     {value: 'German', label: 'German'},
 ]
+
+type ExpertiseKey = keyof typeof EXPERTISE_SPECIALTIES;
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
@@ -126,6 +211,7 @@ const validationSchema = Yup.object().shape({
     specialties: Yup.array()
         .max(3, 'Maximum 3 specialties allowed')
         .required('At least one specialty is required'),
+    languages: Yup.array().min(1, 'At least one language is required'),
     experience: Yup.string(),
     skills: Yup.array()
         .of(Yup.string())
@@ -220,9 +306,7 @@ export default function ProfilePage() {
             bio: '',
             advisorType: '',
             reason: [],
-            industry: '',
-            education: [],
-            certifications: []
+            industry: ''
         },
         validationSchema,
         onSubmit: async (values) => {
@@ -329,8 +413,8 @@ export default function ProfilePage() {
                 advisorType: formik.values.advisorType || "",
                 reason: formik.values.reason || [],
                 experienceLevel: formik.values.experienceLevel || "",
-                education: formik.values.education || [],
-                certifications: formik.values.certifications || [],
+                education: tempEducations || [],
+                certifications: tempCertifications || [],
                 workExperience: workExperiences || [],
             };
 
@@ -382,6 +466,10 @@ export default function ProfilePage() {
         toast.success("Profile Picture updated successfully")
         refreshProfile()
     }
+
+    const filteredSkills = skillsList.filter(skill =>
+        skill.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     const handleSkillSelection = (skill: string) => {
         setSelectedSkill(prev => prev === skill ? '' : skill);
@@ -509,14 +597,12 @@ export default function ProfilePage() {
                     <Card className="secondbg md:p-6 p-3">
                         <h2 className="mb-6 text-lg font-semibold dashtext">Profile Information</h2>
                         <div className="mb-5">
-                            {/*Avatar x Name*/}
                             <div className="mb-6 flex items-center md:gap-6 gap-3">
                                 <div className="relative">
                                     <div
                                         className=" relative flex h-24 w-24 items-center justify-center rounded-full bg-[#00bf8f] text-3xl dashtext">
                                         {user?.profilePicture ? (
-                                            <img src={`${API_BASE_URL}${user.profilePicture}`} alt=""
-                                                 className={'h-full w-full object-cover'}/>
+                                            <img src={`${API_BASE_URL}${user.profilePicture}`} alt="" className={'h-full w-full object-cover'}/>
                                         ) : (
                                             getUserInitials()
                                         )}
@@ -548,7 +634,6 @@ export default function ProfilePage() {
                                 </div>
                             </div>
 
-                            {/*Basic Information*/}
                             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 text-left">
                                 <EditableField
                                     label="First Name"
@@ -595,128 +680,156 @@ export default function ProfilePage() {
                                 </div>
                             </div>
 
-                            {/*Country and Time*/}
                             <div className="mt-5">
                                 <CountryandTime disable={!isEditing} flex={''}/>
                             </div>
 
 
                             {/* Expertise */}
-                            {/* Skill / Expertise */}
-                            <div className="mt-6 space-y-2">
-                                <Label className="dashtext">Skill / Expertise</Label>
+                            <div className="!text-sm space-y-2">
+                                <div>
+                                    <label
+                                        className="block text-gray-700 dark:text-white font-medium my-2 mt-4 text-sm">Expertise</label>
+                                    <div className="relative">
+                                        <select
+                                            className="w-full pl-3 pr-3 py-2 border rounded-lg focus:outline-none "
+                                            {...formik.getFieldProps('expertise')}
+                                            onChange={e => {
+                                                formik.setFieldValue('expertise', e.target.value);
+                                                formik.setFieldValue('specialties', []);
+                                            }}
+                                            disabled={!isEditing}
+                                        >
+                                            <option value="">Select Expertise</option>
+                                            {Object.keys(EXPERTISE_SPECIALTIES).map(expertise => (
+                                                <option key={expertise} value={expertise}>{expertise}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
 
-                                {isEditing ? (
-                                    <>
-                                        {/* Search box */}
-                                        <input
-                                            type="text"
-                                            placeholder="Search skills..."
-                                            className="w-full border rounded-lg p-2 mb-2 text-sm"
-                                            value={searchQuery}
-                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                <div>
+                                    <label className="block text-gray-700 dark:text-white font-medium mb-2 mt-4">Specialties
+                                        (Select up to 3)</label>
+                                    <div className="flex flex-col space-y-2">
+                                        {formik.values.expertise ? (
+                                            EXPERTISE_SPECIALTIES[formik.values.expertise as ExpertiseKey]?.map(specialty => (
+                                                <label key={specialty}
+                                                       className="inline-flex items-center dark:text-gray-300">
+                                                    <input
+                                                        type="checkbox"
+                                                        name="specialties"
+                                                        value={specialty}
+                                                        disabled={!isEditing}
+                                                        checked={formik.values.specialties.includes(specialty)}
+                                                        onChange={e => {
+                                                            const checked = e.target.checked;
+                                                            let newSpecialties = [...formik.values.specialties];
+                                                            if (checked) {
+                                                                if (newSpecialties.length < 3) {
+                                                                    newSpecialties.push(specialty);
+                                                                }
+                                                            } else {
+                                                                newSpecialties = newSpecialties.filter(s => s !== specialty);
+                                                            }
+                                                            formik.setFieldValue('specialties', newSpecialties);
+                                                        }}
+                                                        className="mr-2"
+                                                    />
+                                                    {specialty}
+                                                </label>
+                                            ))
+                                        ) : <span className="dark:text-gray-300 ml-2">No Expertise Selected</span>
+                                        }
+                                    </div>
+                                    <div className="mt-2 flex flex-wrap gap-2">
+                                        {formik.values.specialties.map(specialty => (
+                                            <div key={specialty}
+                                                 className="bg-black text-white px-3 py-1 rounded-full flex items-center">
+                                                {specialty}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => formik.setFieldValue(
+                                                        'specialties',
+                                                        formik.values.specialties.filter(s => s !== specialty)
+                                                    )}
+                                                    className="ml-2 hover:text-gray-400"
+                                                >
+                                                    ×
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="text-gray-700 dark:text-white font-medium mb-2">Languages
+                                        Spoken</label>
+                                    <div className="mt-2">
+                                        <Select
+                                            isMulti
+                                            name="languages"
+                                            isDisabled={!isEditing}
+                                            options={languageOptions}
+                                            className="w-full border rounded-lg"
+                                            classNamePrefix="select"
+                                            value={languageOptions.filter(option => formik.values.languages.includes(option.value))}
+                                            onChange={(selectedOptions) => {
+                                                formik.setFieldValue(
+                                                    "languages",
+                                                    selectedOptions ? selectedOptions.map(option => option.value) : []
+                                                );
+                                            }}
                                         />
 
-                                        {/* Scrollable list */}
-                                        <div className="border rounded-lg p-3 h-32 overflow-y-auto bg-white">
-                                            {skillsList
-                                                .filter((skill) =>
-                                                    skill.toLowerCase().includes(searchQuery.toLowerCase())
-                                                )
-                                                .map((skill, index) => (
-                                                    <div key={index} className="flex items-center mb-2">
-                                                        <input
-                                                            type="checkbox"
-                                                            id={`skill-${index}`}
-                                                            className="mr-2 cursor-pointer"
-                                                            checked={formik.values.expertise === skill}
-                                                            onChange={() => {
-                                                                const newSkill =
-                                                                    formik.values.expertise === skill ? "" : skill;
-                                                                formik.setFieldValue("expertise", newSkill);
-                                                                setTempProfileData((p) => ({
-                                                                    ...p,
-                                                                    expertise: newSkill
-                                                                }));
-                                                            }}
-                                                        />
-                                                        <label
-                                                            htmlFor={`skill-${index}`}
-                                                            className="text-gray-700 text-sm cursor-pointer"
-                                                        >
-                                                            {skill}
-                                                        </label>
-                                                    </div>
-                                                ))}
-                                        </div>
 
-                                        {/* Show selected skill */}
-                                        {formik.values.expertise && (
-                                            <div className="mt-3">
-                                                <h3 className="text-sm font-semibold mb-1">Selected Skill:</h3>
-                                                <span
-                                                    className="bg-green-700 text-white px-3 py-1 text-sm rounded-xl inline-flex items-center gap-2">
-            {formik.values.expertise}
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            formik.setFieldValue("expertise", "");
-                                                            setTempProfileData((p) => ({...p, expertise: ""}));
-                                                        }}
-                                                        className="text-white hover:text-red-200 text-lg leading-none"
-                                                    >
-              ×
-            </button>
-          </span>
-                                            </div>
+                                        {formik.touched.languages && formik.errors.languages && (
+                                            <div className="text-red-500 text-sm mt-1">{formik.errors.languages}</div>
                                         )}
-                                    </>
-                                ) : (
-                                    <p className="text-sm py-2 px-3 rounded-md bg-white text-black">
-                                        {tempProfileData.expertise || "Select your skill/expertise"}
-                                    </p>
-                                )}
-
-                                {formik.touched.expertise && formik.errors.expertise && (
-                                    <p className="text-sm text-red-500">{formik.errors.expertise}</p>
-                                )}
-                            </div>
-
-                            {/* Experience */}
-                            <div className="mt-6 space-y-2">
-                                <Label className="dashtext">Years of Experience</Label>
-                                {isEditing ? (
-                                    <select
-                                        className="w-full border rounded-lg p-2 text-sm"
-                                        value={formik.values.experienceLevel}
-                                        onChange={(e) => formik.setFieldValue("experienceLevel", e.target.value)}
-                                    >
-                                        <option value="">Select experience level</option>
-                                        <option value="0-1 years">0-1 years</option>
-                                        <option value="1-3 years">1-3 years</option>
-                                        <option value="4-6 years">4-6 years</option>
-                                        <option value="7-10 years">7-10 years</option>
-                                        <option value="10+ years">10+ years</option>
-                                    </select>
-                                ) : (
-                                    <p className="text-sm py-2 px-3 rounded-md bg-white text-black">
-                                        {formik.values.experienceLevel || "Select your experience level"}
-                                    </p>
+                                    </div>
+                                    <div className="mt-2 flex flex-wrap gap-2">
+                                        {formik.values.languages.map(language => (
+                                            <div key={language}
+                                                 className="bg-black text-white px-3 py-1 rounded-full flex items-center">
+                                                {language}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => formik.setFieldValue(
+                                                        'languages',
+                                                        formik.values.languages.filter(l => l !== language)
+                                                    )}
+                                                    disabled={!isEditing}
+                                                    className="ml-2"
+                                                >
+                                                    ×
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                                {selectedSkill && (
+                                    <div className="mt-4 mb-2">
+                                        <h3 className="text-md mb-1 font-medium text-gray-700 dark:text-white">Selected
+                                            Skill:</h3>
+                                        <ul className="flex flex-wrap gap-2">
+                                            <li className="bg-black text-sm px-2 py-1 text-white rounded-xl">{selectedSkill}</li>
+                                        </ul>
+                                    </div>
                                 )}
                             </div>
 
-
-                            {/*Organization*/}
-                            <div className={'mt-5 space-y-2'}>
-                                <EditableField
-                                    label={'Organization'}
-                                    value={tempProfileData.organization}
-                                    onChange={(value) => setTempProfileData((p) => ({...p, organization: value}))}
-                                    isEditing={isEditing}
-                                />
+                            <div className="mb-4">
+                                <label className="block text-sm text-gray-700 font-medium mb-2 mt-2 dark:text-white">Years
+                                    of Experience</label>
+                                <select className="w-full border rounded-lg p-2 text-sm" disabled={!isEditing}>
+                                    <option>0-1 years</option>
+                                    <option>1-3 years</option>
+                                    <option selected>4-6 years</option>
+                                    <option>7-10 years</option>
+                                    <option>10+ years</option>
+                                </select>
                             </div>
 
-                            {/*Bio*/}
                             <div className="mt-6">
                                 <div className="space-y-2">
                                     <Label className="dashtext">Short Bio/About You (Max 300 Characters)</Label>
@@ -739,263 +852,161 @@ export default function ProfilePage() {
                                     )}
                                 </div>
                             </div>
+
+
                         </div>
                     </Card>
 
-                    {/* ===================== Education ===================== */}
-                    <Card className="secondbg p-6 mt-6">
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-lg font-semibold dashtext">Education</h2>
-                            {isEditing && (
-                                <Button
-                                    variant="outline"
-                                    size="icon"
-                                    className="text-emerald-600 border-emerald-600"
-                                    onClick={() => {
-                                        const newEdu = {
-                                            institution: "",
-                                            degree: "",
-                                            field: "",
-                                            startDate: "",
-                                            endDate: "",
-                                        };
-                                        const updated = [...(formik.values.education || []), newEdu];
-                                        formik.setFieldValue("education", updated);
-                                    }}
-                                >
-                                    +
-                                </Button>
-                            )}
-                        </div>
+                    <Card className="secondbg p-6">
+                        <EditableSection
+                            title="Education:"
+                            isEditing={isEditingEducation}
+                            setIsEditing={setIsEditingEducation}
+                            onSave={() => setIsEditingEducation(false)}
+                            onCancel={() => setIsEditingEducation(false)}
+                        >
+                            <div className="space-y-6">
+                                {tempEducations.map((edu, index) => (
+                                    <EducationEntry
+                                        key={edu.id}
+                                        education={edu}
+                                        isEditing={isEditingEducation}
+                                        showRemove={tempEducations.length > 1}
+                                        onChange={(updated) => {
+                                            const updatedEducations = [...tempEducations]
+                                            updatedEducations[index] = updated
+                                            setTempEducations(updatedEducations)
+                                        }}
+                                        onRemove={() => setTempEducations(tempEducations.filter((_, i) => i !== index))}
+                                    />
+                                ))}
 
-                        {formik.values.education && formik.values.education.length > 0 ? (
-                            formik.values.education.map((edu, index) => (
-                                <div
-                                    key={index}
-                                    className="border rounded-md p-4 mb-3 flex flex-col md:flex-row md:justify-between md:gap-6"
-                                >
-                                    <div className="flex-1">
-                                        <p className="font-semibold">Institution:</p>
-                                        {isEditing ? (
-                                            <input
-                                                className="border rounded p-1 text-sm w-full"
-                                                value={edu.institution}
-                                                onChange={(e) =>
-                                                    formik.setFieldValue(
-                                                        `education[${index}].institution`,
-                                                        e.target.value
-                                                    )
+                                {isEditingEducation && tempEducations.length < 3 && (
+                                    <Button
+                                        variant="outline"
+                                        className="w-full dashborder dashbutton text-white"
+                                        onClick={() => {
+                                            setTempEducations([
+                                                ...tempEducations,
+                                                {
+                                                    id: Date.now(),
+                                                    institution: "",
+                                                    degree: "",
+                                                    field: "",
+                                                    startYear: "",
+                                                    endYear: ""
                                                 }
-                                            />
-                                        ) : (
-                                            <p>{edu.institution || "Not specified"}</p>
-                                        )}
-
-                                        <p className="font-semibold mt-2">Field:</p>
-                                        {isEditing ? (
-                                            <input
-                                                className="border rounded p-1 text-sm w-full"
-                                                value={edu.field}
-                                                onChange={(e) =>
-                                                    formik.setFieldValue(`education[${index}].field`, e.target.value)
-                                                }
-                                            />
-                                        ) : (
-                                            <p>{edu.field || "Not specified"}</p>
-                                        )}
-
-                                        <p className="font-semibold mt-2">End Date:</p>
-                                        {isEditing ? (
-                                            <input
-                                                type="month"
-                                                className="border rounded p-1 text-sm w-full"
-                                                value={edu.endDate}
-                                                onChange={(e) =>
-                                                    formik.setFieldValue(`education[${index}].endDate`, e.target.value)
-                                                }
-                                            />
-                                        ) : (
-                                            <p>{edu.endDate || "Not specified"}</p>
-                                        )}
-                                    </div>
-
-                                    <div className="flex-1">
-                                        <p className="font-semibold">Degree:</p>
-                                        {isEditing ? (
-                                            <input
-                                                className="border rounded p-1 text-sm w-full"
-                                                value={edu.degree}
-                                                onChange={(e) =>
-                                                    formik.setFieldValue(`education[${index}].degree`, e.target.value)
-                                                }
-                                            />
-                                        ) : (
-                                            <p>{edu.degree || "Not specified"}</p>
-                                        )}
-
-                                        <p className="font-semibold mt-2">Start Date:</p>
-                                        {isEditing ? (
-                                            <input
-                                                type="month"
-                                                className="border rounded p-1 text-sm w-full"
-                                                value={edu.startDate}
-                                                onChange={(e) =>
-                                                    formik.setFieldValue(
-                                                        `education[${index}].startDate`,
-                                                        e.target.value
-                                                    )
-                                                }
-                                            />
-                                        ) : (
-                                            <p>{edu.startDate || "Not specified"}</p>
-                                        )}
-                                    </div>
-
-                                    {isEditing && (
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="text-red-500 mt-2 md:mt-0"
-                                            onClick={() => {
-                                                const filtered = formik.values.education?.filter((_, i) => i !== index);
-                                                formik.setFieldValue("education", filtered);
-                                            }}
-                                        >
-                                            ✕
-                                        </Button>
-                                    )}
-                                </div>
-                            ))
-                        ) : (
-                            <p className="text-gray-500 text-sm">No education details added yet.</p>
-                        )}
+                                            ])
+                                        }}
+                                    >
+                                        + Add Another Education
+                                    </Button>
+                                )}
+                            </div>
+                        </EditableSection>
                     </Card>
 
-                    {/* ===================== Certifications ===================== */}
-                    <Card className="secondbg p-6 mt-6">
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-lg font-semibold dashtext">Certifications</h2>
-                            {isEditing && (
-                                <Button
-                                    variant="outline"
-                                    size="icon"
-                                    className="text-emerald-600 border-emerald-600"
-                                    onClick={() => {
-                                        const newCert = {
-                                            certificationName: "",
-                                            issuingOrganization: "",
-                                            dateObtained: "",
-                                        };
-                                        const updated = [...(formik.values.certifications || []), newCert];
-                                        formik.setFieldValue("certifications", updated);
-                                    }}
-                                >
-                                    +
-                                </Button>
-                            )}
-                        </div>
+                    {/* Certifications Section */}
+                    <Card className="secondbg p-6">
+                        <EditableSection
+                            title="Certifications:"
+                            isEditing={isEditingCertification}
+                            setIsEditing={setIsEditingCertification}
+                            onSave={() => setIsEditingCertification(false)}
+                            onCancel={() => setIsEditingCertification(false)}
+                        >
+                            <div className="space-y-6">
+                                {tempCertifications.map((cert, index) => (
+                                    <CertificationEntry
+                                        key={cert.id}
+                                        certification={cert}
+                                        isEditing={isEditingCertification}
+                                        showRemove={tempCertifications.length > 1}
+                                        onChange={(updated) => {
+                                            const updatedCerts = [...tempCertifications]
+                                            updatedCerts[index] = updated
+                                            setTempCertifications(updatedCerts)
+                                        }}
+                                        onRemove={() => setTempCertifications(tempCertifications.filter((_, i) => i !== index))}
+                                    />
+                                ))}
 
-                        {formik.values.certifications && formik.values.certifications.length > 0 ? (
-                            formik.values.certifications.map((cert, index) => (
-                                <div
-                                    key={index}
-                                    className="border rounded-md p-4 mb-3 flex flex-col md:flex-row md:justify-between md:gap-6"
-                                >
-                                    <div className="flex-1">
-                                        <p className="font-semibold">Certification Name:</p>
-                                        {isEditing ? (
-                                            <input
-                                                className="border rounded p-1 text-sm w-full"
-                                                value={cert.certificationName}
-                                                onChange={(e) =>
-                                                    formik.setFieldValue(
-                                                        `certifications[${index}].certificationName`,
-                                                        e.target.value
-                                                    )
+                                {isEditingCertification && tempCertifications.length < 3 && (
+                                    <Button
+                                        variant="outline"
+                                        className="w-full dashborder dashbutton text-white"
+                                        onClick={() => {
+                                            setTempCertifications([
+                                                ...tempCertifications,
+                                                {
+                                                    id: Date.now(),
+                                                    name: "",
+                                                    issuer: "",
+                                                    date: ""
                                                 }
-                                            />
-                                        ) : (
-                                            <p>{cert.certificationName || "Not specified"}</p>
-                                        )}
-                                    </div>
-
-                                    <div className="flex-1">
-                                        <p className="font-semibold">Issuing Organization:</p>
-                                        {isEditing ? (
-                                            <input
-                                                className="border rounded p-1 text-sm w-full"
-                                                value={cert.issuingOrganization}
-                                                onChange={(e) =>
-                                                    formik.setFieldValue(
-                                                        `certifications[${index}].issuingOrganization`,
-                                                        e.target.value
-                                                    )
-                                                }
-                                            />
-                                        ) : (
-                                            <p>{cert.issuingOrganization || "Not specified"}</p>
-                                        )}
-                                    </div>
-
-                                    <div className="flex-1">
-                                        <p className="font-semibold">Date Obtained:</p>
-                                        {isEditing ? (
-                                            <input
-                                                type="month"
-                                                className="border rounded p-1 text-sm w-full"
-                                                value={cert.dateObtained}
-                                                onChange={(e) =>
-                                                    formik.setFieldValue(
-                                                        `certifications[${index}].dateObtained`,
-                                                        e.target.value
-                                                    )
-                                                }
-                                            />
-                                        ) : (
-                                            <p>{cert.dateObtained || "Not specified"}</p>
-                                        )}
-                                    </div>
-
-                                    {isEditing && (
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="text-red-500 mt-2 md:mt-0"
-                                            onClick={() => {
-                                                const filtered = formik.values.certifications?.filter((_, i) => i !== index);
-                                                formik.setFieldValue("certifications", filtered);
-                                            }}
-                                        >
-                                            ✕
-                                        </Button>
-                                    )}
-                                </div>
-                            ))
-                        ) : (
-                            <p className="text-gray-500 text-sm">No certifications added yet.</p>
-                        )}
-                    </Card>
-
-                    {/* ===================== Portfolio ===================== */}
-                    <Card className="secondbg p-6 mt-6">
-                        <h2 className="text-lg font-semibold dashtext mb-3">Portfolio</h2>
-                        {isEditing ? (
-                            <input
-                                type="url"
-                                placeholder="https://github.com/username"
-                                className="w-full border rounded p-2"
-                                value={formik.values.portfolio || ""}
-                                onChange={(e) => formik.setFieldValue("portfolio", e.target.value)}
-                            />
-                        ) : (
-                            <p className="text-sm py-2 px-3 rounded-md bg-white text-black">
-                                {formik.values.portfolio || "Add a portfolio or GitHub link"}
-                            </p>
-                        )}
+                                            ])
+                                        }}
+                                    >
+                                        + Add Another Certification
+                                    </Button>
+                                )}
+                            </div>
+                        </EditableSection>
                     </Card>
 
 
-                    {/*Security Settings*/}
+                    {/* Work Experience */}
+                    <Card className="secondbg p-6">
+                        <EditableSection
+                            title="Work Experience:"
+                            isEditing={isEditingExperience}
+                            setIsEditing={setIsEditingExperience}
+                            onSave={() => setIsEditingExperience(false)}
+                            onCancel={() => setIsEditingExperience(false)}
+                        >
+                            <div className="space-y-6">
+                                {workExperiences.map((exp, index) => (
+                                    <WorkExperienceEntry
+                                        key={exp.id}
+                                        workExperience={exp}
+                                        isEditing={isEditingExperience}
+                                        showRemove={workExperiences.length > 1}
+                                        onChange={(updated: {
+                                            id: number;
+                                            company: string;
+                                            role: string;
+                                            startDate: string;
+                                            endDate: string;
+                                        }) => {
+                                            const updatedExperiences = [...workExperiences];
+                                            updatedExperiences[index] = updated;
+                                            setWorkExperiences(updatedExperiences);
+                                        }}
+                                        onRemove={() =>
+                                            setWorkExperiences(workExperiences.filter((_, i) => i !== index))
+                                        }
+                                    />
+                                ))}
+
+                                {isEditingExperience && workExperiences.length < 3 && (
+                                    <Button
+                                        variant="outline"
+                                        className="w-full dashborder dashbutton text-white"
+                                        onClick={() => {
+                                            setWorkExperiences([
+                                                ...workExperiences,
+                                                {id: Date.now(), company: "", role: "", startDate: "", endDate: ""},
+                                            ]);
+                                        }}
+                                    >
+                                        + Add Another Work Experience
+                                    </Button>
+                                )}
+                            </div>
+                        </EditableSection>
+                    </Card>
+
+
                     <Card className="secondbg p-6">
                         <h2 className="mb-6 text-lg font-semibold dashtext">Security Settings</h2>
                         <Button

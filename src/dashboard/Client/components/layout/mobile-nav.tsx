@@ -65,7 +65,7 @@ export function MobileNav({
         </nav>
         <div className="flex items-center h-14 uppercase px-7 ">
           <div className="border border-gray-700 dark:border-gray-300 rounded-full p-1">
-            <Link to={'/dashboard/ps/profile'} className="dashtext  text-sm font-medium hover:underline">
+            <Link to={'/dashboard/client/profile'} className="dashtext  text-sm font-medium hover:underline">
               <User className="h-6 w-6" />
             </Link>
           </div>

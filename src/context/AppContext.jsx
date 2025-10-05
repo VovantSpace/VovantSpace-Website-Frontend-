@@ -70,6 +70,7 @@ export const AppProvider = ({children}) => {
 
                 // store token in locale storage
                 localStorage.setItem('token', authToken);
+                localStorage.setItem('user', JSON.stringify(userData))
                 setToken(authToken);
                 setUser(userData)
 

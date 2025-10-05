@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Button } from "@/dashboard/Innovator/components/ui/button"
 import { Card } from "@/dashboard/Innovator/components/ui/card"
-import { MainLayout } from "@/dashboard/component/main-layout";
+import { MainLayout } from "@/dashboard/Client/components/layout/main-layout";
 import { SendFundSettingsDialog } from "@/dashboard/Innovator/components/modals/SendFundSettingsDialog"
 import { ArrowDownRight, ArrowUpRight, RefreshCw } from "lucide-react"
 import { FundWalletDialog } from "@/dashboard/Innovator/components/modals/fund-wallet-dialog";

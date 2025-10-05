@@ -1,6 +1,6 @@
 import {MapPin, Briefcase, GraduationCap, CheckCircle, Calendar, Star} from "lucide-react"
 import {Dialog, DialogContent} from "@/dashboard/Innovator/components/ui/dialog"
-import {Button} from "@/dashboard/Innovator/components/ui/button"
+import {Button} from "@/dashboard/Client/components/ui/button"
 import StarRating from "@/dashboard/Client/components/star-rating"
 import {Avatar, AvatarImage} from '@/dashboard/Innovator/components/ui/avatar'
 

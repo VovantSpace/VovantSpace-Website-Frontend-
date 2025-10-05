@@ -2,7 +2,7 @@ import { useState } from "react"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/dashboard/Innovator/components/ui/tabs"
 import { SessionCard } from "@/dashboard/Client/components/session-card"
 import { PaymentConfirmationDialog } from "@/dashboard/Client/components/payment-confirmation-dialog"
-import { MainLayout } from "@/dashboard/component/main-layout"
+import { MainLayout } from "@/dashboard/Client/components/layout/main-layout"
 
 export default function MySessions() {
   const [activeTab, setActiveTab] = useState("upcoming")

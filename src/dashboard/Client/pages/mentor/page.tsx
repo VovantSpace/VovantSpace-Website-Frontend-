@@ -5,7 +5,7 @@ import { MentorCard } from "@/dashboard/Client/components/mentor-card"
 import { MentorProfileDialog } from "@/dashboard/Client/components/mentor-profile-dialog"
 import { BookSessionDialog } from "@/dashboard/Client/components/book-session-dialog"
 import { ConfirmSessionDialog } from "@/dashboard/Client/components/confirm-session-dialog"
-import { MainLayout } from "@/dashboard/component/main-layout"
+import { MainLayout } from "@/dashboard/Client/components/layout/main-layout"
 
 export default function Mentors() {
   const [searchQuery, setSearchQuery] = useState("")

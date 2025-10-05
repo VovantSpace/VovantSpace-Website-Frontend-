@@ -4,7 +4,7 @@ import { Home, FileText, MessageSquare, BarChart2, Wallet, User } from "lucide-r
 import logo from '@/assets/logo.png'
 import { useLocation, Link } from "react-router-dom"
 import { Bell } from "lucide-react"
-import { cn } from "@innovator/lib/utils"
+import { cn } from "@/dashboard/Innovator/lib/utils"
 
 const sidebarLinks = [
   { icon: Home, label: "Home", href: "/dashboard/client" },
@@ -56,7 +56,16 @@ export function Sidebar() {
       </div>
       <div className="flex items-center h-14 uppercase px-7 ">
         <div className="border border-gray-700 dark:border-gray-300  rounded-full p-1">
-          <Link to={'/dashboard/client/profile'} className="dashtext  text-sm font-medium hover:underline">
+          <Link 
+            to="/dashboard/client/profile" 
+            className="dashtext text-sm font-medium hover:underline flex items-center justify-center"
+            onClick={(e) => {
+              // Prevent default link behavior
+              e.preventDefault();
+              // Force a full page navigation to ensure proper routing
+              window.location.href = '/dashboard/client/profile';
+            }}
+          >
             <User className="h-6 w-6" />
           </Link>
         </div>
@@ -72,4 +81,3 @@ export function Sidebar() {
     </div>
   )
 }
-

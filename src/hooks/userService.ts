@@ -42,19 +42,18 @@ export interface User {
     workExperience?: WorkExperience[];
 }
 
-export interface Certification {
-    name: string;
-    issuer: string;
-    date: string;
-    id: number;
+interface Certification {
+    certificationName: string
+    issuingOrganization: string
+    dateObtained: string
 }
 
 export interface Education {
     institution: string;
     degree: string;
     field: string;
-    startYear: string;
-    endYear: string;
+    startDate: string;
+    endDate: string;
 }
 
 export interface WorkExperience {
@@ -115,7 +114,7 @@ export interface UpdateProfileData {
     skills?: string[];
     experience?: string;
     education?: Education[];
-    certification?: Certification[];
+    certifications?: Certification[];
     workExperience?: WorkExperience[];
     portfolio?: string;
     expertise?: string;
@@ -814,7 +813,29 @@ export const useUserService = () => {
 
     // Derived helpers that wrap the hooks
     const updateUserAndRefresh = async (
-        profileData: UpdateProfileData
+        profileData: {
+            firstName: string;
+            lastName: string;
+            email: string;
+            phone: string;
+            bio: string;
+            industry: string;
+            organization: string;
+            website: string;
+            linkedin: string;
+            skills: string[];
+            experience: string;
+            portfolio: string;
+            expertise: string;
+            specialties: string[];
+            languages: string[];
+            advisorType: string;
+            reason: string[];
+            experienceLevel: string;
+            education: Education[];
+            certifications: Certification[];
+            workExperience: any[]
+        }
     ): Promise<User> => {
         const updatedUser = await profile.updateProfile(profileData);
         auth.setUser(updatedUser);

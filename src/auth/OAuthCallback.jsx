@@ -204,26 +204,6 @@ const OAuthCallback = () => {
                         >
                             Back to Signup
                         </button>
-
-                        {/* Debug info for development */}
-                        {/*{process.env.NODE_ENV === 'development' && (*/}
-                        {/*    <details className="text-left mt-4">*/}
-                        {/*        <summary className="cursor-pointer text-xs text-gray-500">Debug Info (Dev Only)</summary>*/}
-                        {/*        <pre className="text-xs text-gray-400 mt-2 p-2 bg-gray-50 rounded overflow-auto max-h-32">*/}
-                        {/*            {JSON.stringify({*/}
-                        {/*                provider,*/}
-                        {/*                searchParams: Object.fromEntries(searchParams.entries()),*/}
-                        {/*                retryCount,*/}
-                        {/*                userAgent: navigator.userAgent,*/}
-                        {/*                url: window.location.href,*/}
-                        {/*                availableStorage: {*/}
-                        {/*                    sessionStorage: Object.keys(sessionStorage),*/}
-                        {/*                    localStorage: Object.keys(localStorage).filter(key => key.includes('oauth'))*/}
-                        {/*                }*/}
-                        {/*            }, null, 2)}*/}
-                        {/*        </pre>*/}
-                        {/*    </details>*/}
-                        {/*)}*/}
                     </div>
                 </div>
             </div>
