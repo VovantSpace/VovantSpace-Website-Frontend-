@@ -12,6 +12,12 @@ interface MentorCardProps {
     bio: string
     tags: string[]
     price: number
+      location: string
+      language: string
+      experience: string
+      sessionsCompleted: number
+      about: string;
+    sessionRate: number
   }
   onBookNow: (mentorId: string) => void
   onSeeProfile: (mentorId: string) => void

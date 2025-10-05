@@ -3,10 +3,11 @@ import {io} from 'socket.io-client'
 
 const SOCKET_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
-export function useMenteeDashboardSocket(menteeId: string) {
+export function useMenteeDashboardSocket(menteeId: string, onUpdate: () => void) {
     const [events, setEvents] = useState<any[]>([])
 
     useEffect(() => {
+        if (!menteeId) return;
         const socket = io(SOCKET_URL, {
             withCredentials: true,
         })
@@ -20,11 +21,16 @@ export function useMenteeDashboardSocket(menteeId: string) {
             setEvents((prevEvents) => [...prevEvents, data])
         })
 
+        socket.on("session_updated", (data) => {
+            console.log("Real-time session update received:", data)
+            onUpdate()
+        })
+
         return () => {
             socket.emit("leave_mentee_room", menteeId)
             socket.disconnect()
         }
-    }, [menteeId])
+    }, [menteeId, onUpdate])
 
     return {events}
 }
