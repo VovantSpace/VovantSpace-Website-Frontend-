@@ -17,9 +17,9 @@ export function useMenteeDashboardData(menteeId: string) {
                 axios.get("/api/mentees/sessions?type=upcoming", {withCredentials: true}),
                 axios.get("/api/notifications", {withCredentials: true})
             ])
-            setStats(statsRes.data.data)
+            setStats(statsRes.data.data || {})
             setSessions(sessionsRes.data?.data?.sessions || sessionsRes.data?.sessions || [])
-            setNotifications(notificationsRes.data.data || [])
+            setNotifications(notificationsRes.data?.data || notificationsRes.data?.notifications || [])
             setError(null)
         } catch (err: any) {
             console.error("Dashboard fetch error:", err)

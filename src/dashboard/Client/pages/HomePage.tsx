@@ -49,8 +49,12 @@ export default function HomePage() {
     const storedUser = JSON.parse(localStorage.getItem('user') || '{}')
     const menteeId = storedUser?._id
 
+    console.log("Mentee ID:", menteeId)
+
     const {events} = useMenteeDashboardSocket(menteeId)
     const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false)
+
+    const {stats, sessions, notifications, loading, error, refresh} = useMenteeDashboardData(menteeId)
 
     useEffect(() => {
         if (events.length > 0) {
@@ -61,8 +65,6 @@ export default function HomePage() {
             refresh()
         }
     }, [events])
-
-    const {stats, sessions, notifications, loading, error, refresh} = useMenteeDashboardData(menteeId)
 
     const handleCompletePayment = () => {
         setIsPaymentDialogOpen(true)
