@@ -1,52 +1,57 @@
-import {useEffect, useState} from 'react'
+import {useState, useEffect} from 'react'
 import axios from 'axios'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
 export function useMenteeSessions(menteeId: string) {
-    const [sessions, setSessions] = useState<{
-        upcoming: any[];
-        completed: any[];
-    }>({
-        upcoming: [],
-        completed: []
+    const [sessions, setSessions] = useState({
+        upcoming: [] as any[],
+        completed: [] as any[],
     });
-    const [loading, setLoading] = useState(true)
-    const [error, setError] = useState<string | null>(null)
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     const fetchSessions = async () => {
         if (!menteeId) return;
         try {
-            setLoading(true)
-            setError(null)
+            setLoading(true);
+            setError(null);
 
-            const token = localStorage.getItem("token")
+            const token = localStorage.getItem("token");
 
-            // Fetch both upcoming and completed sessions
             const [upcomingRes, completedRes] = await Promise.all([
                 axios.get(`${API_BASE_URL}/api/mentees/sessions?type=upcoming`, {
-                    headers: {Authorization: `Bearer ${token}`},
+                    headers: { Authorization: `Bearer ${token}` },
                 }),
                 axios.get(`${API_BASE_URL}/api/mentees/sessions?type=completed`, {
-                    headers: {Authorization: `Bearer ${token}`},
-                })
-            ])
+                    headers: { Authorization: `Bearer ${token}` },
+                }),
+            ]);
+
+            // ✅ Normalize response to ensure arrays
+            const upcomingSessions = Array.isArray(upcomingRes.data?.data?.sessions)
+                ? upcomingRes.data.data.sessions
+                : [];
+
+            const completedSessions = Array.isArray(completedRes.data?.data?.sessions)
+                ? completedRes.data.data.sessions
+                : [];
 
             setSessions({
-                upcoming: upcomingRes.data.data || [],
-                completed: completedRes.data.data.sessions || []
-            })
+                upcoming: upcomingSessions,
+                completed: completedSessions,
+            });
         } catch (err: any) {
-            console.error("Error fetching sessions:", err)
-            setError(err.response?.data?.message || "Failed to fetch sessions")
+            console.error("Error fetching sessions:", err);
+            setError(err.response?.data?.message || "Failed to fetch sessions");
         } finally {
-            setLoading(false)
+            setLoading(false);
         }
-    }
+    };
 
     useEffect(() => {
-        fetchSessions()
-    }, [menteeId])
+        fetchSessions();
+    }, [menteeId]);
 
-    return {sessions, loading, error, refresh: fetchSessions}
+    return { sessions, loading, error, refresh: fetchSessions };
 }
