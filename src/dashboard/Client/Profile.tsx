@@ -1,1093 +1,455 @@
-import {useState, useEffect} from "react"
+import {useEffect, useState} from "react";
+import {useFormik} from "formik";
+import * as Yup from "yup";
 import {Camera, Edit2} from "lucide-react";
-import {Button} from "@/components/ui/button"
-import {Card} from "@/components/ui/card"
-import {Switch} from "@/dashboard/Innovator/components/ui/switch"
-import {Separator} from "@/dashboard/Innovator/components/ui/separator"
-import {Label} from "@/dashboard/Innovator/components/ui/label"
+import {Button} from "@/components/ui/button";
+import {Card} from "@/components/ui/card";
+import {Switch} from "@/dashboard/Innovator/components/ui/switch";
+import {Label} from "@/dashboard/Innovator/components/ui/label";
+import {Separator} from "@/dashboard/Innovator/components/ui/separator";
 import {MainLayout} from "@/dashboard/Client/components/layout/main-layout";
-import {ChangePasswordDialog} from "@/dashboard/Innovator/components/modals/change-password-dialog"
-import {UploadImageDialog} from "@/dashboard/Innovator/components/modals/upload-image-dialog"
-import CountryandTime from "@/dashboard/ProblemSolver/pages/profile/CountryandTime"
-import tick from '@/assets/tick.png'
-import {IdentityVerificationDialog} from "@/dashboard/ProblemSolver/components/modals/IdentityVerificationDialogue"
-import {Textarea} from "@/dashboard/Innovator/components/ui/textarea"
-import PhoneInput from "react-phone-input-2"
-import "react-phone-input-2/lib/style.css"
-import {toast} from 'react-hot-toast';
-import * as Yup from 'yup';
-import {useFormik} from 'formik';
-import {EditableSection} from "@/dashboard/ProblemSolver/components/modals/EditableSection"
-import {EducationEntry} from "@/dashboard/ProblemSolver/components/modals/EducationEntry"
-import {CertificationEntry} from "@/dashboard/ProblemSolver/components/modals/CertificationEntry"
-
+import {ChangePasswordDialog} from "@/dashboard/Innovator/components/modals/change-password-dialog";
+import {UploadImageDialog} from "@/dashboard/Innovator/components/modals/upload-image-dialog";
+import {useUserService, NotificationPreferences} from "@/hooks/userService";
+import {toast} from "react-hot-toast";
+import CountryandTime from "@/dashboard/ProblemSolver/pages/profile/CountryandTime";
 import ReauthenticateDialog from "@/dashboard/Client/components/Reauthenticatedialog";
-import EditableField from "@/dashboard/Client/components/EditableField";
-import Select from "react-select";
-import {WorkExperienceEntry} from "@/dashboard/Advisor/components/modals/WorkExperienceEntry";
-import {useUserService, NotificationPreferences} from '@/hooks/userService'
-
-interface FormValues {
-    firstName: string;
-    lastName: string;
-    email: string;
-    phone: string;
-    bio: string;
-    industry: string;
-    skills: string[];
-    expertise: string;
-    specialties: string[];
-    languages: string[];
-    experience?: string;
-    portfolio?: string;
-    advisorType?: string;
-    reason?: string[];
-    experienceLevel?: string;
-    education?: string[];
-}
-
-const skillsList = [
-    "Frontend Development",
-    "Backend Development",
-    "Full Stack Development",
-    "Mobile App Development",
-    "Game Development",
-    "Software Engineering",
-    "Data Science & Analytics",
-    "Machine Learning & AI",
-    "Blockchain Development",
-    "Cybersecurity",
-    "Cloud Computing",
-    "Internet of Things (IoT)",
-    "DevOps & Automation",
-    "Database Management",
-    "API Development & Integration",
-    "Business Strategy & Growth Hacking",
-    "Entrepreneurship & Startups",
-    "Digital Marketing",
-    "Branding & Personal Branding",
-    "Sales & Lead Generation",
-    "Market Research & Consumer Insights",
-    "Financial Analysis & Investment Strategy",
-    "E-commerce Strategy",
-    "Project Management",
-    "Electrical Engineering",
-    "Mechanical Engineering",
-    "Civil & Structural Engineering",
-    "Robotics & Automation",
-    "Product Design & Prototyping",
-    "Medical Research & Data Analysis",
-    "HealthTech & Telemedicine Solutions",
-    "Biotechnology & Biomedical Engineering",
-    "Mental Health & Therapy Counseling",
-    "Nutrition & Dietetics",
-    "UI/UX Design",
-    "Graphic Design",
-    "Video Editing & Motion Graphics",
-    "Content Writing & Copywriting",
-    "Music Production & Sound Engineering",
-    "Photography & Digital Arts",
-    "Renewable Energy Solutions",
-    "Climate Change & Environmental Science",
-    "Sustainable Agriculture & Food Tech",
-    "Smart Cities & Urban Planning",
-    "Teaching & Coaching",
-    "Curriculum Development & E-learning",
-    "Research & Academic Writing",
-    "Nonprofit & Social Entrepreneurship",
-    "CivicTech & Government Innovation",
-    "Diversity, Equity & Inclusion Initiatives"
-];
-
-const EXPERTISE_SPECIALTIES = {
-    'Business & Entrepreneurship': [
-        'Startup Growth & Scaling',
-        'Leadership & Executive Coaching',
-        'Business Strategy',
-        'Marketing & Branding',
-        'Product Development',
-        'Fundraising & Venture Capital',
-        'Sales & Client Acquisition',
-        'E-commerce'
-    ],
-    'Mental Health & Therapy': [
-        'Anxiety & Stress Management',
-        'Depression & Emotional Well-being',
-        'Cognitive Behavioral Therapy (CBT)',
-        'Family & Relationship Counseling',
-        'Trauma & PTSD Support',
-        'Grief Counseling',
-        'Addiction Recovery'
-    ],
-    'Career Coaching & Personal Development': [
-        'Resume & LinkedIn Optimization',
-        'Interview Preparation',
-        'Salary Negotiation',
-        'Public Speaking & Communication',
-        'Confidence & Motivation Coaching',
-        'Productivity & Time Management',
-        'Work-Life Balance'
-    ],
-    'Technology & Software Development': [
-        'Software Engineering (Frontend, Backend, Full-Stack)',
-        'Artificial Intelligence (AI) & Machine Learning',
-        'Data Science & Analytics',
-        'Cybersecurity & Ethical Hacking',
-        'Blockchain & Web3 Development',
-        'UI/UX Design',
-        'Mobile App Development'
-    ],
-    'Finance, Investing & Wealth Management': [
-        'Personal Finance & Budgeting',
-        'Investing & Stock Market Strategies',
-        'Cryptocurrency & Blockchain Investments',
-        'Real Estate Investing',
-        'Tax Planning',
-        'Retirement Planning'
-    ],
-    'Relationships': [
-        'Dating & Romantic Relationships',
-        'Marriage Counseling',
-        'Conflict Resolution',
-        'Family Relationships'
-    ],
-    'Life Coaching': [
-        'Goal Setting & Achievement',
-        'Mindfulness & Meditation',
-        'Work-Life Balance',
-        'Spiritual Growth'
-    ],
-    'Cryptocurrency & Blockchain': [
-        'Crypto Investing',
-        'DeFi (Decentralized Finance)',
-        'NFT & Web3 Development',
-        'Smart Contracts'
-    ],
-    'Health, Wellness & Nutrition': [
-        'Diet & Nutrition Planning',
-        'Weight Loss & Fitness Coaching',
-        'Sleep Optimization',
-        'Women’s Health',
-        'Chronic Illness Management'
-    ],
-    'Legal & Compliance Consulting': [
-        'Business & Corporate Law',
-        'Intellectual Property (IP) & Trademarks',
-        'Contract Law & Negotiation',
-        'Employment & Labor Law',
-        'Data Privacy & GDPR Compliance'
-    ],
-    'Education & Learning': [
-        'Study & Exam Preparation',
-        'Language Learning',
-        'College Admissions & Scholarships',
-        'E-learning & Online Course Creation'
-    ],
-    'Creative & Media Coaching': [
-        'Graphic Design & Branding',
-        'Content Writing & Copywriting',
-        'Video Production & Editing',
-        'Social Media Growth',
-        'Public Relations & Brand Management'
-    ]
-} as const;
-
-const languageOptions = [
-    {value: 'English', label: 'English'},
-    {value: 'Spanish', label: 'Spanish'},
-    {value: 'French', label: 'French'},
-    {value: 'German', label: 'German'},
-]
-
-type ExpertiseKey = keyof typeof EXPERTISE_SPECIALTIES;
+import tick from "@/assets/tick.png";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
-const validationSchema = Yup.object().shape({
-    firstName: Yup.string().required('First Name is required'),
-    lastName: Yup.string().required('Last Name is required'),
-    email: Yup.string().email('Invalid email').required('Email is required'),
-    expertise: Yup.string().required('Expertise is required'),
-    specialties: Yup.array()
-        .max(3, 'Maximum 3 specialties allowed')
-        .required('At least one specialty is required'),
-    languages: Yup.array().min(1, 'At least one language is required'),
-    experience: Yup.string(),
-    skills: Yup.array()
-        .of(Yup.string())
+// Expertise → Specialties
+const EXPERTISE_SPECIALTIES = {
+    "Business & Entrepreneurship": [
+        "Startup Growth & Scaling",
+        "Leadership & Executive Coaching",
+        "Business Strategy",
+        "Marketing & Branding",
+        "Product Development",
+        "Fundraising & Venture Capital",
+        "Sales & Client Acquisition",
+        "E-commerce",
+    ],
+    "Mental Health & Therapy": [
+        "Anxiety & Stress Management",
+        "Depression & Emotional Well-being",
+        "Family & Relationship Counseling",
+        "Trauma & PTSD Support",
+    ],
+    "Career Coaching & Personal Development": [
+        "Resume & LinkedIn Optimization",
+        "Interview Preparation",
+        "Public Speaking & Communication",
+        "Confidence & Motivation Coaching",
+        "Work-Life Balance",
+    ],
+    "Technology & Software Development": [
+        "Software Engineering",
+        "Data Science & Analytics",
+        "Cybersecurity & Ethical Hacking",
+        "Blockchain & Web3 Development",
+        "UI/UX Design",
+    ],
+    "Finance, Investing & Wealth Management": [
+        "Personal Finance",
+        "Investing & Stock Market Strategies",
+        "Cryptocurrency & Blockchain Investments",
+        "Real Estate Investing",
+        "Tax Planning",
+    ],
+};
+
+const validationSchema = Yup.object({
+    firstName: Yup.string().required("First Name is required"),
+    lastName: Yup.string().required("Last Name is required"),
+    email: Yup.string().email("Invalid email"),
+    phone: Yup.string(),
+    advisorType: Yup.string().required("Please select a preferred advisor/mentor type"),
+    reason: Yup.array().min(1, "Select at least one reason").max(3, "Select up to 3 reasons"),
 });
 
-
-export default function ProfilePage() {
+export default function ClientProfilePage() {
     const {
         user,
-        isAuthenticated,
-        authLoading,
-        authError,
         updateProfile,
         refreshProfile,
         uploadProfilePicture,
-        updateUserRole,
-        profileLoading,
-        profileError,
         notificationPreferences,
         updateNotificationPreferences,
-        notificationsLoading
-    } = useUserService()
+        profileLoading,
+        notificationsLoading,
+    } = useUserService();
 
-    const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false)
-    const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false)
-    const [isGetVerifiedDialogueOpen, setIsGetVerifiedDialogueOpen] = useState(false)
-    const [showAuthDialog, setShowAuthDialog] = useState(false)
-    const [isEditing, setIsEditing] = useState(false)
-    const [isEditingEducation, setIsEditingEducation] = useState(false)
-    const [isEditingCertification, setIsEditingCertification] = useState(false)
-    const [isEditingExperience, setIsEditingExperience] = useState(false)
-    const [tempEducations, setTempEducations] = useState<any[]>([])
-    const [tempCertifications, setTempCertifications] = useState<any[]>([])
-    const [workExperiences, setWorkExperiences] = useState<any[]>([])
-    const [tempProfileData, setTempProfileData] = useState({
-        firstName: "",
-        lastName: "",
-        email: "",
-        phone: "",
-        bio: "",
-        industry: "",
-        organization: "",
-        website: "",
-        linkedin: "",
-        skills: [] as string[],
-        experience: "",
-        portfolio: "",
-        expertise: "",
-        specialties: [] as string[],
-        languages: [] as string[],
-        advisorType: "",
-        reason: [] as string[],
-        experienceLevel: ""
-    })
+    const [isEditing, setIsEditing] = useState(false);
+    const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+    const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
+    const [showAuthDialog, setShowAuthDialog] = useState(false);
 
-    const [originalProfileData, setOriginalProfileData] = useState({
-        firstName: "",
-        lastName: "",
-        email: "",
-        phone: "",
-        bio: "",
-        industry: "",
-        organization: "",
-        website: "",
-        linkedin: "",
-        skills: [] as string[],
-        experience: "",
-        portfolio: "",
-        expertise: "",
-        specialties: [] as string[],
-        languages: [] as string[],
-        advisorType: "",
-        reason: [] as string[],
-        experienceLevel: "",
-    })
-
-    const [selectedSkill, setSelectedSkill] = useState('');
-    const [searchQuery, setSearchQuery] = useState('');
-
-    const formik = useFormik<FormValues>({
+    // --- Formik Setup ---
+    // --- Formik Setup ---
+    const formik = useFormik({
         initialValues: {
-            firstName: '',
-            lastName: '',
-            email: '',
-            phone: '',
-            expertise: '',
-            skills: [],
-            specialties: [],
-            experienceLevel: '',
-            portfolio: '',
-            languages: [],
-            bio: '',
-            advisorType: '',
-            reason: [],
-            industry: ''
+            firstName: user?.firstName || "",
+            lastName: user?.lastName || "",
+            email: user?.email || "",
+            phone: user?.phone || "",
+            country: user?.country || "",
+            timeZone: user?.timeZone || "",
+            advisorType: user?.advisorType || "",
+            reason: Array.isArray(user?.reason) ? user.reason : [],
         },
         validationSchema,
-        onSubmit: async (values) => {
+        onSubmit: async (values, {setSubmitting}) => {
+            console.log("Form submission triggered with values:", values)
             try {
-                await handleSave()
-                setIsEditing(false)
-                toast.success('Profile updated successfully!')
-            } catch (error: any) {
-                console.error('Failed to update Profile:', error)
-                toast.error(error.message || "Failed to update Profile")
+                const payload = {
+                    firstName: values.firstName,
+                    lastName: values.lastName,
+                    email: values.email,
+                    phone: values.phone,
+                    advisorType: values.advisorType,
+                    reason: values.reason,
+                    country: values.country,
+                    timeZone: values.timeZone,
+
+                    // Preserve the rest of the user's data
+                    bio: user?.bio || "",
+                    industry: user?.industry || "",
+                    organization: user?.organization || "",
+                    website: user?.website || "",
+                    linkedin: user?.linkedin || "",
+                    skills: user?.skills || [],
+                    experience: user?.experience || "",
+                    portfolio: user?.portfolio || "",
+                    expertise: user?.expertise || "",
+                    specialties: user?.specialties || [],
+                    languages: user?.languages || [],
+                    experienceLevel: user?.experienceLevel || "",
+                    education: user?.education || [],
+                    certifications: user?.certification || [],
+                    workExperience: user?.workExperience || [],
+                };
+
+                console.log("Submitting updated profile:", payload);
+                await updateProfile(payload);
+
+                toast.success("Profile updated successfully!");
+                setIsEditing(false);
+            } catch (err: any) {
+                console.error("Error updating profile:", err);
+                toast.error(err.message || "Failed to update profile");
+            } finally {
+                setSubmitting(false);
             }
-        }
+        },
     });
 
-    // Initialize profile data when user changes
+
+    // --- Load user data into form ---
     useEffect(() => {
-        if (user) {
-            const profileData = {
+        if (user && !isEditing) {
+            formik.setValues({
                 firstName: user.firstName || "",
                 lastName: user.lastName || "",
                 email: user.email || "",
                 phone: user.phone || "",
-                bio: user.bio || "",
-                industry: user.industry || "",
-                organization: user.organization || "",
-                website: user.website || "",
-                linkedin: user.linkedin || "",
-                skills: Array.isArray(user.skills) ? user.skills : (user.skills ? [user.skills] : []),
-                experience: user.experience || "",
-                portfolio: user.portfolio || "",
-                expertise: user.expertise || "",
-                specialties: Array.isArray(user.specialties) ? user.specialties : [],
-                languages: Array.isArray(user.languages) ? user.languages : [],
+                country: user.country || "",
+                timeZone: user.timeZone || "",
                 advisorType: user.advisorType || "",
                 reason: Array.isArray(user.reason) ? user.reason : [],
-                experienceLevel: user.experienceLevel || "",
-            }
-
-            setTempProfileData(profileData);
-            setOriginalProfileData(profileData);
-            setTempEducations(user.education || []);
-            setTempCertifications(user.certification || []);
-            setWorkExperiences(user.workExperience || []);
-
-            // Update formik values directly
-            formik.setValues({
-                firstName: profileData.firstName,
-                lastName: profileData.lastName,
-                email: profileData.email,
-                phone: profileData.phone,
-                bio: profileData.bio,
-                industry: profileData.industry,
-                skills: profileData.skills,
-                expertise: profileData.expertise,
-                specialties: profileData.specialties,
-                languages: profileData.languages,
-                experience: profileData.experience,
-                portfolio: profileData.portfolio,
-                advisorType: profileData.advisorType,
-                reason: profileData.reason,
-                experienceLevel: profileData.experienceLevel,
             });
         }
-    }, [user])
+    }, [user]);
 
-    // Handle Save
-    const handleSave = async () => {
-        try {
-            console.log('handleSave called'); // Debug log
-
-            // Use formik's validateForm method (returns Promise<FormikErrors>)
-            const errors = await formik.validateForm();
-
-            if (Object.keys(errors).length > 0) {
-                console.log('Validation errors:', errors); // Debug log
-
-                // Set all fields as touched to show validation errors
-                const touchedFields = Object.keys(errors).reduce((acc, key) => ({
-                    ...acc,
-                    [key]: true
-                }), {});
-
-                formik.setTouched(touchedFields);
-                toast.error('Please fix validation errors before saving');
-                return;
-            }
-
-            const profileUpdateData = {
-                firstName: tempProfileData.firstName,
-                lastName: tempProfileData.lastName,
-                email: tempProfileData.email,
-                phone: tempProfileData.phone,
-                bio: tempProfileData.bio,
-                industry: tempProfileData.industry,
-                organization: tempProfileData.organization,
-                website: tempProfileData.website,
-                linkedin: tempProfileData.linkedin,
-                skills: formik.values.skills || [],
-                experience: formik.values.experience || "",
-                portfolio: formik.values.portfolio || "",
-                expertise: formik.values.expertise || "",
-                specialties: formik.values.specialties || [],
-                languages: formik.values.languages || [],
-                advisorType: formik.values.advisorType || "",
-                reason: formik.values.reason || [],
-                experienceLevel: formik.values.experienceLevel || "",
-                education: tempEducations || [],
-                certifications: tempCertifications || [],
-                workExperience: workExperiences || [],
-            };
-
-            console.log('Saving profile data:', profileUpdateData); // Debug log
-
-            const updatedUser = await updateProfile(profileUpdateData);
-
-            // Update original data after successful save
-            const updatedProfileData = {
-                firstName: tempProfileData.firstName,
-                lastName: tempProfileData.lastName,
-                email: tempProfileData.email,
-                phone: tempProfileData.phone,
-                bio: tempProfileData.bio,
-                industry: tempProfileData.industry,
-                organization: tempProfileData.organization,
-                website: tempProfileData.website,
-                linkedin: tempProfileData.linkedin,
-                skills: formik.values.skills || [],
-                experience: formik.values.experience || "",
-                portfolio: formik.values.portfolio || "",
-                expertise: formik.values.expertise || "",
-                specialties: formik.values.specialties || [],
-                languages: formik.values.languages || [],
-                advisorType: formik.values.advisorType || "",
-                reason: formik.values.reason || [],
-                experienceLevel: formik.values.experienceLevel || "",
-            };
-
-            setOriginalProfileData(updatedProfileData);
-            setIsEditing(false);
-            toast.success('Profile updated successfully!');
-
-        } catch (error) {
-            console.error('Failed to update Profile:', error);
-
-            let errorMessage = 'Failed to update profile';
-            if (error instanceof Error) {
-                errorMessage = error.message;
-            } else if (typeof error === 'string') {
-                errorMessage = error;
-            }
-
-            toast.error(errorMessage);
-        }
+    const getUserInitials = () => {
+        if (!user?.firstName || !user?.lastName) return "U";
+        return `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase();
     };
-
-    const handleImageUploaded = (imageUrl: string) => {
-        toast.success("Profile Picture updated successfully")
-        refreshProfile()
-    }
-
-    const filteredSkills = skillsList.filter(skill =>
-        skill.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
-    const handleSkillSelection = (skill: string) => {
-        setSelectedSkill(prev => prev === skill ? '' : skill);
-    };
-
-
-    const handleAuthSuccess = () => {
-        setIsEditing(true)
-        setShowAuthDialog(false)
-    }
-
-
-    const handleCancel = () => {
-        setIsEditing(false)
-        // Reset both tempProfileData and formik to original data
-        setTempProfileData(originalProfileData)
-        if (user) {
-            formik.resetForm({
-                values: {
-                    firstName: user.firstName || "",
-                    lastName: user.lastName || "",
-                    email: user.email || "",
-                    phone: user.phone || "",
-                    bio: user.bio || "",
-                    industry: user.industry || "",
-                    skills: Array.isArray(user.skills) ? user.skills : (user.skills ? [user.skills] : []),
-                    expertise: user.expertise || "",
-                    specialties: Array.isArray(user.specialties) ? user.specialties : [],
-                    languages: Array.isArray(user.languages) ? user.languages : [],
-                    experience: user.experience || "",
-                    portfolio: user.portfolio || "",
-                    advisorType: user.advisorType || "",
-                    reason: Array.isArray(user.reason) ? user.reason : [],
-                    experienceLevel: user.experienceLevel || "",
-                }
-            })
-        }
-
-        setTempEducations(user?.education || [])
-        setTempCertifications(user?.certification || [])
-        setWorkExperiences(user?.workExperience || [])
-    }
-
-    // Loading states and error handling
-    if (authLoading || profileLoading) {
-        return (
-            <MainLayout>
-                <div className={'flex items-center justify-center min-h-screen'}>
-                    <div className={'text-center'}>
-                        <div
-                            className={'animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto'}></div>
-                        <p className={'mt-4 text-gray-600'}>Loading profile...</p>
-                    </div>
-                </div>
-            </MainLayout>
-        )
-    }
-
-    if (authError || profileError) {
-        return (
-            <MainLayout>
-                <div className={'flex items-center justify-center min-h-screen'}>
-                    <div className={'text-center'}>
-                        <p className={'text-red-600'}>Error: {authError || profileError}</p>
-                        <button
-                            onClick={() => refreshProfile()}
-                            className={'mt-4 px-4 py-2 bg-emerald-600 text-white rounded'}
-                        >
-                            Retry
-                        </button>
-                    </div>
-                </div>
-            </MainLayout>
-        )
-    }
 
     const handleNotificationUpdate = async (key: keyof NotificationPreferences, value: boolean) => {
         try {
-            await updateNotificationPreferences({
-                [key]: value
-            })
-            toast.success('Notification preferences updated')
-        } catch (error: any) {
-            console.error('Failed to update notification preferences:', error)
-            toast.error(error.message || "Failed to update notification preferences")
+            await updateNotificationPreferences({[key]: value});
+            toast.success("Notification preferences updated");
+        } catch (err: any) {
+            toast.error(err.message || "Failed to update notifications");
         }
-    }
+    };
 
-    const getUserInitials = () => {
-        if (!user?.firstName || !user?.lastName) return "U"
-        return `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase()
-    }
-
+    useEffect(() => {
+        console.log("Formik initialized")
+    }, [formik]);
 
     return (
+
         <MainLayout>
-            <div className="space-y-6 md:p-6 md:pr-3 md:pl-1 md:pt-1 px-3 pt-2 dashbg">
-                <div className="flex items-center justify-between">
-                    <h1 className="text-2xl font-bold dashtext">Profile Settings</h1>
-                    <div className="relative top-20 right-7 ">
-                        {!isEditing && (
-                            <Button
-                                variant="outline"
-                                onClick={() => setShowAuthDialog(true)}
-                                className=" text-emerald-600 border-emerald-600 font-bold transition-colors p-1 px-3 rounded-full"
-                            >
-                                <Edit2 className="h-4 w-4"/>
-                            </Button>
-                        )}
-                        {isEditing && (
-                            <div className="flex justify-end gap-2 relative sm:bottom-0 bottom-14 left-7">
-                                <Button variant="outline" onClick={handleCancel} size="sm">
-                                    Cancel
-                                </Button>
-                                <Button type={'submit'} onClick={handleSave} className='dashbutton' size="sm"
-                                        disabled={formik.isSubmitting}>
-                                    {formik.isSubmitting ? "Saving..." : "Save Changes"}
+            <div className="min-h-screen bg-[#EAF5F1] p-6 space-y-8">
+                {/* ---------- PROFILE CARD ---------- */}
+                <Card className="bg-[#EAF5F1] border-none shadow-none p-6 space-y-6">
+                    <h2 className="text-xl font-bold text-black mb-4">Profile Information</h2>
+
+                    {/* Profile Header */}
+                    {/* ---------- PROFILE HEADER + FORM ---------- */}
+                    <form onSubmit={formik.handleSubmit} className="space-y-6">
+                        {/* Profile Header */}
+                        <div className="flex items-center gap-5 mb-6">
+                            <div className="relative">
+                                <div
+                                    className="h-24 w-24 rounded-full bg-[#00BF8F] flex items-center justify-center text-white text-3xl font-bold">
+                                    {user?.profilePicture ? (
+                                        <img
+                                            src={`${API_BASE_URL}${user.profilePicture}`}
+                                            alt=""
+                                            className="h-full w-full rounded-full object-cover"
+                                        />
+                                    ) : (
+                                        getUserInitials()
+                                    )}
+                                </div>
+                                <Button
+                                    type="button"
+                                    size="icon"
+                                    className="absolute bottom-0 right-0 bg-black rounded-full"
+                                    onClick={() => setIsUploadDialogOpen(true)}
+                                >
+                                    <Camera className="h-4 w-4 text-white"/>
                                 </Button>
                             </div>
-                        )}
-                    </div>
-                </div>
 
-                <div className="grid gap-6">
-                    <Card className="secondbg md:p-6 p-3">
-                        <h2 className="mb-6 text-lg font-semibold dashtext">Profile Information</h2>
-                        <div className="mb-5">
-                            <div className="mb-6 flex items-center md:gap-6 gap-3">
-                                <div className="relative">
+                            <div className="space-y-1">
+                                <div className="flex items-center gap-2">
+                                    <h3 className="text-lg font-semibold text-black">
+                                        {formik.values.firstName} {formik.values.lastName}
+                                    </h3>
                                     <div
-                                        className=" relative flex h-24 w-24 items-center justify-center rounded-full bg-[#00bf8f] text-3xl dashtext">
-                                        {user?.profilePicture ? (
-                                            <img src={`${API_BASE_URL}${user.profilePicture}`} alt="" className={'h-full w-full object-cover'}/>
-                                        ) : (
-                                            getUserInitials()
-                                        )}
-                                    </div>
-                                    <Button
-                                        size="icon"
-                                        className="absolute bottom-0 right-0 rounded-full bg-black"
-                                        onClick={() => setIsUploadDialogOpen(true)}
+                                        className="flex items-center text-xs gap-1 border border-gray-500 rounded-full px-2 py-0.5 cursor-pointer"
+                                        onClick={() => toast("Verification pending")}
                                     >
-                                        <Camera className="h-4 w-4 text-white"/>
+                                        <img src={tick} alt="Tick" className="w-4"/>
+                                        <span className="font-semibold text-gray-700">Get verified</span>
+                                    </div>
+                                </div>
+                                <p className="text-gray-600 text-sm">{formik.values.email}</p>
+                            </div>
+
+                            {!isEditing && (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="ml-auto border-[#00BF8F] text-[#00BF8F] rounded-full px-3"
+                                    onClick={() => setShowAuthDialog(true)}
+                                >
+                                    <Edit2 className="h-4 w-4"/>
+                                </Button>
+                            )}
+                            {isEditing && (
+                                <div className="ml-auto flex gap-2">
+                                    {/* ✅ Cancel button – force native behavior */}
+                                    <Button
+                                        asChild={false}
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => setIsEditing(false)}
+                                    >
+                                        Cancel
+                                    </Button>
+
+                                    {/* ✅ Save button – force native button + Formik submit */}
+                                    <Button
+                                        className="bg-[#00BF8F] text-white"
+                                        type="submit"
+                                        disabled={formik.isSubmitting}
+                                        onClick={(e) => {
+                                            console.log("Save button clicked");
+                                            console.log("Form is submitting:", formik.isSubmitting);
+                                            console.log("Form values:", formik.values);
+                                            console.log("Form errors:", formik.errors);
+                                            console.log("Form is valid:", formik.isValid);
+                                        }}
+
+                                    >
+                                        {formik.isSubmitting ? "Saving..." : "Save"}
                                     </Button>
                                 </div>
-                                <div className="md:flex items-center justify-center md:mb-4">
-                                    <div className="flex flex-col items-center md:items-start">
-                                        <div className="flex items-center gap-2">
-                                            <h3 className="text-sm md:text-lg font-semibold dashtext">
-                                                {tempProfileData.firstName} {tempProfileData.lastName}
-                                            </h3>
-                                            <div
-                                                className="flex items-center text-xs gap-2 bg-transparent py-0.5 px-2 rounded-full border border-gray-500 cursor-pointer"
-                                                onClick={() => setIsGetVerifiedDialogueOpen(true)}
+                            )}
+                        </div>
+
+                        {/* Profile Fields */}
+                        <div className="grid md:grid-cols-2 gap-4">
+                            <div>
+                                <Label>First Name</Label>
+                                <input
+                                    type="text"
+                                    {...formik.getFieldProps("firstName")}
+                                    disabled={!isEditing}
+                                    className="w-full mt-1 border rounded-lg p-2 bg-white"
+                                />
+                            </div>
+                            <div>
+                                <Label>Last Name</Label>
+                                <input
+                                    type="text"
+                                    {...formik.getFieldProps("lastName")}
+                                    disabled={!isEditing}
+                                    className="w-full mt-1 border rounded-lg p-2 bg-white"
+                                />
+                            </div>
+                            <div>
+                                <Label>Email</Label>
+                                <input
+                                    type="email"
+                                    {...formik.getFieldProps("email")}
+                                    disabled
+                                    className="w-full mt-1 border rounded-lg p-2 bg-white"
+                                />
+                            </div>
+                            <div>
+                                <Label>Phone</Label>
+                                <input
+                                    type="text"
+                                    {...formik.getFieldProps("phone")}
+                                    disabled={!isEditing}
+                                    className="w-full mt-1 border rounded-lg p-2 bg-white"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid md:grid-cols-2 gap-4">
+                            <CountryandTime disable={!isEditing} flex=""/>
+                        </div>
+
+                        {/* Advisor Type */}
+                        <div>
+                            <Label>Preferred Advisor/Mentor Type</Label>
+                            <select
+                                {...formik.getFieldProps("advisorType")}
+                                disabled={!isEditing}
+                                onChange={(e) => {
+                                    formik.setFieldValue("advisorType", e.target.value);
+                                    formik.setFieldValue("reason", []);
+                                }}
+                                className="w-full mt-1 border rounded-lg p-2 bg-white"
+                            >
+                                <option value="">Select Preferred Advisor/Mentor Type</option>
+                                {Object.keys(EXPERTISE_SPECIALTIES).map((key) => (
+                                    <option key={key} value={key}>
+                                        {key}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* Reason for Joining */}
+                        <div>
+                            <Label className="block mb-2">Reason for Joining (Select up to 3)</Label>
+                            {formik.values.advisorType ? (
+                                <div className="flex flex-wrap gap-2 bg-white p-3 rounded-lg border border-gray-200">
+                                    {(EXPERTISE_SPECIALTIES[
+                                        formik.values.advisorType as keyof typeof EXPERTISE_SPECIALTIES
+                                        ] ?? []).map((specialty) => {
+                                        const isSelected = formik.values.reason.includes(specialty);
+                                        return (
+                                            <button
+                                                key={specialty}
+                                                type="button"
+                                                disabled={!isEditing}
+                                                onClick={() => {
+                                                    let updated = [...formik.values.reason];
+                                                    if (isSelected) {
+                                                        updated = updated.filter((r) => r !== specialty);
+                                                    } else if (updated.length < 3) {
+                                                        updated.push(specialty);
+                                                    } else {
+                                                        toast.error("You can select up to 3 options");
+                                                        return;
+                                                    }
+                                                    formik.setFieldValue("reason", updated);
+                                                }}
+                                                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all border ${
+                                                    isSelected
+                                                        ? "bg-[#00BF8F] text-white border-[#00BF8F]"
+                                                        : "bg-gray-100 text-gray-800 border-gray-300 hover:bg-gray-200"
+                                                } ${!isEditing ? "opacity-60 cursor-not-allowed" : "cursor-pointer"}`}
                                             >
-                                                <img src={tick} alt="Verification Tick" className="w-5"/>
-                                                <span className="dark:text-white font-semibold tracking-wide">Get verified</span>
-                                            </div>
-                                        </div>
-                                        <p className="text-sm text-left mt-1 dark:text-white">{tempProfileData.email}</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 text-left">
-                                <EditableField
-                                    label="First Name"
-                                    value={tempProfileData.firstName}
-                                    onChange={(value) => setTempProfileData(p => ({...p, firstName: value}))}
-                                    isEditing={isEditing}
-                                />
-                                <EditableField
-                                    label="Last Name"
-                                    value={tempProfileData.lastName}
-                                    onChange={(value) => setTempProfileData(p => ({...p, lastName: value}))}
-                                    isEditing={isEditing}
-                                />
-                                <EditableField
-                                    label="Email"
-                                    value={tempProfileData.email}
-                                    onChange={(value) => setTempProfileData(p => ({...p, email: value}))}
-                                    inputType="email"
-                                    isEditing={isEditing}
-                                />
-                                <div className="space-y-2 w-full">
-                                    <Label className="dashtext">Phone</Label>
-                                    {isEditing ? (
-                                        <PhoneInput
-                                            country={"us"}
-                                            value={tempProfileData.phone}
-                                            onChange={(phone) =>
-                                                setTempProfileData((p) => ({...p, phone}))
-                                            }
-                                            inputStyle={{
-                                                width: "100%",
-                                                border: "1px solid #ccc",
-                                                borderRadius: "4px",
-                                                padding: "8px",
-                                                paddingLeft: "55px"
-                                            }}
-                                            containerClass="flex"
-                                        />
-                                    ) : (
-                                        <p className="text-sm py-2 px-3 rounded-md bg-white text-black">
-                                            {'+' + tempProfileData.phone || "Enter phone number"}
-                                        </p>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="mt-5">
-                                <CountryandTime disable={!isEditing} flex={''}/>
-                            </div>
-
-
-                            {/* Expertise */}
-                            <div className="!text-sm space-y-2">
-                                <div>
-                                    <label
-                                        className="block text-gray-700 dark:text-white font-medium my-2 mt-4 text-sm">Expertise</label>
-                                    <div className="relative">
-                                        <select
-                                            className="w-full pl-3 pr-3 py-2 border rounded-lg focus:outline-none "
-                                            {...formik.getFieldProps('expertise')}
-                                            onChange={e => {
-                                                formik.setFieldValue('expertise', e.target.value);
-                                                formik.setFieldValue('specialties', []);
-                                            }}
-                                            disabled={!isEditing}
-                                        >
-                                            <option value="">Select Expertise</option>
-                                            {Object.keys(EXPERTISE_SPECIALTIES).map(expertise => (
-                                                <option key={expertise} value={expertise}>{expertise}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className="block text-gray-700 dark:text-white font-medium mb-2 mt-4">Specialties
-                                        (Select up to 3)</label>
-                                    <div className="flex flex-col space-y-2">
-                                        {formik.values.expertise ? (
-                                            EXPERTISE_SPECIALTIES[formik.values.expertise as ExpertiseKey]?.map(specialty => (
-                                                <label key={specialty}
-                                                       className="inline-flex items-center dark:text-gray-300">
-                                                    <input
-                                                        type="checkbox"
-                                                        name="specialties"
-                                                        value={specialty}
-                                                        disabled={!isEditing}
-                                                        checked={formik.values.specialties.includes(specialty)}
-                                                        onChange={e => {
-                                                            const checked = e.target.checked;
-                                                            let newSpecialties = [...formik.values.specialties];
-                                                            if (checked) {
-                                                                if (newSpecialties.length < 3) {
-                                                                    newSpecialties.push(specialty);
-                                                                }
-                                                            } else {
-                                                                newSpecialties = newSpecialties.filter(s => s !== specialty);
-                                                            }
-                                                            formik.setFieldValue('specialties', newSpecialties);
-                                                        }}
-                                                        className="mr-2"
-                                                    />
-                                                    {specialty}
-                                                </label>
-                                            ))
-                                        ) : <span className="dark:text-gray-300 ml-2">No Expertise Selected</span>
-                                        }
-                                    </div>
-                                    <div className="mt-2 flex flex-wrap gap-2">
-                                        {formik.values.specialties.map(specialty => (
-                                            <div key={specialty}
-                                                 className="bg-black text-white px-3 py-1 rounded-full flex items-center">
                                                 {specialty}
-                                                <button
-                                                    type="button"
-                                                    onClick={() => formik.setFieldValue(
-                                                        'specialties',
-                                                        formik.values.specialties.filter(s => s !== specialty)
-                                                    )}
-                                                    className="ml-2 hover:text-gray-400"
-                                                >
-                                                    ×
-                                                </button>
-                                            </div>
-                                        ))}
-                                    </div>
+                                            </button>
+                                        );
+                                    })}
                                 </div>
-
-                                <div>
-                                    <label className="text-gray-700 dark:text-white font-medium mb-2">Languages
-                                        Spoken</label>
-                                    <div className="mt-2">
-                                        <Select
-                                            isMulti
-                                            name="languages"
-                                            isDisabled={!isEditing}
-                                            options={languageOptions}
-                                            className="w-full border rounded-lg"
-                                            classNamePrefix="select"
-                                            value={languageOptions.filter(option => formik.values.languages.includes(option.value))}
-                                            onChange={(selectedOptions) => {
-                                                formik.setFieldValue(
-                                                    "languages",
-                                                    selectedOptions ? selectedOptions.map(option => option.value) : []
-                                                );
-                                            }}
-                                        />
-
-
-                                        {formik.touched.languages && formik.errors.languages && (
-                                            <div className="text-red-500 text-sm mt-1">{formik.errors.languages}</div>
-                                        )}
-                                    </div>
-                                    <div className="mt-2 flex flex-wrap gap-2">
-                                        {formik.values.languages.map(language => (
-                                            <div key={language}
-                                                 className="bg-black text-white px-3 py-1 rounded-full flex items-center">
-                                                {language}
-                                                <button
-                                                    type="button"
-                                                    onClick={() => formik.setFieldValue(
-                                                        'languages',
-                                                        formik.values.languages.filter(l => l !== language)
-                                                    )}
-                                                    disabled={!isEditing}
-                                                    className="ml-2"
-                                                >
-                                                    ×
-                                                </button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                                {selectedSkill && (
-                                    <div className="mt-4 mb-2">
-                                        <h3 className="text-md mb-1 font-medium text-gray-700 dark:text-white">Selected
-                                            Skill:</h3>
-                                        <ul className="flex flex-wrap gap-2">
-                                            <li className="bg-black text-sm px-2 py-1 text-white rounded-xl">{selectedSkill}</li>
-                                        </ul>
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="mb-4">
-                                <label className="block text-sm text-gray-700 font-medium mb-2 mt-2 dark:text-white">Years
-                                    of Experience</label>
-                                <select className="w-full border rounded-lg p-2 text-sm" disabled={!isEditing}>
-                                    <option>0-1 years</option>
-                                    <option>1-3 years</option>
-                                    <option selected>4-6 years</option>
-                                    <option>7-10 years</option>
-                                    <option>10+ years</option>
-                                </select>
-                            </div>
-
-                            <div className="mt-6">
-                                <div className="space-y-2">
-                                    <Label className="dashtext">Short Bio/About You (Max 300 Characters)</Label>
-                                    {isEditing ? (
-                                        <>
-                                            <Textarea
-                                                value={tempProfileData.bio}
-                                                onChange={(e) => setTempProfileData(p => ({...p, bio: e.target.value}))}
-                                                className="mt-2 dashborder"
-                                                maxLength={300}
-                                            />
-                                            <p className="text-right text-sm text-gray-400">
-                                                {tempProfileData.bio.length}/300
-                                            </p>
-                                        </>
-                                    ) : (
-                                        <p className="text-sm py-2 px-3 rounded-md bg-white text-black">
-                                            {tempProfileData.bio || "Enter your bio"}
-                                        </p>
-                                    )}
-                                </div>
-                            </div>
-
-
+                            ) : (
+                                <p className="text-gray-600 text-sm mt-1 italic">
+                                    Select Preferred Advisor/Mentor Type first
+                                </p>
+                            )}
                         </div>
-                    </Card>
+                    </form>
+                </Card>
 
-                    <Card className="secondbg p-6">
-                        <EditableSection
-                            title="Education:"
-                            isEditing={isEditingEducation}
-                            setIsEditing={setIsEditingEducation}
-                            onSave={() => setIsEditingEducation(false)}
-                            onCancel={() => setIsEditingEducation(false)}
-                        >
-                            <div className="space-y-6">
-                                {tempEducations.map((edu, index) => (
-                                    <EducationEntry
-                                        key={edu.id}
-                                        education={edu}
-                                        isEditing={isEditingEducation}
-                                        showRemove={tempEducations.length > 1}
-                                        onChange={(updated) => {
-                                            const updatedEducations = [...tempEducations]
-                                            updatedEducations[index] = updated
-                                            setTempEducations(updatedEducations)
-                                        }}
-                                        onRemove={() => setTempEducations(tempEducations.filter((_, i) => i !== index))}
-                                    />
-                                ))}
+                {/* ---------- SECURITY SETTINGS ---------- */}
+                <Card className="bg-[#EAF5F1] border-none p-6">
+                    <h2 className="text-lg font-semibold text-black mb-4">Security Settings</h2>
+                    <Button
+                        variant="outline"
+                        className="w-full text-left border"
+                        onClick={() => setIsPasswordDialogOpen(true)}
+                    >
+                        Change Password
+                        <span className="ml-auto text-gray-400">••••••••</span>
+                    </Button>
+                </Card>
 
-                                {isEditingEducation && tempEducations.length < 3 && (
-                                    <Button
-                                        variant="outline"
-                                        className="w-full dashborder dashbutton text-white"
-                                        onClick={() => {
-                                            setTempEducations([
-                                                ...tempEducations,
-                                                {
-                                                    id: Date.now(),
-                                                    institution: "",
-                                                    degree: "",
-                                                    field: "",
-                                                    startYear: "",
-                                                    endYear: ""
-                                                }
-                                            ])
-                                        }}
-                                    >
-                                        + Add Another Education
-                                    </Button>
-                                )}
+                {/* ---------- NOTIFICATIONS ---------- */}
+                <Card className="bg-[#EAF5F1] border-none p-6 space-y-4">
+                    <h2 className="text-lg font-semibold text-black">Notification Preferences</h2>
+
+                    {[
+                        {
+                            label: "Email Notifications",
+                            desc: "Receive important updates about your session via email",
+                            key: "emailNotifications",
+                        },
+                        {
+                            label: "Session Updates",
+                            desc: "Receive updates about your Sessions",
+                            key: "challengeUpdates",
+                        },
+                        {
+                            label: "New Messages",
+                            desc: "Receive updates about new messages",
+                            key: "newMessages",
+                        },
+                    ].map((n) => (
+                        <div key={n.key} className="flex items-center justify-between">
+                            <div>
+                                <Label className="text-black">{n.label}</Label>
+                                <p className="text-sm text-gray-600">{n.desc}</p>
                             </div>
-                        </EditableSection>
-                    </Card>
-
-                    {/* Certifications Section */}
-                    <Card className="secondbg p-6">
-                        <EditableSection
-                            title="Certifications:"
-                            isEditing={isEditingCertification}
-                            setIsEditing={setIsEditingCertification}
-                            onSave={() => setIsEditingCertification(false)}
-                            onCancel={() => setIsEditingCertification(false)}
-                        >
-                            <div className="space-y-6">
-                                {tempCertifications.map((cert, index) => (
-                                    <CertificationEntry
-                                        key={cert.id}
-                                        certification={cert}
-                                        isEditing={isEditingCertification}
-                                        showRemove={tempCertifications.length > 1}
-                                        onChange={(updated) => {
-                                            const updatedCerts = [...tempCertifications]
-                                            updatedCerts[index] = updated
-                                            setTempCertifications(updatedCerts)
-                                        }}
-                                        onRemove={() => setTempCertifications(tempCertifications.filter((_, i) => i !== index))}
-                                    />
-                                ))}
-
-                                {isEditingCertification && tempCertifications.length < 3 && (
-                                    <Button
-                                        variant="outline"
-                                        className="w-full dashborder dashbutton text-white"
-                                        onClick={() => {
-                                            setTempCertifications([
-                                                ...tempCertifications,
-                                                {
-                                                    id: Date.now(),
-                                                    name: "",
-                                                    issuer: "",
-                                                    date: ""
-                                                }
-                                            ])
-                                        }}
-                                    >
-                                        + Add Another Certification
-                                    </Button>
-                                )}
-                            </div>
-                        </EditableSection>
-                    </Card>
-
-
-                    {/* Work Experience */}
-                    <Card className="secondbg p-6">
-                        <EditableSection
-                            title="Work Experience:"
-                            isEditing={isEditingExperience}
-                            setIsEditing={setIsEditingExperience}
-                            onSave={() => setIsEditingExperience(false)}
-                            onCancel={() => setIsEditingExperience(false)}
-                        >
-                            <div className="space-y-6">
-                                {workExperiences.map((exp, index) => (
-                                    <WorkExperienceEntry
-                                        key={exp.id}
-                                        workExperience={exp}
-                                        isEditing={isEditingExperience}
-                                        showRemove={workExperiences.length > 1}
-                                        onChange={(updated: {
-                                            id: number;
-                                            company: string;
-                                            role: string;
-                                            startDate: string;
-                                            endDate: string;
-                                        }) => {
-                                            const updatedExperiences = [...workExperiences];
-                                            updatedExperiences[index] = updated;
-                                            setWorkExperiences(updatedExperiences);
-                                        }}
-                                        onRemove={() =>
-                                            setWorkExperiences(workExperiences.filter((_, i) => i !== index))
-                                        }
-                                    />
-                                ))}
-
-                                {isEditingExperience && workExperiences.length < 3 && (
-                                    <Button
-                                        variant="outline"
-                                        className="w-full dashborder dashbutton text-white"
-                                        onClick={() => {
-                                            setWorkExperiences([
-                                                ...workExperiences,
-                                                {id: Date.now(), company: "", role: "", startDate: "", endDate: ""},
-                                            ]);
-                                        }}
-                                    >
-                                        + Add Another Work Experience
-                                    </Button>
-                                )}
-                            </div>
-                        </EditableSection>
-                    </Card>
-
-
-                    <Card className="secondbg p-6">
-                        <h2 className="mb-6 text-lg font-semibold dashtext">Security Settings</h2>
-                        <Button
-                            variant="outline"
-                            className="w-full text-left border dashborder"
-                            onClick={() => setIsPasswordDialogOpen(true)}
-                        >
-                            Change Password
-                            <span className="ml-auto text-gray-400">••••••••</span>
-                        </Button>
-                    </Card>
-
-                    <Card className="secondbg p-6">
-                        <h2 className="mb-6 text-lg font-semibold dashtext">Notification Preferences</h2>
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <Label className="dashtext">Email Notifications</Label>
-                                    <p className="text-sm text-gray-400">Receive important updates about your session
-                                        via email</p>
-                                </div>
-                                <Switch
-                                    checked={notificationPreferences?.emailNotifications || false}
-                                    onCheckedChange={(checked) =>
-                                        handleNotificationUpdate('emailNotifications', checked)
-                                    }
-                                    disabled={notificationsLoading}
-                                />
-                            </div>
-                            <Separator className="secondbg"/>
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <Label className="dashtext">Session Updates</Label>
-                                    <p className="text-sm text-gray-400">Receive updates about your Sessions</p>
-                                </div>
-                                <Switch
-                                    checked={notificationPreferences?.challengeUpdates || false}
-                                    onCheckedChange={(checked) => handleNotificationUpdate('challengeUpdates', checked)}
-                                    disabled={notificationsLoading}
-                                />
-                            </div>
-                            <Separator className="secondbg"/>
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <Label className="dashtext">New Messages</Label>
-                                    <p className="text-sm text-gray-400">Receive updates about new messages</p>
-                                </div>
-                                <Switch
-                                    checked={notificationPreferences?.newMessages || false}
-                                    onCheckedChange={(checked) => handleNotificationUpdate('newMessages', checked)}
-                                    disabled={notificationsLoading}
-                                />
-                            </div>
-                            <Separator className="secondbg"/>
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <Label className="dashtext">Marketing Emails</Label>
-                                    <p className="text-sm text-gray-400">Receive marketing emails</p>
-                                </div>
-                                <Switch
-                                    checked={notificationPreferences?.marketingEmails || false}
-                                    onCheckedChange={(checked) => handleNotificationUpdate('marketingEmails', checked)}
-                                    disabled={notificationsLoading}
-                                />
-                            </div>
+                            <Switch
+                                checked={notificationPreferences?.[n.key as keyof NotificationPreferences] || false}
+                                onCheckedChange={(checked) =>
+                                    handleNotificationUpdate(n.key as keyof NotificationPreferences, checked)
+                                }
+                                disabled={notificationsLoading}
+                            />
                         </div>
-                    </Card>
-                </div>
+                    ))}
+                    <Separator className="bg-gray-300"/>
+                </Card>
 
+                {/* ---------- DIALOGS ---------- */}
+                <ChangePasswordDialog isOpen={isPasswordDialogOpen} onClose={() => setIsPasswordDialogOpen(false)}/>
+                <UploadImageDialog
+                    isOpen={isUploadDialogOpen}
+                    onClose={() => setIsUploadDialogOpen(false)}
+                    onImageUploaded={() => refreshProfile()}
+                    uploadFunction={uploadProfilePicture}
+                    isUpLoading={profileLoading}
+                />
                 <ReauthenticateDialog
                     isOpen={showAuthDialog}
                     onClose={() => setShowAuthDialog(false)}
-                    onSuccess={handleAuthSuccess}
+                    onSuccess={() => setIsEditing(true)}
                 />
-                <ChangePasswordDialog isOpen={isPasswordDialogOpen} onClose={() => setIsPasswordDialogOpen(false)}/>
-                <UploadImageDialog isOpen={isUploadDialogOpen} onClose={() => setIsUploadDialogOpen(false)}
-                                   onImageUploaded={handleImageUploaded} uploadFunction={uploadProfilePicture}
-                                   isUpLoading={profileLoading}/>
-                <IdentityVerificationDialog isOpen={isGetVerifiedDialogueOpen}
-                                            onClose={() => setIsGetVerifiedDialogueOpen(false)}/>
             </div>
         </MainLayout>
-    )
+    );
 }

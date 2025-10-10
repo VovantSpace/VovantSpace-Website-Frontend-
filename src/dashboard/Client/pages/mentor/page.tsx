@@ -1,15 +1,45 @@
-import {JSX, useState, useMemo} from "react"
-import {AlertCircle, Search} from "lucide-react"
-import {Input} from "@/dashboard/Innovator/components/ui/input"
-import {MentorCard} from "@/dashboard/Client/components/mentor-card"
-import {MentorProfileDialog} from "@/dashboard/Client/components/mentor-profile-dialog"
-import {BookSessionDialog} from "@/dashboard/Client/components/book-session-dialog"
-import {ConfirmSessionDialog} from "@/dashboard/Client/components/confirm-session-dialog"
-import {MainLayout} from "@/dashboard/Client/components/layout/main-layout"
-import {Button} from "@/dashboard/Innovator/components/ui/button";
-import {useMentorSearch} from "@/hooks/useMentorSearch";
+import { JSX, useState, useMemo } from "react";
+import { AlertCircle, Search } from "lucide-react";
+import { Input } from "@/dashboard/Innovator/components/ui/input";
+import { MentorCard } from "@/dashboard/Client/components/mentor-card";
+import { MentorProfileDialog } from "@/dashboard/Client/components/mentor-profile-dialog";
+import { BookSessionDialog } from "@/dashboard/Client/components/book-session-dialog";
+import { ConfirmSessionDialog } from "@/dashboard/Client/components/confirm-session-dialog";
+import { MainLayout } from "@/dashboard/Client/components/layout/main-layout";
+import { Button } from "@/dashboard/Innovator/components/ui/button";
+import { useMentorSearch } from "@/hooks/useMentorSearch";
+import { useMentorDetails } from "@/hooks/useMentor";
 
+/* ---------------------------------------
+   ✅ Mentor Type (matches backend shape)
+--------------------------------------- */
+interface Mentor {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    profilePicture?: string;
+    bio?: string;
+    expertise?: string;
+    specialties?: string[];
+    languages?: string[];
+    experienceLevel?: string;
+    averageRating?: number;
+    totalSessions?: number;
+    completedSessions?: number;
+    averageHourlyRate?: number;
+    country?: string;
+    stats?: {
+        averageRating: number;
+        totalRatings: number;
+        completedSessions: number;
+    };
+    sessionRate?: number;
+    hasPendingRequests?: boolean;
+}
 
+/* ---------------------------------------
+   ✅ Loading Skeleton
+--------------------------------------- */
 const LoadingStats = (): JSX.Element => (
     <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-3">
         {[1, 2, 3].map((i) => (
@@ -20,7 +50,9 @@ const LoadingStats = (): JSX.Element => (
     </div>
 );
 
-// Error block
+/* ---------------------------------------
+   ✅ Error Message Block
+--------------------------------------- */
 const ErrorMessage = ({
                           message,
                           onRetry,
@@ -30,7 +62,7 @@ const ErrorMessage = ({
 }) => (
     <div className="flex items-center justify-center p-8 text-center">
         <div className="max-w-md">
-            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4"/>
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
                 Something went wrong
             </h3>
@@ -42,24 +74,30 @@ const ErrorMessage = ({
     </div>
 );
 
+/* ---------------------------------------
+   ✅ Main Mentors Component
+--------------------------------------- */
 export default function Mentors() {
-    const [searchQuery, setSearchQuery] = useState("")
-    const [expertise, setExpertise] = useState("")
-    const [experience, setExperience] = useState("")
-    const [priceRange, setPriceRange] = useState("")
-    const [language, setLanguage] = useState("")
+    /* ---- Filter + Search States ---- */
+    const [searchQuery, setSearchQuery] = useState("");
+    const [expertise, setExpertise] = useState("");
+    const [experience, setExperience] = useState("");
+    const [priceRange, setPriceRange] = useState("");
+    const [language, setLanguage] = useState("");
 
-    const [selectedMentor, setSelectedMentor] = useState<string | null>(null)
-    const [isProfileOpen, setIsProfileOpen] = useState(false)
-    const [isBookingOpen, setIsBookingOpen] = useState(false)
-    const [isConfirmOpen, setIsConfirmOpen] = useState(false)
+    /* ---- Dialog + Selection States ---- */
+    const [selectedMentor, setSelectedMentor] = useState<Mentor | null>(null);
+    const [isProfileOpen, setIsProfileOpen] = useState(false);
+    const [isBookingOpen, setIsBookingOpen] = useState(false);
+    const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+
     const [bookingDetails, setBookingDetails] = useState<{
-        date: string
-        time: { id: string; time: string }
-        topic: string
-    } | null>(null)
+        date: string;
+        time: { id: string; startTime: string; endTime: string };
+        topic: string;
+    } | null>(null);
 
-    // prepare filters for hook
+    /* ---- Fetch Mentors ---- */
     const filters = useMemo(
         () => ({
             search: searchQuery,
@@ -69,125 +107,131 @@ export default function Mentors() {
             language,
             sortBy: "rating" as const,
             page: 1,
-            limit: 12
+            limit: 12,
         }),
         [searchQuery, expertise, experience, priceRange, language]
-    )
+    );
 
-    // fetch mentors from backend
-    const {mentors, loading, error, refresh} = useMentorSearch(filters)
+    const { mentors, loading, error, refresh } = useMentorSearch(filters);
 
-    const handleSeeProfile = (mentorId: string) => {
-        setSelectedMentor(mentorId)
-        setIsProfileOpen(true)
-    }
+    /* ---- Fetch Mentor Details for Profile ---- */
+    const { mentor: mentorDetails, loading: mentorLoading } = useMentorDetails(
+        selectedMentor?._id || null,
+        isProfileOpen
+    );
 
-    const handleBookNow = (mentorId: string) => {
-        setSelectedMentor(mentorId)
-        setIsBookingOpen(true)
-    }
+    /* ---- Handlers ---- */
+    const handleSeeProfile = (mentor: Mentor) => {
+        setSelectedMentor(mentor);
+        setIsProfileOpen(true);
+    };
 
-    const handleBookSession = () => {
-        setIsProfileOpen(false)
-        setIsBookingOpen(true)
-    }
+    const handleBookNow = (mentor: Mentor) => {
+        setSelectedMentor(mentor);
+        setIsBookingOpen(true);
+    };
 
-    const handleConfirmBooking = (date: string, timeSlot: { id: string; time: string }, topic: string) => {
-        setBookingDetails({date, time: timeSlot, topic})
-        setIsBookingOpen(false)
-        setIsConfirmOpen(true)
-    }
+    const handleConfirmBooking = (
+        date: string,
+        timeSlot: { id: string; startTime: string; endTime: string },
+        topic: string
+    ) => {
+        setBookingDetails({ date, time: timeSlot, topic });
+        setIsBookingOpen(false);
+        setIsConfirmOpen(true);
+    };
 
     const handleConfirmRequest = () => {
-        setIsConfirmOpen(false)
-        // Handle session request confirmation
-    }
+        setIsConfirmOpen(false);
+        // TODO: trigger backend confirmation logic here
+    };
 
-    const selectedMentorData = mentors?.find((m) => m.id === selectedMentor) || mentors[0] || null;
-
+    /* ---- UI ---- */
     return (
         <MainLayout>
-            <div className="min-h-screen dashbg p-4 ">
-                {/* Search and filters */}
+            <div className="min-h-screen dashbg p-4">
+                {/* Search + Filters */}
                 <div className="mb-6 space-y-4">
-                    <div className="relative ">
-                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"/>
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
                             className="pl-10 secondbg dark:text-white"
-                            placeholder="Search Advisor/mentor by name, expertise, or keywords"
+                            placeholder="Search Advisor/Mentor by name, expertise, or keywords"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
                     </div>
 
-                    {/*Filters*/}
                     <div className="grid grid-cols-1 gap-2 md:grid-cols-4">
                         <select
                             value={expertise}
                             onChange={(e) => setExpertise(e.target.value)}
-                            className="rounded-md border border-input bg-background px-3 py-2 text-sm secondbg dark:text-white">
-                            <option value={''}>All Expertise</option>
-                            <option value={"Web Development"}>Web Development</option>
-                            <option value={'Mobile Development'}>Mobile Development</option>
-                            <option value={'Data Science'}>Data Science</option>
-                            <option value={'DevOps'}>DevOps</option>
+                            className="rounded-md border border-input bg-background px-3 py-2 text-sm secondbg dark:text-white"
+                        >
+                            <option value="">All Expertise</option>
+                            <option value="Web Development">Web Development</option>
+                            <option value="Mobile Development">Mobile Development</option>
+                            <option value="Data Science">Data Science</option>
+                            <option value="DevOps">DevOps</option>
                         </select>
 
                         <select
                             value={experience}
                             onChange={(e) => setExperience(e.target.value)}
-                            className="rounded-md border border-input bg-background px-3 py-2 text-sm secondbg dark:text-white">
-                            <option value={''}>All Experience Level</option>
-                            <option value={'1-3 years'}>1-3 years</option>
-                            <option value={'4-7 years'}>4-7 years</option>
-                            <option value={'8+ years'}>8+ years</option>
+                            className="rounded-md border border-input bg-background px-3 py-2 text-sm secondbg dark:text-white"
+                        >
+                            <option value="">All Experience Level</option>
+                            <option value="1-3 years">1-3 years</option>
+                            <option value="4-7 years">4-7 years</option>
+                            <option value="8+ years">8+ years</option>
                         </select>
 
                         <select
                             value={priceRange}
                             onChange={(e) => setPriceRange(e.target.value)}
-                            className="rounded-md border border-input bg-background px-3 py-2 text-sm secondbg dark:text-white">
-                            <option value={''}>All Price Ranges</option>
-                            <option value={'0-50'}>$0 - $50</option>
-                            <option value={'50-100'}>$50 - $100</option>
-                            <option value={'100+'}>$100+</option>
+                            className="rounded-md border border-input bg-background px-3 py-2 text-sm secondbg dark:text-white"
+                        >
+                            <option value="">All Price Ranges</option>
+                            <option value="0-50">$0 - $50</option>
+                            <option value="50-100">$50 - $100</option>
+                            <option value="100+">$100+</option>
                         </select>
 
                         <select
                             value={language}
                             onChange={(e) => setLanguage(e.target.value)}
-                            className="rounded-md border border-input bg-background px-3 py-2 text-sm secondbg dark:text-white">
-                            <option value={''}>All Languages</option>
-                            <option value={'English'}>English</option>
-                            <option value={'Spanish'}>Spanish</option>
-                            <option value={'French'}>French</option>
-                            <option value={'German'}>German</option>
+                            className="rounded-md border border-input bg-background px-3 py-2 text-sm secondbg dark:text-white"
+                        >
+                            <option value="">All Languages</option>
+                            <option value="English">English</option>
+                            <option value="Spanish">Spanish</option>
+                            <option value="French">French</option>
+                            <option value="German">German</option>
                         </select>
                     </div>
                 </div>
 
-                {/* Loading state */}
+                {/* Loading + Error */}
                 {loading && (
-                    <div className={'mt-10'}>
-                        <LoadingStats/>
-                        <p className={'text-center text-gray-400 mt-4'}>
+                    <div className="mt-10">
+                        <LoadingStats />
+                        <p className="text-center text-gray-400 mt-4">
                             Loading mentors...
                         </p>
                     </div>
                 )}
 
-                {/*Error states*/}
-                {!loading && error && <ErrorMessage message={error} onRetry={refresh}/>}
+                {!loading && error && <ErrorMessage message={error} onRetry={refresh} />}
 
-                {/* Mentors*/}
+                {/* Mentors List */}
                 {!loading && !error && (
                     <>
                         {mentors.length === 0 ? (
-                            <p className={'text-center text-gray-400 mt-6'}>
+                            <p className="text-center text-gray-400 mt-6">
                                 No mentors found. Try a different filter.
                             </p>
                         ) : (
-                            <div className={'space-y-4'}>
+                            <div className="space-y-4">
                                 {mentors.map((mentor) => (
                                     <MentorCard
                                         key={mentor._id}
@@ -198,17 +242,19 @@ export default function Mentors() {
                                             rating: mentor.averageRating || 0,
                                             reviewCount: mentor.totalSessions || 0,
                                             bio: mentor.bio,
-                                            tags: mentor.specialities || [],
+                                            tags: mentor.specialties || [],
                                             price: mentor.averageHourlyRate || 0,
                                             location: mentor.country || "N/A",
-                                            language: (mentor.languages && mentor.languages.join(", ")) || "N/A",
+                                            language:
+                                                (mentor.languages && mentor.languages.join(", ")) ||
+                                                "N/A",
                                             experience: mentor.experienceLevel || "N/A",
                                             sessionsCompleted: mentor.completedSessions || 0,
                                             about: mentor.bio,
                                             sessionRate: mentor.averageHourlyRate || 0,
                                         }}
-                                        onSeeProfile={handleSeeProfile}
-                                        onBookNow={handleBookNow}
+                                        onSeeProfile={() => handleSeeProfile(mentor)} // ✅ pass full object
+                                        onBookNow={() => handleBookNow(mentor)} // ✅ pass full object
                                     />
                                 ))}
                             </div>
@@ -216,46 +262,90 @@ export default function Mentors() {
                     </>
                 )}
 
-                {/* Dialogs */}
-                {selectedMentorData && (
+                {/* Profile Dialog */}
+                {selectedMentor && (
                     <MentorProfileDialog
                         open={isProfileOpen}
                         onOpenChange={setIsProfileOpen}
-                        mentor={selectedMentorData}
-                        onBookSession={handleBookSession}
+                        mentor={{
+                            initial:
+                                mentorDetails?.firstName?.[0]?.toUpperCase() ||
+                                selectedMentor.firstName?.[0] ||
+                                "M",
+                            name: `${mentorDetails?.firstName || selectedMentor.firstName} ${
+                                mentorDetails?.lastName || selectedMentor.lastName
+                            }`,
+                            rating:
+                                mentorDetails?.stats?.averageRating ||
+                                selectedMentor.averageRating ||
+                                0,
+                            reviewCount:
+                                mentorDetails?.stats?.totalRatings ||
+                                selectedMentor.totalSessions ||
+                                0,
+                            language:
+                                (mentorDetails?.languages ||
+                                    selectedMentor.languages ||
+                                    ["N/A"]
+                                ).join(", "),
+                            experience:
+                                mentorDetails?.experienceLevel ||
+                                selectedMentor.experienceLevel ||
+                                "N/A",
+                            sessionsCompleted:
+                                mentorDetails?.stats?.completedSessions ||
+                                selectedMentor.completedSessions ||
+                                0,
+                            about:
+                                mentorDetails?.bio ||
+                                selectedMentor.bio ||
+                                "No bio provided.",
+                            specializations:
+                                mentorDetails?.specialties || selectedMentor.specialties || [],
+                            sessionRate:
+                                mentorDetails?.averageHourlyRate ||
+                                selectedMentor.averageHourlyRate ||
+                                0,
+                            certifications: mentorDetails?.certifications || [],
+                            workExperience: mentorDetails?.workExperience || [],
+                        }}
+                        onBookSession={() => handleBookNow(selectedMentor)}
                     />
                 )}
 
-
-                {selectedMentorData && (
+                {/* Booking Dialog */}
+                {selectedMentor && (
                     <BookSessionDialog
                         open={isBookingOpen}
                         onOpenChange={setIsBookingOpen}
-                        mentorName={selectedMentorData.name}
+                        mentorId={selectedMentor._id}
+                        mentorName={`${selectedMentor.firstName} ${selectedMentor.lastName}`}
+                        mentorHourlyRate={selectedMentor?.sessionRate ?? 0}
+                        //menteeId="currentUserIdHere" // TODO: replace with logged-in user ID
                         onConfirm={handleConfirmBooking}
                     />
                 )}
 
-
-                {selectedMentorData && (
+                {/* Confirmation Dialog */}
+                {selectedMentor && bookingDetails && (
                     <ConfirmSessionDialog
                         open={isConfirmOpen}
                         onOpenChange={setIsConfirmOpen}
                         sessionDetails={{
-                            mentor: selectedMentorData.name,
-                            date: bookingDetails?.date || "Friday",
-                            time: bookingDetails?.time.time || "1:00 PM - 1:30 PM",
-                            topic: bookingDetails?.topic || "sdfdsf",
+                            mentor: `${selectedMentor.firstName} ${selectedMentor.lastName}`,
+                            date: bookingDetails.date,
+                            time: `${bookingDetails.time.startTime} - ${bookingDetails.time.endTime}`,
+                            topic: bookingDetails.topic,
                         }}
                         paymentDetails={{
-                            sessionFee: selectedMentorData.sessionRate,
-                            serviceFee: selectedMentorData.sessionRate * 0.05,
-                            totalAmount: selectedMentorData.sessionRate * 1.05,
+                            sessionFee: selectedMentor.averageHourlyRate || 0,
+                            serviceFee: (selectedMentor.averageHourlyRate || 0) * 0.05,
+                            totalAmount: (selectedMentor.averageHourlyRate || 0) * 1.05,
                         }}
                         onConfirm={handleConfirmRequest}
                     />
                 )}
             </div>
         </MainLayout>
-    )
+    );
 }

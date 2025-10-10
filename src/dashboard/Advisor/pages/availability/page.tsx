@@ -263,7 +263,7 @@ export default function AvailabilityPage() {
                 const blackoutData = {
                     type: 'specific_date' as const,
                     specificDate: date,
-                    specificTimeDate: [], // No time slots for blackout dates
+                    specificTimeDate: [],
                     timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
                     hourlyRate: 0
                 };

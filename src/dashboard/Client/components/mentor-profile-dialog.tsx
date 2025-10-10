@@ -34,7 +34,7 @@ interface Mentor {
     name: string;
     rating: number;
     reviewCount: number;
-    location: string;
+    // location: string;
     language: string;
     experience: string;
     sessionsCompleted: number;
@@ -101,11 +101,15 @@ export function MentorProfileDialog({open, onOpenChange, mentor, onBookSession}:
                     <div>
                         <h3 className="font-medium">Specialties</h3>
                         <div className="mt-2 flex flex-wrap gap-2">
-                            {mentor.specializations.map((specialization) => (
-                                <span key={specialization} className="rounded-md dashbg px-3 py-1 text-xs">
-                  {specialization}
-                </span>
-                            ))}
+                            {mentor?.specializations?.length ? (
+                                mentor.specializations.map((specialization) => (
+                                    <span key={specialization} className={'rounded-md dashbg px-3 py-1 text-xs'}>
+                                        {specialization}
+                                    </span>
+                                ))
+                            ) : (
+                                <p className={'text-sm text-gray-700 dark:text-gray-300'}>No specializations available</p>
+                            )}
                         </div>
                     </div>
                 </div>

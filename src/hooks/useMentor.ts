@@ -1,4 +1,5 @@
 import {useState, useEffect, useCallback} from 'react'
+import axios from 'axios'
 
 export interface SessionRequest {
     _id: string;
@@ -72,6 +73,63 @@ export interface PaginationData {
     totalSessions?: number;
     limit: number;
 }
+
+interface Education {
+    institution: string;
+    degree: string;
+    field: string;
+    startDate: string;
+    endDate: string;
+}
+
+interface Certification {
+    name: string;
+    issuer: string;
+    date: string;
+}
+
+interface WorkExperience {
+    company: string;
+    role: string;
+    startDate: string;
+    endDate: string;
+}
+
+export interface Mentor {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    profilePicture?: string;
+    bio?: string;
+    expertise?: string;
+    specialties?: string[];
+    languages?: string[];
+    experienceLevel?: string;
+
+    // ✅ Additional details (optional)
+    country?: string; // some mentors have country field
+    sessionRate?: number; // old alias for hourly rate
+    averageHourlyRate?: number; // unified rate field (frontend alias)
+    averageRating?: number; // computed from stats for cards
+    totalSessions?: number; // total session count for display
+    completedSessions?: number; // subset of total sessions
+
+    // ✅ Nested data
+    certifications?: Certification[];
+    workExperience?: WorkExperience[];
+
+    // ✅ Stats block from backend
+    stats?: {
+        totalSessions: number;
+        completedSessions: number;
+        averageRating: number;
+        totalRatings: number;
+    };
+
+    // ✅ Misc flags
+    hasPendingRequests?: boolean;
+}
+
 
 // Base API configuration
 const API_BASE_URL = import.meta.env.API_BASE_URL || 'http://localhost:8000/api';
@@ -359,4 +417,38 @@ export const useMentorDashboard = () => {
         availability,
         refetchAll,
     }
+}
+
+export function useMentorDetails(mentorId: string | null, open: boolean) {
+    const [mentor, setMentor] = useState<Mentor | null>(null);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const fetchMentorDetails = useCallback(async () => {
+        if (!mentorId || !open) return;
+        setLoading(true);
+        try {
+            const response = await axios.get(`/api/mentees/mentors/${mentorId}`, {
+                withCredentials: true,
+            });
+            setMentor(response.data?.data?.mentor || null);
+            setError(null)
+        } catch (err: any) {
+            console.error('Error fetching mentor details:', err);
+            setError(err.response?.data?.message || 'Failed to fetch mentor details');
+        } finally {
+            setLoading(false);
+        }
+    }, [mentorId, open]);
+
+    useEffect(() => {
+        fetchMentorDetails();
+    }, [fetchMentorDetails]);
+
+    return {
+        mentor,
+        loading,
+        error,
+        refresh: fetchMentorDetails,
+    };
 }

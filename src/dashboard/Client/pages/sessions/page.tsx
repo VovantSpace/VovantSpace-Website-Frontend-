@@ -70,8 +70,8 @@ export default function MySessions() {
     const {sessions, loading, error, refresh} = useMenteeSessions(menteeId);
 
     // Extract arrays safely to apply
-    const upcomingSessions = sessions.upcoming || []
-    const completedSessions = sessions.completed || []
+    const upcomingSessions = sessions.upcoming || [];
+    const completedSessions = sessions.completed || [];
 
     // ✅ Real-time socket updates
     useSessionSocket(menteeId, (evt) => {

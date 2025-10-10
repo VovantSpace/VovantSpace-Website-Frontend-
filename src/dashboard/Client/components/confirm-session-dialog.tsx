@@ -23,7 +23,7 @@ export function ConfirmSessionDialog({
   open,
   onOpenChange,
   sessionDetails,
-  paymentDetails,
+  paymentDetails = {sessionFee: 0, serviceFee: 0, totalAmount: 0},
   onConfirm,
 }: ConfirmSessionDialogProps) {
   return (
@@ -63,14 +63,14 @@ export function ConfirmSessionDialog({
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span>Session Fee:</span>
-                <span>${paymentDetails.sessionFee.toFixed(2)}</span>
+                <span>${paymentDetails?.sessionFee?.toFixed(2)}</span>
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1">
                   <span>Service Fee</span>
                   <HelpCircle className="h-3 w-3 text-muted-foreground" />
                 </div>
-                <span>${paymentDetails.serviceFee.toFixed(2)}</span>
+                <span>${paymentDetails?.serviceFee?.toFixed(2) || "0.00"}</span>
               </div>
               <div className="border-t border-border pt-2 font-medium">
                 <div className="flex justify-between">
