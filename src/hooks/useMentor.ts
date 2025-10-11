@@ -46,7 +46,7 @@ export interface Availability {
     mentor: string;
     type: 'recurring' | 'specific_date';
     dayOfWeek?: number;
-    timeSlots?: Array<{ startTime: string; endTime: string, id: string }>;
+    timeSlots?: Array<{ startTime: string; endTime: string, id?: string }>;
     specificDate?: string;
     specificTimeDate?: Array<{ startTime: string; endTime: string }>;
     timeZone: string;
@@ -105,45 +105,38 @@ export interface Mentor {
     specialties?: string[];
     languages?: string[];
     experienceLevel?: string;
-
-    // ✅ Additional details (optional)
-    country?: string; // some mentors have country field
-    sessionRate?: number; // old alias for hourly rate
-    averageHourlyRate?: number; // unified rate field (frontend alias)
-    averageRating?: number; // computed from stats for cards
-    totalSessions?: number; // total session count for display
-    completedSessions?: number; // subset of total sessions
-
-    // ✅ Nested data
+    country?: string;
+    sessionRate?: number;
+    averageHourlyRate?: number;
+    averageRating?: number;
+    totalSessions?: number;
+    completedSessions?: number;
     certifications?: Certification[];
     workExperience?: WorkExperience[];
-
-    // ✅ Stats block from backend
     stats?: {
         totalSessions: number;
         completedSessions: number;
         averageRating: number;
         totalRatings: number;
     };
-
-    // ✅ Misc flags
     hasPendingRequests?: boolean;
 }
 
-
 // Base API configuration
 const API_BASE_URL = import.meta.env.API_BASE_URL || 'http://localhost:8000/api';
+
 const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
     const token = localStorage.getItem('authToken') ||
         localStorage.getItem('token') ||
         localStorage.getItem('accessToken');
 
-    const response = await fetch(`${API_BASE_URL}/mentor${endpoint}`, {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`,
             ...options.headers,
-        }
+        },
+        ...options
     })
 
     if (!response.ok) {
@@ -175,7 +168,7 @@ export const useSessionRequests = (status?: string, page: number = 1, limit: num
                 queryParams.append('status', status);
             }
 
-            const response = await apiRequest(`/requests?${queryParams}`);
+            const response = await apiRequest(`/mentor/requests?${queryParams}`);
             setRequests(response.data.requests || []);
             setPagination(response.data.pagination);
         } catch (err) {
@@ -192,16 +185,15 @@ export const useSessionRequests = (status?: string, page: number = 1, limit: num
 
     const respondToRequest = async (
         requestId: string,
-        action: 'accept' | 'decline' | 'counter_response',
+        action: 'accept' | 'decline' | 'counter_propose',
         data?: { declineReason?: string, counterProposal?: any }
     ) => {
         try {
-            const response = await apiRequest(`/requests/${requestId}/respond`, {
+            const response = await apiRequest(`/mentor/requests/${requestId}/respond`, {
                 method: 'PATCH',
                 body: JSON.stringify({action, ...data}),
             })
 
-            // Update the local state
             setRequests(prev =>
                 prev.map(req =>
                     req._id === requestId
@@ -247,7 +239,7 @@ export const useMentorSessions = (status?: string, page: number = 1, limit: numb
                 queryParams.append('status', status);
             }
 
-            const response = await apiRequest(`/sessions?${queryParams}`);
+            const response = await apiRequest(`/mentor/sessions?${queryParams}`);
             setSessions(response.data.sessions || [])
             setPagination(response.data.pagination);
         } catch (err) {
@@ -271,8 +263,8 @@ export const useMentorSessions = (status?: string, page: number = 1, limit: numb
     }
 }
 
-// Hook for availability management
-export const useAvailability = (type?: string) => {
+// Hook for availability management - FIXED VERSION
+export const useAvailability = (mentorId?: string, type?: string) => {
     const [availability, setAvailability] = useState<Availability[]>([])
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null);
@@ -282,59 +274,61 @@ export const useAvailability = (type?: string) => {
             setLoading(true)
             setError(null);
 
-            const queryParams = type ? `${type}` : '';
-            const response = await apiRequest(`/availability?${queryParams}`);
-            setAvailability(response.data.availability || []);
+            const queryParams = new URLSearchParams();
+            if (type) queryParams.append('type', type);
+            if (mentorId) queryParams.append('mentorId', mentorId);
+
+            const endpoint = mentorId
+                ? `/mentor/availability/${mentorId}?${queryParams}`
+                : `/mentor/availability?${queryParams}`;
+
+            const response = await apiRequest(endpoint);
+
+            // Handle both response structures
+            const availabilityData = response.data?.data || response.data || [];
+
+            console.log('Fetched availability:', availabilityData);
+            setAvailability(Array.isArray(availabilityData) ? availabilityData : []);
         } catch (err) {
+            console.error('Fetch availability error:', err);
             setError(err instanceof Error ? err.message : 'Failed to fetch availability')
             setAvailability([])
         } finally {
             setLoading(false)
         }
-    }, [type])
+    }, [type, mentorId])
 
     useEffect(() => {
         fetchAvailability();
     }, [fetchAvailability]);
 
+    // Create new availability
     const createAvailability = async (availabilityData: Omit<Availability, '_id' | 'mentor' | 'isActive'>) => {
         try {
-            const response = await apiRequest(`/availability`, {
-                    method: 'PUT',
-                    body: JSON.stringify(availabilityData)
-                }
-            )
+            const response = await apiRequest(`/mentor/availability`, {
+                method: 'POST',
+                body: JSON.stringify(availabilityData)
+            })
 
-            setAvailability(prev =>
-                prev.map(item =>
-                    item._id === response.data.availability._id
-                        ? response.data.availability
-                        : item
-                )
-            )
-
-            return response.data.availability;
+            const newAvail = response.data?.data?.data || response.data?.data || response.data;
+            await fetchAvailability(); // Refetch to get an updated list
+            return newAvail;
         } catch (err) {
             throw new Error(err instanceof Error ? err.message : 'Failed to create availability')
         }
     }
 
+    // Update existing availability - FIXED
     const updateAvailability = async (availabilityData: Omit<Availability, '_id' | 'mentor' | 'isActive'>) => {
         try {
-            const response = await apiRequest(`/availability`, {
-                method: 'PUT',
+            const response = await apiRequest(`/mentor/availability`, {
+                method: 'POST', // Backend uses POST for both create and update
                 body: JSON.stringify(availabilityData)
             })
 
-            setAvailability(prev =>
-                prev.map(item =>
-                    item._id === response.data.availability._id
-                        ? response.data.availability
-                        : item
-                )
-            )
-
-            return response.data.availability;
+            const updated = response.data?.data || response.data;
+            await fetchAvailability(); // Refetch to get updated list
+            return updated;
         } catch (err) {
             throw new Error(err instanceof Error ? err.message : 'Failed to update availability')
         }
@@ -342,11 +336,11 @@ export const useAvailability = (type?: string) => {
 
     const deleteAvailability = async (availabilityId: string) => {
         try {
-            await apiRequest(`availabilitys/${availabilityId}`, {
+            await apiRequest(`/mentor/availability/${availabilityId}`, {
                 method: 'DELETE',
             })
 
-            setAvailability(prev => prev.filter(item => item._id === availabilityId))
+            setAvailability(prev => prev.filter(item => item._id !== availabilityId))
         } catch (err) {
             throw new Error(err instanceof Error ? err.message : 'Failed to delete availability')
         }
@@ -357,9 +351,11 @@ export const useAvailability = (type?: string) => {
         loading,
         error,
         refetch: fetchAvailability,
-        createAvailability,
+        setAvailability: setAvailability,
         updateAvailability,
         deleteAvailability,
+        useAvailability,
+        createAvailability,
     }
 }
 
@@ -374,7 +370,7 @@ export const useDashboardStats = () => {
             setLoading(true);
             setError(null);
 
-            const response = await apiRequest('/dashboard/stats')
+            const response = await apiRequest('/mentor/dashboard/stats')
             setStats(response.data)
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to fetch dashboard stats')
@@ -399,8 +395,8 @@ export const useDashboardStats = () => {
 // Combined hook for the entire mentor dashboard
 export const useMentorDashboard = () => {
     const dashboardStats = useDashboardStats();
-    const sessionRequests = useSessionRequests('pending', 1, 5); // recent pending requests
-    const upcomingSessions = useMentorSessions('scheduled', 1, 5) // upcoming sessions
+    const sessionRequests = useSessionRequests('pending', 1, 5);
+    const upcomingSessions = useMentorSessions('scheduled', 1, 5)
     const availability = useAvailability()
 
     const refetchAll = () => {

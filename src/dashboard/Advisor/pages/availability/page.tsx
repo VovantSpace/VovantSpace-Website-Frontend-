@@ -8,12 +8,11 @@ import {
     SelectValue
 } from "@/dashboard/Innovator/components/ui/select";
 import {Input} from "@/dashboard/Innovator/components/ui/input";
-import {X, AlertCircle, Loader2, Save, Calendar, Clock} from "lucide-react";
+import {X, AlertCircle, Loader2, Calendar, Clock} from "lucide-react";
 import {MainLayout} from "../../../component/main-layout";
 import {Switch} from "@/dashboard/Innovator/components/ui/switch";
-import {useAvailability, Availability} from "@/hooks/useMentor";
+import {useAvailability} from "@/hooks/useMentor";
 import {toast} from "react-toastify";
-
 
 type Session = {
     id: string;
@@ -51,7 +50,6 @@ const AvailabilitySkeleton = () => (
     </div>
 )
 
-
 export default function AvailabilityPage() {
     const [isAvailable, setIsAvailable] = useState(true);
     const [sessionDuration, setSessionDuration] = useState("30");
@@ -60,6 +58,7 @@ export default function AvailabilityPage() {
     const [newDateInput, setNewDateInput] = useState("");
     const [showDateInput, setShowDateInput] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [oneTimeAvailabilities, setOneTimeAvailabilities] = useState<{ date: string; timeSlots: TimeSlot[] }[]>([]);
 
     const {
         availability,
@@ -81,7 +80,7 @@ export default function AvailabilityPage() {
         ]),
         ...createDaySchedules([
             {day: 'Saturday', dayOfWeek: 6},
-            {day: 'Sunday', dayOfWeek: 7}
+            {day: 'Sunday', dayOfWeek: 0}  // Fixed: Sunday should be 0, not 7
         ])
     ]);
 
@@ -91,22 +90,29 @@ export default function AvailabilityPage() {
             dayOfWeek,
             timeSlots: [],
             excludedSessions: [],
-            hourlyRate: 50 // Default rate
+            hourlyRate: 50
         }));
     }
 
     // Load existing availability data
     useEffect(() => {
         if (availability && availability.length > 0) {
+            console.log('Loading availability data:', availability);
+
             const updatedSchedule = schedule.map(daySchedule => {
                 const existingAvailability = availability.find(
                     (avail) => avail.type === 'recurring' && avail.dayOfWeek === daySchedule.dayOfWeek
                 )
 
                 if (existingAvailability) {
+                    console.log(`Found availability for ${daySchedule.day}:`, existingAvailability);
                     return {
                         ...daySchedule,
-                        timeSlots: existingAvailability.timeSlots || [],
+                        timeSlots: (existingAvailability.timeSlots || []).map(slot => ({
+                            id: slot.id || crypto.randomUUID(),
+                            startTime: slot.startTime,
+                            endTime: slot.endTime
+                        })),
                         hourlyRate: existingAvailability.hourlyRate
                     }
                 }
@@ -114,7 +120,27 @@ export default function AvailabilityPage() {
             })
             setSchedule(updatedSchedule);
 
-            // Set global availability status based on if any schedule exists
+            // Load one-time availabilities
+            const oneTime = availability
+                .filter((avail) => avail.type === 'specific_date' && avail.specificTimeDate && avail.specificTimeDate.length > 0)
+                .map((a) => ({
+                    date: a.specificDate || "",
+                    timeSlots: (a.specificTimeDate || []).map((slot: any) => ({
+                        id: crypto.randomUUID(),
+                        startTime: slot.startTime,
+                        endTime: slot.endTime
+                    })),
+                }))
+            setOneTimeAvailabilities(oneTime)
+
+            // Load blackout dates (specific dates with no time slots)
+            const blackouts = availability
+                .filter((avail) => avail.type === 'specific_date' && (!avail.specificTimeDate || avail.specificTimeDate.length === 0))
+                .map(a => a.specificDate || "")
+                .filter(d => d !== "")
+            setBlackoutDates(blackouts)
+
+            // Set global availability status
             setIsAvailable(availability.some(avail => avail.isActive));
         }
     }, [availability]);
@@ -133,8 +159,6 @@ export default function AvailabilityPage() {
         return `${displayHours}:${mins.toString().padStart(2, '0')} ${period}`;
     };
 
-    // Improved buffer time logic:
-    // Loop until adding the next session (and buffer) would exceed the slot end.
     const generateSessions = (timeSlot: TimeSlot) => {
         const slotStart = parseTime(timeSlot.startTime);
         const slotEnd = parseTime(timeSlot.endTime);
@@ -194,7 +218,7 @@ export default function AvailabilityPage() {
 
     const handleRemoveSlot = (day: string, slotId: string) => {
         setSchedule(prev =>
-            prev.map(d => {
+            prev.map((d) => {
                 if (d.day !== day) return d;
                 return {
                     ...d,
@@ -205,11 +229,8 @@ export default function AvailabilityPage() {
     };
 
     const handleHourlyRateChange = (day: string, rate: number) => {
-        setSchedule(prev =>
-            prev.map(d => {
-                if (d.day !== day) return d;
-                return {...d, hourlyRate: rate};
-            })
+        setSchedule((prev) =>
+            prev.map((d) => (d.day !== day ? d : {...d, hourlyRate: rate}))
         )
     }
 
@@ -233,6 +254,7 @@ export default function AvailabilityPage() {
     const saveAvailability = async () => {
         try {
             setSaving(true);
+            console.log('Saving availability...');
 
             // Save each day's schedule
             for (const daySchedule of schedule) {
@@ -240,10 +262,15 @@ export default function AvailabilityPage() {
                     const availabilityData = {
                         type: 'recurring' as const,
                         dayOfWeek: daySchedule.dayOfWeek,
-                        timeSlots: daySchedule.timeSlots,
+                        timeSlots: daySchedule.timeSlots.map(slot => ({
+                            startTime: slot.startTime,
+                            endTime: slot.endTime
+                        })),
                         timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
                         hourlyRate: daySchedule.hourlyRate,
                     }
+
+                    console.log(`Saving ${daySchedule.day}:`, availabilityData);
 
                     // Check if availability already exists for this day
                     const existingAvailability = availability?.find(
@@ -251,14 +278,34 @@ export default function AvailabilityPage() {
                     )
 
                     if (existingAvailability) {
+                        console.log('Updating existing availability');
                         await updateAvailability(availabilityData)
                     } else {
+                        console.log('Creating new availability');
                         await createAvailability(availabilityData)
                     }
                 }
             }
 
-            // Handle blackout dates (specific dates)
+            // Handle one-time specific date availability
+            for (const entry of oneTimeAvailabilities) {
+                if (entry.date && entry.timeSlots.length > 0) {
+                    const specificData = {
+                        type: 'specific_date' as const,
+                        specificDate: entry.date,
+                        specificTimeDate: entry.timeSlots.map(slot => ({
+                            startTime: slot.startTime,
+                            endTime: slot.endTime
+                        })),
+                        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                        hourlyRate: 50 // You can make this configurable
+                    }
+                    console.log('Saving one-time availability:', specificData);
+                    await createAvailability(specificData)
+                }
+            }
+
+            // Handle blackout dates (specific dates with no time slots)
             for (const date of blackoutDates) {
                 const blackoutData = {
                     type: 'specific_date' as const,
@@ -267,14 +314,15 @@ export default function AvailabilityPage() {
                     timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
                     hourlyRate: 0
                 };
+                console.log('Saving blackout date:', blackoutData);
                 await createAvailability(blackoutData)
             }
 
             await refetch()
             toast.success("Availability updated successfully")
         } catch (error: any) {
-            console.error("Error saving availability", error)
-            toast.error(error.message)
+            console.error("Error saving availability:", error)
+            toast.error(error.message || "Failed to save availability")
         } finally {
             setSaving(false);
         }
@@ -282,18 +330,28 @@ export default function AvailabilityPage() {
 
     const handleDeleteDay = async (dayOfWeek: number) => {
         try {
-            const exisitingAvailability = availability?.find(
+            const existingAvailability = availability?.find(
                 (avail) => avail.type === 'recurring' && avail.dayOfWeek === dayOfWeek
             )
 
-            if (exisitingAvailability) {
-                await deleteAvailability(exisitingAvailability._id)
+            if (existingAvailability) {
+                await deleteAvailability(existingAvailability._id)
+
+                // Clear the schedule for this day locally
+                setSchedule(prev =>
+                    prev.map(d =>
+                        d.dayOfWeek === dayOfWeek
+                            ? {...d, timeSlots: [], hourlyRate: 50}
+                            : d
+                    )
+                )
+
                 await refetch()
                 toast.success("Day availability deleted successfully")
             }
         } catch (error: any) {
-            console.error("Error deleting availability", error)
-            toast.error(error.message)
+            console.error("Error deleting availability:", error)
+            toast.error(error.message || "Failed to delete availability")
         }
     }
 
@@ -329,11 +387,16 @@ export default function AvailabilityPage() {
     return (
         <MainLayout>
             <div className="p-4 space-y-8 dark:text-white">
-                {/*Header with a Save button*/}
+                {/*Header with Save button*/}
                 <div className={'flex justify-between items-center'}>
                     <h1 className={'text-2xl font-bold text-black dark:text-white'}>Availability Management</h1>
                     <div className={'flex gap-2'}>
-                        <Button onClick={refetch} variant={'outline'} disabled={loading || saving}>
+                        <Button
+                            onClick={refetch}
+                            variant={'outline'}
+                            disabled={loading || saving}
+                            className={'dark:text-white bg-green-500 hover:bg-green-700 dashbutton'}
+                        >
                             {loading && <Loader2 className={'mr-2 h-4 w-4 animate-spin dark:text-black'}/>}
                             Refresh
                         </Button>
@@ -342,7 +405,14 @@ export default function AvailabilityPage() {
                             disabled={saving}
                             className={'dashbutton bg-green-600 text-white hover:bg-green-700'}
                         >
-                            Save Changes
+                            {saving ? (
+                                <>
+                                    <Loader2 className={'mr-2 h-4 w-4 animate-spin'}/>
+                                    Saving...
+                                </>
+                            ) : (
+                                'Save Changes'
+                            )}
                         </Button>
                     </div>
                 </div>
@@ -351,8 +421,7 @@ export default function AvailabilityPage() {
                 <div className="rounded-xl p-6 shadow-lg secondbg dark:!text-white">
                     <div className="flex items-center justify-between">
                         <div>
-                            <h2 className="text-xl font-semibold text-foreground dark:text-white">Availability
-                                Status</h2>
+                            <h2 className="text-xl font-semibold text-foreground dark:text-white">Availability Status</h2>
                             <p className="text-sm text-muted-foreground mt-1 dark:text-white">
                                 {isAvailable ? 'Available for bookings' : 'Currently unavailable'}
                             </p>
@@ -366,8 +435,7 @@ export default function AvailabilityPage() {
                 </div>
 
                 {/* Session Settings */}
-                <div
-                    className={`rounded-xl p-6 shadow-lg secondbg dark:!text-white ${!isAvailable ? 'opacity-50 pointer-events-none' : ''}`}>
+                <div className={`rounded-xl p-6 shadow-lg secondbg dark:!text-white ${!isAvailable ? 'opacity-50 pointer-events-none' : ''}`}>
                     <div className="flex items-center gap-2 mb-6">
                         <Clock className={'h-5 w-5'}/>
                         <h2 className="text-xl font-semibold text-foreground dark:text-white">Session Settings</h2>
@@ -412,9 +480,165 @@ export default function AvailabilityPage() {
                     </div>
                 </div>
 
+                {/*One-Time availability slot*/}
+                <div className="rounded-xl p-6 shadow-lg secondbg dark:!text-white">
+                    <div className={'flex items-center justify-between mb-4'}>
+                        <div className={'flex items-center gap-2'}>
+                            <Calendar className={'h-5 w-5'}/>
+                            <h2 className={'text-xl font-semibold text-foreground dark:text-white'}>
+                                One-Time (Specific Date) Availability
+                            </h2>
+                        </div>
+                        <Button
+                            variant={'outline'}
+                            size={'sm'}
+                            className={'dashbutton text-white'}
+                            onClick={() =>
+                                setOneTimeAvailabilities((prev) => [
+                                    ...prev,
+                                    {
+                                        date: "",
+                                        timeSlots: [
+                                            {id: crypto.randomUUID(), startTime: "09:00", endTime: "17:00"}
+                                        ]
+                                    }
+                                ])
+                            }
+                        >
+                            + Add One-Time Date
+                        </Button>
+                    </div>
+
+                    <div className={'space-y-4'}>
+                        {oneTimeAvailabilities.length === 0 ? (
+                            <p className="text-sm text-center text-muted-foreground dark:text-white p-4">
+                                No one-time availabilities added
+                            </p>
+                        ) : (
+                            oneTimeAvailabilities.map((entry, i) => (
+                                <div key={i} className={'p-4 border rounded-lg'}>
+                                    <div className={'flex items-center justify-between mb-3'}>
+                                        <Input
+                                            type='date'
+                                            className={'w-48 secondbg'}
+                                            value={entry.date}
+                                            min={new Date().toISOString().split('T')[0]}
+                                            onChange={(e) => {
+                                                const newDate = e.target.value
+                                                setOneTimeAvailabilities((prev) =>
+                                                    prev.map((a, idx) => (idx === i ? {...a, date: newDate} : a))
+                                                )
+                                            }}
+                                        />
+                                        <Button
+                                            variant={'ghost'}
+                                            size={'icon'}
+                                            onClick={() =>
+                                                setOneTimeAvailabilities((prev) =>
+                                                    prev.filter((_, idx) => idx !== i)
+                                                )
+                                            }
+                                        >
+                                            <X className={'w-6 h-6 text-red-700'}/>
+                                        </Button>
+                                    </div>
+
+                                    {entry.timeSlots.map((slot, j) => (
+                                        <div key={slot.id} className={'flex items-center gap-2 mb-2'}>
+                                            <Input
+                                                type={'time'}
+                                                value={slot.startTime}
+                                                onChange={(e) => {
+                                                    const value = e.target.value;
+                                                    setOneTimeAvailabilities((prev) =>
+                                                        prev.map((a, idx) =>
+                                                            idx === i
+                                                                ? {
+                                                                    ...a,
+                                                                    timeSlots: a.timeSlots.map((t, sidx) =>
+                                                                        sidx === j ? {...t, startTime: value} : t
+                                                                    ),
+                                                                } : a
+                                                        )
+                                                    )
+                                                }}
+                                                className={'w-[110px] secondbg'}
+                                            />
+                                            <span>to</span>
+                                            <Input
+                                                type={'time'}
+                                                value={slot.endTime}
+                                                onChange={(e) => {
+                                                    const value = e.target.value;
+                                                    setOneTimeAvailabilities((prev) =>
+                                                        prev.map((a, idx) =>
+                                                            idx === i
+                                                                ? {
+                                                                    ...a,
+                                                                    timeSlots: a.timeSlots.map((t, sidx) =>
+                                                                        sidx === j ? {...t, endTime: value} : t
+                                                                    )
+                                                                } : a
+                                                        )
+                                                    )
+                                                }}
+                                                className={'w-[110px] secondbg'}
+                                            />
+                                            <Button
+                                                variant={'ghost'}
+                                                size={'icon'}
+                                                onClick={() =>
+                                                    setOneTimeAvailabilities((prev) =>
+                                                        prev.map((a, idx) =>
+                                                            idx === i
+                                                                ? {
+                                                                    ...a,
+                                                                    timeSlots: a.timeSlots.filter((_, sidx) => sidx !== j)
+                                                                }
+                                                                : a
+                                                        )
+                                                    )
+                                                }
+                                            >
+                                                <X className={'w-5 h-5 text-red-700'}/>
+                                            </Button>
+                                        </div>
+                                    ))}
+
+                                    <Button
+                                        variant={'outline'}
+                                        size={'sm'}
+                                        className={'dashbutton text-white mt-2'}
+                                        onClick={() =>
+                                            setOneTimeAvailabilities((prev) =>
+                                                prev.map((a, idx) =>
+                                                    idx === i
+                                                        ? {
+                                                            ...a,
+                                                            timeSlots: [
+                                                                ...a.timeSlots,
+                                                                {
+                                                                    id: crypto.randomUUID(),
+                                                                    startTime: "09:00",
+                                                                    endTime: "10:00"
+                                                                }
+                                                            ]
+                                                        }
+                                                        : a
+                                                )
+                                            )
+                                        }
+                                    >
+                                        + Add Slot
+                                    </Button>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+
                 {/* Weekly Schedule */}
-                <div
-                    className={`rounded-xl p-6 shadow-lg secondbg dark:!text-white space-y-4 ${!isAvailable ? 'opacity-50 pointer-events-none' : ''}`}>
+                <div className={`rounded-xl p-6 shadow-lg secondbg dark:!text-white space-y-4 ${!isAvailable ? 'opacity-50 pointer-events-none' : ''}`}>
                     <div className="flex items-center justify-between">
                         <div className={'flex items-center gap-2'}>
                             <Calendar className={'h-5 w-5'}/>
@@ -422,21 +646,20 @@ export default function AvailabilityPage() {
                         </div>
                     </div>
 
-                    <div className="space-y-4 ">
+                    <div className="space-y-4">
                         {schedule.map(daySchedule => (
                             <div key={daySchedule.day} className="p-4 rounded-lg border">
                                 <div className="flex items-center justify-between mb-4">
                                     <h3 className="font-medium text-foreground dark:text-white">{daySchedule.day}</h3>
                                     <div className={'flex items-center gap-2'}>
-                                        <span
-                                            className={'text-sm text-foreground dark:text-white'}>Hourly Rate: $</span>
+                                        <span className={'text-sm text-foreground dark:text-white'}>Hourly Rate: $</span>
                                         <input
                                             type="number"
                                             min={'0'}
                                             step={'5'}
                                             value={daySchedule.hourlyRate}
                                             onChange={(e) => handleHourlyRateChange(daySchedule.day, parseInt(e.target.value) || 0)}
-                                            className={'w-20 h-8 text-center dark:text-black'}
+                                            className={'w-20 h-8 text-center dark:text-black rounded'}
                                         />
                                     </div>
                                     <Button
@@ -489,8 +712,7 @@ export default function AvailabilityPage() {
                 </div>
 
                 {/* Blackout Dates */}
-                <div
-                    className={`rounded-xl p-6 shadow-lg secondbg dark:!text-white ${!isAvailable ? 'opacity-50 pointer-events-none' : ''}`}>
+                <div className={`rounded-xl p-6 shadow-lg secondbg dark:!text-white ${!isAvailable ? 'opacity-50 pointer-events-none' : ''}`}>
                     <div className="flex items-center justify-between mb-4">
                         <div className={'flex items-center gap-2'}>
                             <X className={'h-5 w-5'}/>
@@ -549,37 +771,64 @@ export default function AvailabilityPage() {
                         )}
                     </div>
                 </div>
-            </div>
 
-            {/*  Current Availability Summary  */}
-            {availability && availability.length > 0 && (
-                <div className={'rounded-xl p-6 shadow-lg secondbg dark:!text-white'}>
-                    <h2 className={'text-xl font-semibold text-foreground dark:text-white mb-4'}>
-                        Current Availability Summary
-                    </h2>
-                    <div className={'grid gap-4 md:grid-cols-2 lg:grid-cols-3'}>
-                        {availability
-                            .filter(avail => avail.type === 'recurring')
-                            .map(avail => (
-                                <div key={avail._id} className={'p-3 border rounded-lg'}>
-                                    <h3 className={'font-medium text-foreground dark:text-white'}>
-                                        {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][avail.dayOfWeek || 0]}
-                                    </h3>
-                                    <p className={'text-sm text-muted-foreground dark:text-white'}>
-                                        Rate: ${avail.hourlyRate}/hour
-                                    </p>
-                                    <p className={'text-sm text-muted-foreground dark:text-white'}>
-                                        {avail.timeSlots?.length || 0} time slots
-                                    </p>
-                                    <p className={'text-sm text-muted-foreground dark:text-white'}>
-                                        Status: {avail.isActive ? 'Active' : 'Inactive'}
-                                    </p>
+                {/* Current Availability Summary */}
+                {availability && availability.length > 0 && (
+                    <div className={'rounded-xl p-6 shadow-lg secondbg dark:!text-white'}>
+                        <h2 className={'text-xl font-semibold text-foreground dark:text-white mb-4'}>
+                            Current Availability Summary
+                        </h2>
+                        <div className={'grid gap-4 md:grid-cols-2 lg:grid-cols-3'}>
+                            {availability
+                                .filter(avail => avail.type === 'recurring')
+                                .map(avail => (
+                                    <div key={avail._id} className={'p-3 border rounded-lg'}>
+                                        <h3 className={'font-medium text-foreground dark:text-white'}>
+                                            {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][avail.dayOfWeek || 0]}
+                                        </h3>
+                                        <p className={'text-sm text-muted-foreground dark:text-white'}>
+                                            Rate: ${avail.hourlyRate}/hour
+                                        </p>
+                                        <p className={'text-sm text-muted-foreground dark:text-white'}>
+                                            {avail.timeSlots?.length || 0} time slot(s)
+                                        </p>
+                                        <p className={'text-sm text-muted-foreground dark:text-white'}>
+                                            Status: {avail.isActive ? 'Active' : 'Inactive'}
+                                        </p>
+                                    </div>
+                                ))
+                            }
+                        </div>
+
+                        {/* Show specific dates summary */}
+                        {availability.some(a => a.type === 'specific_date') && (
+                            <div className="mt-4">
+                                <h3 className={'font-medium text-foreground dark:text-white mb-2'}>
+                                    Specific Dates & Blackouts
+                                </h3>
+                                <div className={'grid gap-2'}>
+                                    {availability
+                                        .filter(avail => avail.type === 'specific_date')
+                                        .map(avail => (
+                                            <div key={avail._id} className={'p-2 border rounded text-sm'}>
+                                                <span className={'text-foreground dark:text-white'}>
+                                                    {avail.specificDate ? new Date(avail.specificDate).toLocaleDateString() : 'N/A'}
+                                                </span>
+                                                {' - '}
+                                                <span className={'text-muted-foreground dark:text-white'}>
+                                                    {avail.specificTimeDate && avail.specificTimeDate.length > 0
+                                                        ? `${avail.specificTimeDate.length} slot(s)`
+                                                        : 'Blackout'}
+                                                </span>
+                                            </div>
+                                        ))
+                                    }
                                 </div>
-                            ))
-                        }
+                            </div>
+                        )}
                     </div>
-                </div>
-            )}
+                )}
+            </div>
         </MainLayout>
     );
 }
@@ -618,24 +867,24 @@ function TimeSlotSelector({day, slot, sessions, onTimeChange, onRemoveSlot, onRe
                     className="h-8 w-8 text-red-500"
                     onClick={onRemoveSlot}
                 >
-                    <X className="w-7 h-7" />
+                    <X className="w-7 h-7"/>
                 </Button>
             </div>
 
             {sessions.length > 0 ? (
                 <div className="space-y-2">
                     <div className="flex items-center gap-2 text-sm text-primary dark:text-white">
-                        <span>{sessions.length} Available Sessions</span>
+                        <span>{sessions.length} Available Session(s)</span>
                     </div>
                     <div className="flex flex-col">
                         {sessions.map((session, index) => (
                             <div key={session.id} className="flex items-center p-1">
-                <span className="text-xs text-foreground dark:text-white w-24">
-                  Session {index + 1}:
-                </span>
+                                <span className="text-xs text-foreground dark:text-white w-24">
+                                    Session {index + 1}:
+                                </span>
                                 <span className="text-xs text-foreground dark:text-white w-32">
-                  {session.start} - {session.end}
-                </span>
+                                    {session.start} - {session.end}
+                                </span>
                             </div>
                         ))}
                     </div>

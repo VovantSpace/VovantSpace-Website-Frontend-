@@ -4,7 +4,6 @@ import {Button} from "@/dashboard/Client/components/ui/button"
 import StarRating from "@/dashboard/Client/components/star-rating"
 import {Avatar, AvatarImage} from '@/dashboard/Innovator/components/ui/avatar'
 
-
 interface Education {
     institution: string
     degree: string;
@@ -34,7 +33,7 @@ interface Mentor {
     name: string;
     rating: number;
     reviewCount: number;
-    // location: string;
+    location: string;
     language: string;
     experience: string;
     sessionsCompleted: number;

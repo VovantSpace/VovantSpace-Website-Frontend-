@@ -48,12 +48,12 @@ export function useMenteeDashboardSocket(menteeId: string) {
     return { events }
 }
 
-export function useSessionSocket(menteeId: string, onUpdate: () => void) {
+export function useSessionSocket(menteeId: string, onUpdate: (data: SessionEvent) => void) {
     useEffect(() => {
         if (!menteeId) return
 
         const socket = getSocket()
-        const handle = (data: SessionEvent) =>onUpdate?.(data)
+        const handle = (data: SessionEvent) => onUpdate?.(data)
 
         socket.on("session_updated", handle)
 
