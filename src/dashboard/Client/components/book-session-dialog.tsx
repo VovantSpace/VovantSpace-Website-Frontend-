@@ -20,6 +20,7 @@ interface Availability {
     timeSlots?: TimeSlot[]
     specificDate?: string
     specificTimeDate?: TimeSlot[]
+    specificTimeSlots?: TimeSlot[]  // Added to match API response
     timeZone: string
     hourlyRate: number
 }
