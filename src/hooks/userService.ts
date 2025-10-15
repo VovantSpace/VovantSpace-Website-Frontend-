@@ -1,4 +1,5 @@
-import {useState, useEffect, useCallback, startTransition} from 'react'
+import {useState, useEffect, useCallback, startTransition, useRef} from 'react'
+import {getSocket} from '@/lib/socket'
 
 export interface User {
     _id: string;
@@ -142,7 +143,7 @@ export interface Notification {
     userId: string;
     title: string;
     description: string;
-    type: 'submission' | 'review' | 'deadline' | 'message' | 'challenge' | 'system';
+    type: 'submission' | 'review' | 'deadline' | 'message' | 'challenge' | 'system' | 'session' | 'mentor';
     isRead: boolean;
     createdAt: string;
     updatedAt: string;
@@ -151,6 +152,7 @@ export interface Notification {
         submissionId?: string;
         messageId?: string;
         [key: string]: any;
+        requestId?: string;
     }
 }
 
@@ -542,7 +544,93 @@ export const useNotifications = () => {
     const [unreadCount, setUnreadCount] = useState(0);
     const [preferences, setPreferences] = useState<NotificationPreferences | null>(null);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null)
+    const [connected, setConnected] = useState(false);
+
+    useEffect(() => {
+        const token = localStorage.getItem('token')
+
+        if (!token) {
+            setError("Session expired. Please log in again")
+            return;
+        }
+
+        const socket = getSocket();
+
+        setConnected(socket.connected);
+
+        const handleConnect = () => {
+            console.log('Socket connected to notifications hook');
+            setConnected(true)
+            setError(null)
+        }
+
+        const handleDisconnect = () => {
+            console.log('Socket disconnected from notifications hook');
+            setConnected(false)
+            setError("Session expired. Please log in again")
+        }
+
+        const handleConnectError = (err: Error) => {
+            console.error('Socket connection error:', err);
+            setError('Failed to connect to notifications Server')
+            setConnected(false)
+        }
+
+        const handleNewNotification = (notification: Notification) => {
+            console.log('New notification received:', notification);
+            setNotifications(prev => [notification, ...prev]);
+            setUnreadCount(prev => prev + 1);
+        }
+
+        const handleNotificationRead = (notificationId: string) => {
+            setNotifications(prev =>
+                prev.map(notif =>
+                    notif._id === notificationId
+                        ? {...notif, isRead: true}
+                        : notif
+                )
+            )
+            setUnreadCount(prev => Math.max(0, prev - 1));
+        }
+
+        const handleAllNotificationsRead = () => {
+            setNotifications(prev =>
+                prev.map(notif => ({...notif, isRead: true}))
+            )
+            setUnreadCount(0);
+        }
+
+        const handleNotificationDeleted = (notificationIds: string) => {
+            setNotifications(prev => {
+                const deletedNotif = prev.find(n => n._id === notificationIds);
+                if (deletedNotif && !deletedNotif.isRead) {
+                    setUnreadCount(count => Math.max(0, count - 1))
+                }
+                return prev.filter(notif => notif._id !== notificationIds);
+            })
+        }
+
+        // Register event listeners
+        socket.on('connect', handleConnect);
+        socket.on('disconnect', handleDisconnect);
+        socket.on('connect_error', handleConnectError);
+        socket.on('new_notification', handleNewNotification);
+        socket.on('notification_read', handleNotificationRead);
+        socket.on('all_notifications_read', handleAllNotificationsRead);
+        socket.on('notification_deleted', handleNotificationDeleted);
+
+        // remove listeners but don't disconnect socket
+        return () => {
+            socket.off('connect', handleConnect)
+            socket.off('disconnect', handleDisconnect)
+            socket.off('connect_error', handleConnectError)
+            socket.off('new_notification', handleNewNotification)
+            socket.off('notification_read', handleNotificationRead)
+            socket.off('all_notifications_read', handleAllNotificationsRead)
+            socket.off('notification_deleted', handleNotificationDeleted)
+        }
+    }, []);
 
     // Fetch notifications
     const fetchNotifications = useCallback(async (limit = 20, offset = 0) => {
@@ -583,6 +671,7 @@ export const useNotifications = () => {
             }
         } catch (err) {
             console.error('Failed to mark notification as read:', err);
+            throw err;
         }
     }, []);
 
@@ -590,7 +679,7 @@ export const useNotifications = () => {
     const markAllAsRead = useCallback(async () => {
         try {
             setLoading(true);
-            const response = await notificationApiRequest('/mark-all-read',  {
+            const response = await notificationApiRequest('/mark-all-read', {
                 method: 'PATCH'
             });
 

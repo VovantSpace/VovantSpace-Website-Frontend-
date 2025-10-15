@@ -254,12 +254,17 @@ export const useMentorSessions = (status?: string, page: number = 1, limit: numb
         fetchSessions();
     }, [fetchSessions]);
 
+    const addSession = (newSession: MentorSession) => {
+        setSessions(prev => [newSession, ...prev]);
+    }
+
     return {
         sessions,
         pagination,
         loading,
         error,
         refetch: fetchSessions,
+        addSession,
     }
 }
 
@@ -322,7 +327,7 @@ export const useAvailability = (mentorId?: string, type?: string) => {
     const updateAvailability = async (availabilityData: Omit<Availability, '_id' | 'mentor' | 'isActive'>) => {
         try {
             const response = await apiRequest(`/mentor/availability`, {
-                method: 'POST', // Backend uses POST for both create and update
+                method: 'POST', // Backend uses POST for both the create and update
                 body: JSON.stringify(availabilityData)
             })
 

@@ -12,7 +12,7 @@ import {MainLayout} from "../../../component/main-layout";
 import {Input} from "@/dashboard/Innovator/components/ui/input";
 import {Label} from "@/dashboard/Innovator/components/ui/label";
 import {Badge} from "@/dashboard/Innovator/components/ui/badge";
-import {useSessionRequests, SessionRequest} from "@/hooks/useMentor";
+import {useSessionRequests, SessionRequest, useMentorSessions} from "@/hooks/useMentor";
 import {Textarea} from "@/dashboard/Innovator/components/ui/textarea";
 import {toast} from 'react-hot-toast'
 
@@ -57,6 +57,7 @@ const RequestCard = ({request}: { request: SessionRequest }) => {
     });
     const [loading, setLoading] = useState(false);
     const {respondToRequest} = useSessionRequests()
+    const {addSession} = useMentorSessions("scheduled", 1, 10)
 
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleTimeString('en-US', {
@@ -87,12 +88,28 @@ const RequestCard = ({request}: { request: SessionRequest }) => {
     const handleAccept = async () => {
         try {
             setLoading(true);
-            await respondToRequest(request._id, 'accept');
-            setShowAcceptDialog(true);
+            const response = await respondToRequest(request._id, 'accept');
+
+            if (!response) {
+                toast.error('No response from server. Please try again')
+            }
+
+            const updatedRequest = response.sessionRequest;
+            const newSession = response.newSession;
+
+            toast.success(
+                newSession
+                ? `Session accepted! Scheduled for ${new Date(newSession.scheduledDate).toLocaleString()}`
+                    : "Session accepted successfully!"
+            )
+            setShowAcceptDialog(false);
+
+            if (newSession) {
+                addSession(newSession);
+            }
         } catch (error: any) {
             console.error('Error accepting request', error);
-            // reminder: add toast notification here
-            toast.error(error.message);
+            toast.error(error.message || "Failed to accept session request");
         } finally {
             setLoading(false);
         }
@@ -118,7 +135,7 @@ const RequestCard = ({request}: { request: SessionRequest }) => {
     const handleCounterPropose = async () => {
         try {
             setLoading(true);
-            await respondToRequest(request._id, 'counter_response', {
+            await respondToRequest(request._id, 'counter_propose', {
                 counterProposal: {
                     proposedDate: counterProposal.proposedDate,
                     proposedEndTime: counterProposal.proposedTime,

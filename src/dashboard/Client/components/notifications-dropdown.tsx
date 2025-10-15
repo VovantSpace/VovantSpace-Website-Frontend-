@@ -1,4 +1,4 @@
-import {Bell, Trash, CheckCheck, Loader2} from "lucide-react"
+import {Bell, Trash, CheckCheck, Loader2, Wifi, WifiOff} from "lucide-react"
 import {format, formatDistanceToNow} from "date-fns"
 import React from 'react'
 import {
@@ -12,7 +12,7 @@ import {
 import {Button} from "@/dashboard/ProblemSolver/components/ui/button"
 import {ScrollArea} from "@/dashboard/Innovator/components/ui/scroll-area"
 import {Badge} from '@/dashboard/Innovator/components/ui/badge'
-import {useUserService} from "@/hooks/userService";
+import {useNotifications} from '@/hooks/userService'
 
 const getNotificationTypeColor = (type: string) => {
     const colors = {
@@ -34,6 +34,8 @@ const getNotificationIcon = (type: string) => {
         message: "💬",
         challenge: "🎯",
         system: "🔔",
+        session: "📅",
+        mentor: "👨‍🏫",
     }
     return icons[type as keyof typeof icons] || icons.system
 }
@@ -41,28 +43,41 @@ const getNotificationIcon = (type: string) => {
 export function NotificationsDropdown() {
     const {
         notifications,
-        unreadNotificationsCount,
-        notificationsLoading,
-        notificationsError,
-        markNotificationAsRead,
-        markAllNotificationsAsRead,
+        unreadCount,
+        loading,
+        error,
+        connected,
+        markAsRead,
+        markAllAsRead,
         deleteNotification,
         fetchNotifications
-    } = useUserService()
+    } = useNotifications()
 
     const handleNotificationClick = async (notificationId: string, isRead: boolean) => {
         if (!isRead) {
-            await markNotificationAsRead(notificationId)
+            try {
+                await markAsRead(notificationId)
+            } catch (err) {
+                console.error('Failed to mark notification as read:', err)
+            }
         }
     }
 
     const handleDeleteNotification = async (notificationId: string, event: React.MouseEvent) => {
         event.stopPropagation()
-        await deleteNotification(notificationId)
+        try {
+            await deleteNotification(notificationId)
+        } catch (err) {
+            console.error('Failed to delete notification:', err)
+        }
     }
 
     const handleMarkAllAsRead = async () => {
-        await markAllNotificationsAsRead()
+        try {
+            await markAllAsRead()
+        } catch (err) {
+            console.error('Failed to mark all notifications as read:', err)
+        }
     }
 
     const handleRefresh = () => {
@@ -75,11 +90,11 @@ export function NotificationsDropdown() {
             <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative text-gray-400 dashtext !bg-transparent">
                     <Bell className="h-5 w-5"/>
-                    {unreadNotificationsCount > 0 && (
+                    {unreadCount > 0 && (
                         <Badge
                             className={'absolute -right-1 -top-1 h-5 w-5 rounded-full bg-red-500 p-0 text-xs text-white flex items-center justify-center border-2 border-background'}
                         >
-                            {unreadNotificationsCount > 99 ? '99+' : unreadNotificationsCount}
+                            {unreadCount > 99 ? '99+' : unreadCount}
                         </Badge>
                     )}
                 </Button>
@@ -90,24 +105,29 @@ export function NotificationsDropdown() {
                     <div className="flex items-center justify-between">
                         <div className={'flex items-center gap-2'}>
                             <h4 className="text-lg font-semibold dark:text-black">Notifications</h4>
-                            {notificationsLoading && <Loader2 className={'h-4 w-4 animate-spin'}/>}
+                            {loading && <Loader2 className={'h-4 w-4 animate-spin'}/>}
+                            {connected ? (
+                                <Wifi className={'h-4 w-4 text-green-500'} title={'Connected'}/>
+                            ) : (
+                                <WifiOff className={'h-4 w-4 text-red-500'} title={'Disconnected'}/>
+                            )}
                         </div>
                         <div className={'flex gap-1'}>
                             <Button
                                 variant={'ghost'}
                                 size={'sm'}
                                 onClick={handleRefresh}
-                                disabled={notificationsLoading}
+                                disabled={loading}
                                 className={'text-sm text-[#00bf8f] hover:text-[#00bf8f]/80'}
                             >
                                 Refresh
                             </Button>
-                            {unreadNotificationsCount > 0 && (
+                            {unreadCount > 0 && (
                                 <Button
                                     variant={'ghost'}
                                     size={'sm'}
                                     onClick={handleMarkAllAsRead}
-                                    disabled={notificationsLoading}
+                                    disabled={loading}
                                     className={'text-sm text-[#00bf8f] hover:text-[#00bf8f]/80'}
                                 >
                                     <CheckCheck className={'h-4 w-4 mr-1'}/>
@@ -121,9 +141,9 @@ export function NotificationsDropdown() {
 
                 <DropdownMenuSeparator/>
 
-                {notificationsError && (
+                {error && (
                     <div className={'p-4 text-center'}>
-                        <p className={'text-sm text-red-500 mb-2'}>Failed to load notifications</p>
+                        <p className={'text-sm text-red-500 mb-2'}>{error}</p>
                         <Button
                             variant={'outline'}
                             size={'sm'}
@@ -135,7 +155,7 @@ export function NotificationsDropdown() {
                     </div>
                 )}
 
-                {!notificationsError && notifications.length === 0 && !notificationsLoading && (
+                {!error && notifications.length === 0 && !loading && (
                     <div className={'p-8 text-center'}>
                         <Bell className={'h-12 w-12 text-gray-300 mx-auto mb-3'}/>
                         <p className={'text-sm text-gray-500 dark:text-gray-400'}>
@@ -144,7 +164,7 @@ export function NotificationsDropdown() {
                     </div>
                 )}
 
-                {!notificationsError && notifications.length > 0 && (
+                {!error && notifications.length > 0 && (
                     <ScrollArea className="h-[400px]">
                         {notifications.map((notification) => (
                             <DropdownMenuItem
@@ -211,7 +231,7 @@ export function NotificationsDropdown() {
                     </ScrollArea>
                 )}
 
-                {!notificationsError && notifications.length > 0 && (
+                {!error && notifications.length > 0 && (
                     <>
                         <DropdownMenuSeparator/>
                         <div className={'p-3 text-center'}>

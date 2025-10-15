@@ -14,7 +14,8 @@ export function getSocket(): Socket {
             reconnectionDelay: 1000,
             reconnectionDelayMax: 10000,
             randomizationFactor: 0.5,
-            autoConnect: true
+            autoConnect: true,
+            transports: ['websocket', 'polling'],
         })
 
         socket.on("connect", () => console.log("Socket connected:", socket?.id))
@@ -31,6 +32,8 @@ export function getSocket(): Socket {
 export function disconnectSocket() {
     if (socket) {
         socket.disconnect()
+        socket.removeAllListeners()
         socket = null
     }
 }
+
