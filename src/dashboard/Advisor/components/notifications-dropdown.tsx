@@ -14,7 +14,6 @@ import {ScrollArea} from "@/dashboard/Innovator/components/ui/scroll-area"
 import {Badge} from '@/dashboard/Innovator/components/ui/badge'
 import {useNotifications} from '@/hooks/userService'
 import {useNotificationHandler} from "@/utils/handleNotificationClick";
-import {useInRouterContext} from 'react-router-dom'
 
 const getNotificationTypeColor = (type: string) => {
     const colors = {
@@ -57,8 +56,7 @@ export function NotificationsDropdown() {
     const [open, setOpen] = useState(false)
 
     const {handleNotificationClick} = useNotificationHandler()
-    const inRouter = useInRouterContext()
-    console.log("Inside router?", inRouter)
+
 
     const handleNotificationSelect = async (notification: any) => {
         try {
@@ -93,10 +91,6 @@ export function NotificationsDropdown() {
     const handleRefresh = () => {
         fetchNotifications()
     }
-
-    console.log("🔔 NotificationsDropdown mounted");
-    console.log("Notifications count:", notifications?.length);
-    console.log("Inside router?", inRouter);
 
 
     return (

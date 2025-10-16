@@ -9,7 +9,7 @@ import './styles/globals.css'
 import AlertPage from './pages/alert/Page';
 import {Toaster} from 'react-hot-toast'
 
-function ProblemSolverRouting() {
+function AdvisorRouting() {
 
     return (
         <div className='dashbg'>
@@ -35,4 +35,4 @@ function ProblemSolverRouting() {
     )
 }
 
-export default ProblemSolverRouting;
+export default AdvisorRouting;

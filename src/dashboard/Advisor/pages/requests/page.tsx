@@ -1,4 +1,5 @@
-import {useState} from "react";
+import {useState, useEffect} from "react";
+import {useLocation} from 'react-router-dom';
 import {Calendar, Clock, User, DollarSign, MessageSquare, AlertCircle, Loader2} from "lucide-react";
 import {Button} from "@/dashboard/Innovator/components/ui/button";
 import {
@@ -158,7 +159,9 @@ const RequestCard = ({request}: { request: SessionRequest }) => {
     }
 
     return (
-        <div className={'rounded-lg bg-card secondbg p-6 py-4 shadow-sm text-sm'}>
+        <div
+            id={`session-request-${request._id}`}
+            className={'rounded-lg bg-card secondbg p-6 py-4 shadow-sm text-sm transition-all duration-300'}>
             <div className={'flex flex-col sm:flex-row sm:items-center sm:justify-between'}>
                 <div className={'flex items-center space-x-4 mb-4 sm:mb-0'}>
                     {request.mentee.profilePicture ? (
@@ -425,6 +428,8 @@ const RequestCard = ({request}: { request: SessionRequest }) => {
 
 export default function RequestsPage() {
     const [currentPage, setCurrentPage] = useState(1);
+    const location = useLocation();
+    const requestIdFromState = location.state?.requestId;
     const [statusFilter, setStatusFilter] = useState<string>('');
     const limit = 10;
 
@@ -433,6 +438,19 @@ export default function RequestsPage() {
         currentPage,
         limit
     )
+
+    useEffect(() => {
+        if (!requestIdFromState || !requests.length) return;
+
+        // Find the specific card element for that request
+        const el = document.getElementById(`session-request-${requestIdFromState}`);
+        if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: "center" });
+            el.classList.add("ring-2", "ring-emerald-500")
+            setTimeout(() => el.classList.remove("ring-2", "ring-emerald-500"), 2500);
+        }
+    }, [requestIdFromState, requests]);
+
 
     if (error) {
         return (
