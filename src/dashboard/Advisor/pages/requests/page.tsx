@@ -446,8 +446,9 @@ export default function RequestsPage() {
         const el = document.getElementById(`session-request-${requestIdFromState}`);
         if (el) {
             el.scrollIntoView({ behavior: 'smooth', block: "center" });
-            el.classList.add("ring-2", "ring-emerald-500")
-            setTimeout(() => el.classList.remove("ring-2", "ring-emerald-500"), 2500);
+            el.classList.add("ring-2", "ring-emerald-500", "animate-pulse-once")
+
+            setTimeout(() => el.classList.remove("ring-2", "ring-emerald-500", "animate-pulse-once"), 2500);
         }
     }, [requestIdFromState, requests]);
 

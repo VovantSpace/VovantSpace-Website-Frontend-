@@ -57,7 +57,17 @@ module.exports = {
 			'2xl': '1.5rem',
 			'3xl': '1.875rem',
 			'4xl': '2.25rem',
-		  }
+		  },
+        keyframes: {
+              'pulse-once': {
+                  '0%' : {boxShadow: '0 0 0 0 rgba(16, 185, 129, 0.6'},
+                  '70%': {boxShadow: '0 0 0 10px rgba(16, 185, 129, 0)'},
+                  '100%': {boxShadow: '0 0 0 0 rgba(16, 185, 129, 0)'}
+              }
+        },
+        animation: {
+              'pulse-once': 'pulse-once 1.8s ease-out'
+        }
   	}
   },
   plugins: [require("tailwindcss-animate")],
