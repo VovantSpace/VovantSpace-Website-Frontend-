@@ -16,8 +16,6 @@ import {useNotifications} from '@/hooks/userService'
 import {useNotificationHandler} from "@/utils/handleNotificationClick";
 import {useInRouterContext} from 'react-router-dom'
 
-
-
 const getNotificationTypeColor = (type: string) => {
     const colors = {
         submission: 'bg-blue-100 text-blue-800 border-blue-200',
@@ -63,16 +61,16 @@ export function NotificationsDropdown() {
     console.log("Inside router?", inRouter)
 
     const handleNotificationSelect = async (notification: any) => {
-      try {
-          if (!notification.isRead) {
-              await markAsRead(notification._id)
-          }
+        try {
+            if (!notification.isRead) {
+                await markAsRead(notification._id)
+            }
 
-          // Navigate to the notification's link
-          handleNotificationClick(notification)
-      } catch (err) {
-          console.error('Failed to handle notification selection:', err)
-      }
+            // Navigate to the notification's link
+            handleNotificationClick(notification)
+        } catch (err) {
+            console.error('Failed to handle notification selection:', err)
+        }
     }
 
     const handleDeleteNotification = async (notificationId: string, event: React.MouseEvent) => {
@@ -95,6 +93,10 @@ export function NotificationsDropdown() {
     const handleRefresh = () => {
         fetchNotifications()
     }
+
+    console.log("🔔 NotificationsDropdown mounted");
+    console.log("Notifications count:", notifications?.length);
+    console.log("Inside router?", inRouter);
 
 
     return (

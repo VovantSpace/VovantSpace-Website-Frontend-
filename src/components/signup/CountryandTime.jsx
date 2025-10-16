@@ -1,13 +1,19 @@
-import { useEffect, useCallback } from 'react'
+import { useEffect, useCallback, useMemo } from 'react'
 import PropTypes from 'prop-types'
 import ct from 'countries-and-timezones'
 import CountrySelector from './CountrySelector'
 import TimezoneSelector from './TimeZoneSelector'
 import { FaGlobe, FaClock } from 'react-icons/fa'
+import countryList from 'react-select-country-list'
 
 const CountryandTime = ({ formik }) => {
-    // Get values from formik instead of local state
+    const allCountries = useMemo(() => countryList().getData(), [])
     const selectedCountry = formik.values.country || null
+
+    const normalizedCountry =
+        typeof selectedCountry === 'string'
+    ? allCountries.find((c) => c.value === selectedCountry)
+            : selectedCountry;
     const selectedTimezone = formik.values.timezone || null
 
     // Use useCallback to memoize the setFieldValue function
@@ -20,7 +26,7 @@ const CountryandTime = ({ formik }) => {
             const countryData = ct.getCountry(selectedCountry.value || selectedCountry)
             const tzs = countryData?.timezones || []
 
-            // Only update timezone if there are timezones and no timezone is currently selected
+            // Only update the timezone if there are timezones and no timezone is currently selected
             if (tzs.length > 0 && !selectedTimezone) {
                 setTimezone(tzs[0])
             } else if (tzs.length === 0 && selectedTimezone) {
@@ -32,9 +38,9 @@ const CountryandTime = ({ formik }) => {
         }
     }, [setTimezone, selectedTimezone, selectedCountry])
 
-    const handleCountryChange = (country) => {
-        formik.setFieldValue('country', country)
-    }
+    // const handleCountryChange = (country) => {
+    //     formik.setFieldValue('country', country)
+    // }
 
     const handleTimezoneChange = (timezone) => {
         formik.setFieldValue('timezone', timezone)
@@ -73,8 +79,8 @@ const CountryandTime = ({ formik }) => {
                     </div>
                     <div className="relative">
                         <CountrySelector
-                            value={selectedCountry}
-                            onChange={handleCountryChange}
+                            value={normalizedCountry || null}
+                            onChange={(country) => formik.setFieldValue('country', country)}
                             customStyles={selectWithIconStyles}
                         />
                     </div>

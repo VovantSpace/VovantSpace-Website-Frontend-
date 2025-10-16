@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import Select from 'react-select'
 import countryList from 'react-select-country-list'
-import PropTypes from 'prop-types';
+import PropTypes from 'prop-types'
 
 const customTheme = (theme) => ({
     ...theme,
@@ -11,12 +11,21 @@ const customTheme = (theme) => ({
         primary25: '#a9e8b9',
         neutralBorder: '#31473A',
     },
-});
+})
 
 const CountrySelector = ({ value, onChange, disabled, customStyles = {} }) => {
     const options = useMemo(() => countryList().getData(), [])
 
-    // Merge custom styles with default styles
+    // Ensure value is always a valid option object
+    const selectedOption = useMemo(() => {
+        if (!value) return null
+        if (typeof value === 'string') {
+            // handle if only the country code is passed
+            return options.find((option) => option.value === value) || null
+        }
+        return options.find((option) => option.value === value.value) || null
+    }, [value, options])
+
     const defaultStyles = {
         control: (provided) => ({
             ...provided,
@@ -32,28 +41,28 @@ const CountrySelector = ({ value, onChange, disabled, customStyles = {} }) => {
         ...defaultStyles,
         control: (provided) => ({
             ...defaultStyles.control(provided),
-            ...customStyles.control?.(provided),
+            ...(customStyles.control ? customStyles.control(provided) : {}),
         }),
         singleValue: (provided) => ({
             ...provided,
-            ...customStyles.singleValue?.(provided),
+            ...(customStyles.singleValue ? customStyles.singleValue(provided) : {}),
         }),
         placeholder: (provided) => ({
             ...provided,
-            ...customStyles.placeholder?.(provided),
+            ...(customStyles.placeholder ? customStyles.placeholder(provided) : {}),
         }),
     }
 
     return (
         <Select
             options={options}
-            value={value}
+            value={selectedOption}
             onChange={onChange}
             getOptionLabel={(option) => option.label}
             getOptionValue={(option) => option.value}
             isSearchable
             className='!border-[#31473A] !outline-[#31473A] !disabled:bg-gray-50 secondbg text-sm rounded-xl'
-            placeholder="Select Country"
+            placeholder='Select Country'
             theme={customTheme}
             styles={mergedStyles}
             isDisabled={disabled}
@@ -62,20 +71,18 @@ const CountrySelector = ({ value, onChange, disabled, customStyles = {} }) => {
 }
 
 CountrySelector.propTypes = {
-    value: PropTypes.shape({
-        value: PropTypes.string,
-        label: PropTypes.string,
-    }),
+    value: PropTypes.oneOfType([
+        PropTypes.shape({
+            value: PropTypes.string,
+            label: PropTypes.string,
+        }),
+        PropTypes.string,
+    ]),
     onChange: PropTypes.func.isRequired,
     disabled: PropTypes.bool,
-    customStyles: PropTypes.shape({
-        control: PropTypes.func,
-        singleValue: PropTypes.func,
-        placeholder: PropTypes.string,
-    })
+    customStyles: PropTypes.object,
 }
 
-// Default props
 CountrySelector.defaultProps = {
     value: null,
     disabled: false,
