@@ -7,6 +7,9 @@ import {UserNav} from "@/dashboard/Client/components/layout/user-nav";
 import {MobileNav} from "@/dashboard/Client/components/layout/mobile-nav";
 import {NotificationsDropdown} from "@/dashboard/Client/components/notifications-dropdown";
 import {useSocket} from '@/hooks/useSocket'
+import {toast} from "react-toastify";
+import {getSocket} from '@/lib/socket'
+import {useNotifications} from '@/hooks/userService'
 
 export function MainLayout({children}: { children: React.ReactNode }) {
     useSocket()
@@ -24,6 +27,35 @@ export function MainLayout({children}: { children: React.ReactNode }) {
             localStorage.setItem("theme", "light");
         }
     }, [isDarkMode]);
+
+    const {addNotification} = useNotifications()
+
+    useEffect(() => {
+        const socket = getSocket()
+
+        socket.on("new_notification", (notif) => {
+            addNotification(notif)
+            toast.info(notif.title || "New notification")
+        })
+
+        socket.on("session_request:new", (payload) => {
+            toast.info(payload.message || "New session request received!")
+        })
+
+        socket.on("session_request:confirmation", (payload) => {
+            toast.success(payload.message || "Session request sent!")
+        })
+
+        socket.on("session_request:confirmation", (payload) => {
+            toast.success(payload.message || "Session request sent!")
+        })
+
+        return () => {
+            socket.off("new_notification")
+            socket.off("session_request:new")
+            socket.off("session_request:confirmation")
+        }
+    }, [])
 
     return (
         <div className="min-h-screen">

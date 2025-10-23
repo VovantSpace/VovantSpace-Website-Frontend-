@@ -1,14 +1,16 @@
-import { JSX, useState, useMemo } from "react";
-import { AlertCircle, Search } from "lucide-react";
-import { Input } from "@/dashboard/Innovator/components/ui/input";
-import { MentorCard } from "@/dashboard/Client/components/mentor-card";
-import { MentorProfileDialog } from "@/dashboard/Client/components/mentor-profile-dialog";
-import { BookSessionDialog } from "@/dashboard/Client/components/book-session-dialog";
-import { ConfirmSessionDialog } from "@/dashboard/Client/components/confirm-session-dialog";
-import { MainLayout } from "@/dashboard/Client/components/layout/main-layout";
-import { Button } from "@/dashboard/Innovator/components/ui/button";
-import { useMentorSearch } from "@/hooks/useMentorSearch";
-import { useMentorDetails } from "@/hooks/useMentor";
+import {JSX, useState, useMemo} from "react";
+import {AlertCircle, Search} from "lucide-react";
+import {Input} from "@/dashboard/Innovator/components/ui/input";
+import {MentorCard} from "@/dashboard/Client/components/mentor-card";
+import {MentorProfileDialog} from "@/dashboard/Client/components/mentor-profile-dialog";
+import {BookSessionDialog} from "@/dashboard/Client/components/book-session-dialog";
+import {ConfirmSessionDialog} from "@/dashboard/Client/components/confirm-session-dialog";
+import {MainLayout} from "@/dashboard/Client/components/layout/main-layout";
+import {Button} from "@/dashboard/Innovator/components/ui/button";
+import {useMentorSearch} from "@/hooks/useMentorSearch";
+import {useMentorDetails} from "@/hooks/useMentor";
+import {toast} from 'react-hot-toast'
+import {io} from "socket.io-client";
 
 /* ---------------------------------------
    ✅ Mentor Type (matches backend shape)
@@ -62,7 +64,7 @@ const ErrorMessage = ({
 }) => (
     <div className="flex items-center justify-center p-8 text-center">
         <div className="max-w-md">
-            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4"/>
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
                 Something went wrong
             </h3>
@@ -91,6 +93,11 @@ export default function Mentors() {
     const [isBookingOpen, setIsBookingOpen] = useState(false);
     const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
+    const socket = io(import.meta.env.VITE_API_URL, {
+        transports: ['websocket'],
+        withCredentials: true,
+    })
+
     const [bookingDetails, setBookingDetails] = useState<{
         date: string;
         time: { id: string; startTime: string; endTime: string };
@@ -112,10 +119,10 @@ export default function Mentors() {
         [searchQuery, expertise, experience, priceRange, language]
     );
 
-    const { mentors, loading, error, refresh } = useMentorSearch(filters);
+    const {mentors, loading, error, refresh} = useMentorSearch(filters);
 
     /* ---- Fetch Mentor Details for Profile ---- */
-    const { mentor: mentorDetails, loading: mentorLoading } = useMentorDetails(
+    const {mentor: mentorDetails, loading: mentorLoading} = useMentorDetails(
         selectedMentor?._id || null,
         isProfileOpen
     );
@@ -136,14 +143,75 @@ export default function Mentors() {
         timeSlot: { id: string; startTime: string; endTime: string },
         topic: string
     ) => {
-        setBookingDetails({ date, time: timeSlot, topic });
+        setBookingDetails({date, time: timeSlot, topic});
         setIsBookingOpen(false);
         setIsConfirmOpen(true);
     };
 
-    const handleConfirmRequest = () => {
-        setIsConfirmOpen(false);
-        // TODO: trigger backend confirmation logic here
+    const handleConfirmRequest = async () => {
+        if (!selectedMentor || !bookingDetails) {
+            toast.error("Missing booking details. Please try again.")
+            return;
+        }
+
+        const {date, time, topic} = bookingDetails
+
+        const bookingPromise = fetch(`${import.meta.env.VITE_API_URL}/api/session/request`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({
+                    mentorId: selectedMentor._id,
+                    requestedDate: date,
+                    requestedEndTime: time.endTime,
+                    topic,
+                    duration: 60,
+                    amount: selectedMentor.averageHourlyRate,
+                }
+            )
+        }).then(async (res) => {
+            if (!res.ok) throw new Error((await res.json()).message || "Booking failed");
+            return res.json();
+        })
+
+        try {
+            toast.loading("Booking session...")
+
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/session/request`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify({
+                    mentorId: selectedMentor._id,
+                    requestedDate: date,
+                    requestedEndTime: time.endTime,
+                    topic,
+                    duration: 60,
+                    amount: selectedMentor.averageHourlyRate,
+                })
+            })
+
+            const data = await response.json()
+
+            toast.dismiss()
+
+            if (!response.ok) {
+                const data = await response.json(); // Parse the response first
+                throw new Error(data.message || "failed to book session");
+            }
+
+            toast.success(`Session request sent to ${selectedMentor?.firstName}`)
+            setIsConfirmOpen(false)
+            setBookingDetails(null)
+            setSelectedMentor(null)
+        } catch (err: any) {
+            toast.dismiss();
+            toast.error(err.message || "Something went wrong while booking the session.")
+        }
     };
 
     /* ---- UI ---- */
@@ -153,7 +221,7 @@ export default function Mentors() {
                 {/* Search + Filters */}
                 <div className="mb-6 space-y-4">
                     <div className="relative">
-                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"/>
                         <Input
                             className="pl-10 secondbg dark:text-white"
                             placeholder="Search Advisor/Mentor by name, expertise, or keywords"
@@ -214,14 +282,14 @@ export default function Mentors() {
                 {/* Loading + Error */}
                 {loading && (
                     <div className="mt-10">
-                        <LoadingStats />
+                        <LoadingStats/>
                         <p className="text-center text-gray-400 mt-4">
                             Loading mentors...
                         </p>
                     </div>
                 )}
 
-                {!loading && error && <ErrorMessage message={error} onRetry={refresh} />}
+                {!loading && error && <ErrorMessage message={error} onRetry={refresh}/>}
 
                 {/* Mentors List */}
                 {!loading && !error && (
@@ -308,6 +376,7 @@ export default function Mentors() {
                                 0,
                             certifications: mentorDetails?.certifications || [],
                             workExperience: mentorDetails?.workExperience || [],
+                            location: mentorDetails?.country || selectedMentor.country || "N/A",
                         }}
                         onBookSession={() => handleBookNow(selectedMentor)}
                     />

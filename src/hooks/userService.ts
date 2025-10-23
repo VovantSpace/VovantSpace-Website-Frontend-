@@ -632,6 +632,14 @@ export const useNotifications = () => {
         }
     }, []);
 
+    // Handle adding notification for the user
+    const addNotification = useCallback((notification: Notification) => {
+        setNotifications((prev) => [notification, ...prev]);
+        if (!notification.isRead) {
+            setUnreadCount((prev) => prev + 1);
+        }
+    }, [])
+
     // Fetch notifications
     const fetchNotifications = useCallback(async (limit = 20, offset = 0) => {
         try {
@@ -786,6 +794,7 @@ export const useNotifications = () => {
         markAsRead,
         markAllAsRead,
         deleteNotification,
+        addNotification,
 
         // Notification preferences
         preferences,
@@ -795,6 +804,7 @@ export const useNotifications = () => {
         // States
         loading,
         error,
+        connected
     };
 };
 

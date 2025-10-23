@@ -188,7 +188,7 @@ export function BookSessionDialog({
     }, [availability]);
 
 
-    // Derive time slots for selected date
+    // Derive time slots for the selected date
     const availableTimeSlots = useMemo(() => {
         if (!selectedDate) return []
 
@@ -227,13 +227,13 @@ export function BookSessionDialog({
             const slotStart = new Date(`${selectedDate}T${slot.startTime}`)
             const slotEnd = new Date(`${selectedDate}T${slot.endTime}`)
 
-            // Skip if slot is in the past
+            // Skip if the slot is in the past
             if (slotStart < now) {
                 console.log('Skipping past slot:', slot)
                 return false
             }
 
-            // Check if slot overlaps with any booked slot
+            // Check if the slot overlaps with any booked slot
             const overlapping = bookedSlots.some((b) => {
                 const bookedStart = new Date(b.requestedDate)
                 const bookedEnd = new Date(b.requestedEndTime)
@@ -256,6 +256,14 @@ export function BookSessionDialog({
         }))
     }, [selectedDate, availability, bookedSlots])
 
+    function toIso(dateStr: string, timeStr: string) {
+        const [hour, minutePart] = timeStr.split(':')
+        const hourPadded = hour.padStart(2, '0')
+        const minute = (minutePart || '00').replace(/\D/g, '')
+        const formatted = `${dateStr}T${hourPadded}:${minute}:00`
+        return new Date(formatted).toISOString()
+    }
+
     const handleConfirm = async () => {
         if (!selectedDate || !selectedTimeSlot || !topic.trim()) {
             toast.error('Please fill in all fields')
@@ -266,8 +274,8 @@ export function BookSessionDialog({
         try {
             const payload = {
                 mentorId,
-                requestedDate: `${selectedDate}T${selectedTimeSlot.startTime}`,
-                requestedEndTime: `${selectedDate}T${selectedTimeSlot.endTime}`,
+                requestedDate: toIso(selectedDate, selectedTimeSlot.startTime),
+                requestedEndTime: toIso(selectedDate, selectedTimeSlot.endTime),
                 duration: 30,
                 sessionType: "one_time",
                 topic: topic.trim(),
@@ -275,25 +283,34 @@ export function BookSessionDialog({
                 amount: mentorHourlyRate ?? 0,
             }
 
-            console.log('Booking payload:', payload)
+            console.log('Booking payload:', payload);
 
-            await axios.post('/api/session/book', payload, {withCredentials: true})
+            await axios.post('/api/session/book', payload, {withCredentials: true});
 
-            toast.success("Session request sent successfully!")
+            toast.success("Session request sent successfully!");
 
             // Reset form
-            setSelectedDate(null)
-            setSelectedTimeSlot(null)
-            setTopic("")
+            setSelectedDate(null);
+            setSelectedTimeSlot(null);
+            setTopic("");
 
-            onOpenChange(false)
+            onOpenChange(false);
 
             if (onConfirm) {
                 onConfirm(selectedDate, selectedTimeSlot, topic)
             }
         } catch (err: any) {
+            const status = err.response?.status
+            const message = err.response?.data?.message || err.message || "Something went wrong while booking this session."
             console.error("Booking error:", err.response?.data || err.message || err)
-            toast.error(err.response?.data?.message || "Failed to book session")
+
+            if (status === 409) {
+                toast.warning(message)
+            } else if (status === 400) {
+                toast.error(message)
+            } else {
+                toast.error("Server error. Please try again")
+            }
         } finally {
             setLoading(false)
         }

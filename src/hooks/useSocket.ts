@@ -11,18 +11,28 @@ export function useSocket() {
     const socket = getSocket()
 
     useEffect(() => {
-        if (!user?.id || !user.role) return;
+        if (!user?._id || !user.role) return;
 
         // Connect socket and join the user's room
         if (!socket.connected) socket.connect()
-        initSocketRoom(user.id, normalizeRole(user.role))
+
+        socket.on('connect', () => console.log("Socket connected:", socket.id))
+        socket.on('disconnect', (reason) => console.log("Socket disconnected:", reason))
+        socket.on('connect_error', (err) => console.error('Socket connection error:', err))
+        initSocketRoom(user._id, normalizeRole(user.role))
 
         // listen for notifications
         socket.on('new_notification', (notification) => {
             console.log("notification received:", notification);
             addNotification(notification)
 
-            toast.info(`${notification.title}: ${notification.description}`)
+            toast.info(`${notification.title || "New Notification"}: ${notification.description}`,
+                {
+                    position: 'bottom-right',
+                    autoClose: 4000,
+                    theme: "dark"
+                }
+            )
         })
 
         socket.on("session_updated", (data) => {

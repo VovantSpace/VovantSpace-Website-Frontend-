@@ -1,6 +1,6 @@
 import {Bell, Trash, CheckCheck, Loader2, Wifi, WifiOff} from "lucide-react"
 import {format, formatDistanceToNow} from "date-fns"
-import React, {useState} from 'react'
+import React, {useState, useEffect} from 'react'
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -14,6 +14,7 @@ import {ScrollArea} from "@/dashboard/Innovator/components/ui/scroll-area"
 import {Badge} from '@/dashboard/Innovator/components/ui/badge'
 import {useNotifications} from '@/hooks/userService'
 import {useNotificationHandler} from "@/utils/handleNotificationClick";
+
 
 const getNotificationTypeColor = (type: string) => {
     const colors = {
@@ -53,9 +54,9 @@ export function NotificationsDropdown() {
         deleteNotification,
         fetchNotifications
     } = useNotifications()
-    const [open, setOpen] = useState(false)
 
     const {handleNotificationClick} = useNotificationHandler()
+
 
 
     const handleNotificationSelect = async (notification: any) => {
@@ -92,7 +93,6 @@ export function NotificationsDropdown() {
         fetchNotifications()
     }
 
-
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -115,9 +115,9 @@ export function NotificationsDropdown() {
                             <h4 className="text-lg font-semibold dark:text-black">Notifications</h4>
                             {loading && <Loader2 className={'h-4 w-4 animate-spin'}/>}
                             {connected ? (
-                                <Wifi className={'h-4 w-4 text-green-500'} title={'Connected'}/>
+                                <Wifi className={'h-4 w-4 text-green-500'} />
                             ) : (
-                                <WifiOff className={'h-4 w-4 text-red-500'} title={'Disconnected'}/>
+                                <WifiOff className={'h-4 w-4 text-red-500'}/>
                             )}
                         </div>
                         <div className={'flex gap-1'}>
@@ -143,7 +143,6 @@ export function NotificationsDropdown() {
                                 </Button>
                             )}
                         </div>
-
                     </div>
                 </DropdownMenuLabel>
 
