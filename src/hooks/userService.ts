@@ -1,5 +1,6 @@
-import {useState, useEffect, useCallback, startTransition, useRef} from 'react'
+import {useState, useEffect, useCallback} from 'react'
 import {getSocket} from '@/lib/socket'
+
 
 export interface User {
     _id: string;
@@ -146,6 +147,7 @@ export interface Notification {
     type: 'submission' | 'review' | 'deadline' | 'message' | 'challenge' | 'system' | 'session' | 'mentor';
     isRead: boolean;
     createdAt: string;
+    role: "mentor" | "mentee" | "innovator" | "problemSolver";
     updatedAt: string;
     metaData?: {
         challengeId?: string;
@@ -539,274 +541,145 @@ export const usePassword = () => {
 };
 
 // Hook for notifications
-export const useNotifications = () => {
+export const useNotifications = (
+    role: "mentor" | "mentee" | "innovator" | "problemSolver"
+) => {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
-    const [preferences, setPreferences] = useState<NotificationPreferences | null>(null);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null)
+    const [error, setError] = useState<string | null>(null);
     const [connected, setConnected] = useState(false);
 
-    useEffect(() => {
-        const token = localStorage.getItem('token')
+    const { user, isAuthenticated } = useAuth();
 
-        if (!token) {
-            setError("Session expired. Please log in again")
+    // 🔗 FETCH notifications from API
+    const fetchNotifications = useCallback(async () => {
+        try {
+            setLoading(true);
+            const response: NotificationResponse = await notificationApiRequest(
+                `?role=${role}`
+            );
+            if (response.success) {
+                setNotifications(response.notification);
+                setUnreadCount(response.unreadCount);
+            }
+        } catch {
+            setError("Failed to fetch notifications");
+        } finally {
+            setLoading(false);
+        }
+    }, [role]);
+
+    // 💥 Add new notification to state
+    const addNotification = useCallback(
+        (notification: Notification) => {
+            if (notification.role && notification.role !== role) return;
+            setNotifications((prev) => [notification, ...prev]);
+            if (!notification.isRead)
+                setUnreadCount((prev) => Math.max(0, prev + 1));
+        },
+        [role]
+    );
+
+    // ✅ Mark as read
+    const markAsRead = useCallback(async (id: string) => {
+        const response = await notificationApiRequest(`/${id}/read`, {
+            method: "PATCH",
+        });
+        if (response.success) {
+            setNotifications((prev) =>
+                prev.map((n) => (n._id === id ? { ...n, isRead: true } : n))
+            );
+            setUnreadCount((prev) => Math.max(0, prev - 1));
+        }
+    }, []);
+
+    // ✅ Mark all as read
+    const markAllAsRead = useCallback(async () => {
+        const response = await notificationApiRequest(
+            `/mark-all-read?role=${role}`,
+            { method: "PATCH" }
+        );
+        if (response.success) {
+            setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+            setUnreadCount(0);
+        }
+    }, [role]);
+
+    // 🗑 Delete notification
+    const deleteNotification = useCallback(async (id: string) => {
+        const response = await notificationApiRequest(`/${id}`, {
+            method: "DELETE",
+        });
+        if (response.success) {
+            setNotifications((prev) => prev.filter((n) => n._id !== id));
+        }
+    }, []);
+
+    // 🔌 SOCKET: connect, join room, listen for new notifications
+    useEffect(() => {
+        if (!isAuthenticated || !user?._id || !role) {
+            console.warn("Skipping socket join:", { isAuthenticated, user, role });
             return;
         }
 
         const socket = getSocket();
+        const userId = user._id;
+        const roomName = `${role}_${userId}`;
 
-        setConnected(socket.connected);
+        console.log(`🎯 Joining socket room: ${roomName}`);
+        socket.emit("join_room", roomName);
 
         const handleConnect = () => {
-            console.log('Socket connected to notifications hook');
-            setConnected(true)
-            setError(null)
-        }
+            setConnected(true);
+            console.log(`✅ Connected to socket: ${socket.id}`);
+        };
 
         const handleDisconnect = () => {
-            console.log('Socket disconnected from notifications hook');
-            setConnected(false)
-            setError("Session expired. Please log in again")
-        }
-
-        const handleConnectError = (err: Error) => {
-            console.error('Socket connection error:', err);
-            setError('Failed to connect to notifications Server')
-            setConnected(false)
-        }
+            setConnected(false);
+            console.warn("⚠️ Socket disconnected");
+        };
 
         const handleNewNotification = (notification: Notification) => {
-            console.log('New notification received:', notification);
-            setNotifications(prev => [notification, ...prev]);
-            setUnreadCount(prev => prev + 1);
-        }
+            console.log(`💥 [${role}] new notification:`, notification);
+            addNotification(notification);
+        };
 
-        const handleNotificationRead = (notificationId: string) => {
-            setNotifications(prev =>
-                prev.map(notif =>
-                    notif._id === notificationId
-                        ? {...notif, isRead: true}
-                        : notif
-                )
-            )
-            setUnreadCount(prev => Math.max(0, prev - 1));
-        }
+        socket.on("connect", handleConnect);
+        socket.on("disconnect", handleDisconnect);
+        socket.on("new_notification", handleNewNotification);
 
-        const handleAllNotificationsRead = () => {
-            setNotifications(prev =>
-                prev.map(notif => ({...notif, isRead: true}))
-            )
-            setUnreadCount(0);
-        }
-
-        const handleNotificationDeleted = (notificationIds: string) => {
-            setNotifications(prev => {
-                const deletedNotif = prev.find(n => n._id === notificationIds);
-                if (deletedNotif && !deletedNotif.isRead) {
-                    setUnreadCount(count => Math.max(0, count - 1))
-                }
-                return prev.filter(notif => notif._id !== notificationIds);
-            })
-        }
-
-        // Register event listeners
-        socket.on('connect', handleConnect);
-        socket.on('disconnect', handleDisconnect);
-        socket.on('connect_error', handleConnectError);
-        socket.on('new_notification', handleNewNotification);
-        socket.on('notification_read', handleNotificationRead);
-        socket.on('all_notifications_read', handleAllNotificationsRead);
-        socket.on('notification_deleted', handleNotificationDeleted);
-
-        // remove listeners but don't disconnect socket
+        // cleanup
         return () => {
-            socket.off('connect', handleConnect)
-            socket.off('disconnect', handleDisconnect)
-            socket.off('connect_error', handleConnectError)
-            socket.off('new_notification', handleNewNotification)
-            socket.off('notification_read', handleNotificationRead)
-            socket.off('all_notifications_read', handleAllNotificationsRead)
-            socket.off('notification_deleted', handleNotificationDeleted)
-        }
-    }, []);
+            socket.off("connect", handleConnect);
+            socket.off("disconnect", handleDisconnect);
+            socket.off("new_notification", handleNewNotification);
+        };
+    }, [role, user?._id, isAuthenticated, addNotification]);
 
-    // Handle adding notification for the user
-    const addNotification = useCallback((notification: Notification) => {
-        setNotifications((prev) => [notification, ...prev]);
-        if (!notification.isRead) {
-            setUnreadCount((prev) => prev + 1);
-        }
-    }, [])
-
-    // Fetch notifications
-    const fetchNotifications = useCallback(async (limit = 20, offset = 0) => {
-        try {
-            setLoading(true);
-            setError(null);
-
-            const response: NotificationResponse = await notificationApiRequest(`?limit=${limit}&offset=${offset}`);
-
-            if (response.success) {
-                setNotifications(response.notification); // Using your property name
-                setUnreadCount(response.unreadCount);
-            }
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : "Failed to fetch notifications";
-            setError(errorMessage);
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    // Mark the notification as read
-    const markAsRead = useCallback(async (notificationId: string) => {
-        try {
-            const response = await notificationApiRequest(`/${notificationId}/read`, {
-                method: 'PATCH'
-            });
-
-            if (response.success) {
-                setNotifications(prev =>
-                    prev.map(notif =>
-                        notif._id === notificationId
-                            ? {...notif, isRead: true}
-                            : notif
-                    )
-                );
-                setUnreadCount(prev => Math.max(0, prev - 1));
-            }
-        } catch (err) {
-            console.error('Failed to mark notification as read:', err);
-            throw err;
-        }
-    }, []);
-
-    // Mark all notifications as read (fixed function name)
-    const markAllAsRead = useCallback(async () => {
-        try {
-            setLoading(true);
-            const response = await notificationApiRequest('/mark-all-read', {
-                method: 'PATCH'
-            });
-
-            if (response.success) {
-                setNotifications(prev =>
-                    prev.map(notif => ({...notif, isRead: true}))
-                );
-                setUnreadCount(0);
-            }
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "Failed to mark all as read");
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    // Delete notification
-    const deleteNotification = useCallback(async (notificationId: string) => {
-        try {
-            const response = await notificationApiRequest(`/${notificationId}`, {
-                method: 'DELETE',
-            });
-
-            if (response.success) {
-                setNotifications(prev => prev.filter(notif => notif._id !== notificationId));
-                setUnreadCount(prev => {
-                    const deletedNotif = notifications.find(n => n._id === notificationId);
-                    return deletedNotif && !deletedNotif.isRead ? Math.max(0, prev - 1) : prev;
-                });
-            }
-        } catch (err) {
-            console.error('Failed to delete notification:', err);
-        }
-    }, [notifications]);
-
-    // Get notification preferences
-    const getNotificationPreferences = useCallback(async () => {
-        setLoading(true);
-        setError(null);
-
-        try {
-            const response = await apiRequest("/notifications/preferences");
-            if (response.success) {
-                setPreferences(response.preferences);
-            }
-        } catch (err) {
-            setError(
-                err instanceof Error
-                    ? err.message
-                    : "Failed to fetch notification preferences"
-            );
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    // Update notification preferences
-    const updateNotificationPreferences = useCallback(
-        async (newPreferences: Partial<NotificationPreferences>) => {
-            setLoading(true);
-            setError(null);
-
-            try {
-                const response = await apiRequest("/notifications/preferences", {
-                    method: "PUT",
-                    body: JSON.stringify(newPreferences),
-                });
-
-                if (response.success) {
-                    setPreferences(response.preferences);
-                } else {
-                    setError(response.message || "Failed to update notification preferences");
-                }
-            } catch (err) {
-                const errorMessage =
-                    err instanceof Error
-                        ? err.message
-                        : "Failed to update notification preferences";
-                setError(errorMessage);
-                throw new Error(errorMessage);
-            } finally {
-                setLoading(false);
-            }
-        },
-        []
-    );
-
+    // 🕒 Initial fetch + polling (optional)
     useEffect(() => {
-        getNotificationPreferences();
         fetchNotifications();
-
         const interval = setInterval(() => {
             fetchNotifications();
         }, 30000);
-
         return () => clearInterval(interval);
-    }, [getNotificationPreferences, fetchNotifications]);
+    }, [fetchNotifications]);
 
     return {
-        // Real-time notifications
         notifications,
         unreadCount,
+        loading,
+        error,
+        connected,
         fetchNotifications,
+        addNotification,
         markAsRead,
         markAllAsRead,
         deleteNotification,
-        addNotification,
-
-        // Notification preferences
-        preferences,
-        updateNotificationPreferences,
-        getNotificationPreferences,
-
-        // States
-        loading,
-        error,
-        connected
     };
 };
+
 
 // Hook for account verification
 export const useVerification = () => {
@@ -903,11 +776,11 @@ export const useVerification = () => {
 };
 
 // Combined hook for complete user management
-export const useUserService = () => {
+export const useUserService = (role: "mentor" | "mentee" | "innovator" | "problemSolver") => {
     const auth = useAuth();
     const profile = useProfile();
     const password = usePassword();
-    const notifications = useNotifications();
+    const notifications = useNotifications(role);
     const verification = useVerification();
 
     // Derived helpers that wrap the hooks
@@ -985,16 +858,13 @@ export const useUserService = () => {
         notifications: notifications.notifications,
         unreadNotificationsCount: notifications.unreadCount,
         fetchNotifications: notifications.fetchNotifications,
-        markNotificationAsRead: notifications.markAsRead,
-        markAllNotificationsAsRead: notifications.markAllAsRead,
-        deleteNotification: notifications.deleteNotification,
         notificationsLoading: notifications.loading,
         notificationsError: notifications.error,
 
         // ✅ Notification Preferences
-        notificationPreferences: notifications.preferences,
-        updateNotificationPreferences: notifications.updateNotificationPreferences,
-        refetchNotificationPreferences: notifications.getNotificationPreferences,
+        // notificationPreferences: notifications.preferences,
+        // updateNotificationPreferences: notifications.updateNotificationPreferences,
+        // refetchNotificationPreferences: notifications.getNotificationPreferences,
 
         // ✅ Verification
         requestVerification: verification.requestVerification,

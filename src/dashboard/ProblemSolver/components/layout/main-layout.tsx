@@ -46,7 +46,7 @@ export function MainLayout({children}: { children: React.ReactNode }) {
                                 {isDarkMode ? <Moon className="h-5 w-5 dashtext "/> :
                                     <Sun className="h-5 w-5 dashtext "/>}
                             </Button>
-                            <NotificationsDropdown/>
+                            <NotificationsDropdown role={"problemSolver"}/>
                             <UserNav/>
                         </div>
                     </div>

@@ -5,8 +5,10 @@ import {Button} from "@/components/ui/button";
 import {Sidebar} from "./sidebar";
 import {UserNav} from "./user-nav";
 import {MobileNav} from "./mobile-nav";
-import {NotificationsDropdown} from "../notifications-dropdown";
+import {NotificationsDropdown} from "@/dashboard/Innovator/components/notifications-dropdown";
 import {useSocket} from "@/hooks/useSocket";
+import {getSocket} from "@/lib/socket";
+import {toast} from "react-toastify";
 
 export function MainLayout({children}: { children: React.ReactNode }) {
     useSocket()
@@ -24,6 +26,29 @@ export function MainLayout({children}: { children: React.ReactNode }) {
             localStorage.setItem("theme", "light");
         }
     }, [isDarkMode]);
+
+    useEffect(() => {
+        const socket = getSocket();
+
+        // Basic session and notification events
+        socket.on("new_notification", (notif) => {
+            toast.info(notif.title || "New notification");
+        });
+
+        socket.on("session_request:new", (payload) => {
+            toast.info(payload.message || "New session request received!");
+        });
+
+        socket.on("session_request:confirmation", (payload) => {
+            toast.success(payload.message || "Session request confirmed!");
+        });
+
+        return () => {
+            socket.off("new_notification");
+            socket.off("session_request:new");
+            socket.off("session_request:confirmation");
+        };
+    }, []);
 
     return (
         <div className="min-h-screen">

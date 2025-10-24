@@ -16,7 +16,7 @@ import {Badge} from "@/dashboard/Innovator/components/ui/badge";
 import {useSessionRequests, SessionRequest, useMentorSessions} from "@/hooks/useMentor";
 import {Textarea} from "@/dashboard/Innovator/components/ui/textarea";
 import {toast} from 'react-hot-toast'
-
+import {getSocket} from "@/lib/socket";
 
 interface CounterProposalData {
     proposedDate: string;
@@ -433,7 +433,7 @@ export default function RequestsPage() {
     const [statusFilter, setStatusFilter] = useState<string>('');
     const limit = 10;
 
-    const {requests, pagination, loading, error, refetch} = useSessionRequests(
+    const {requests, pagination, loading, error, refetch, setRequests} = useSessionRequests(
         statusFilter || undefined,
         currentPage,
         limit
@@ -452,6 +452,29 @@ export default function RequestsPage() {
         }
     }, [requestIdFromState, requests]);
 
+    useEffect(() => {
+        const socket = getSocket();
+
+        const handleSessionUpdate = (payload: any) => {
+            console.log("mentor received session update:", payload);
+
+            setRequests((prev) =>
+                prev.map((req) =>
+                    req._id === payload.data.requestId ? {...req, status: payload.data.status} : req
+                )
+            )
+
+            toast.success(payload.message || "Session updated successfully");
+        }
+
+        // Register the event listener
+        socket.on("sessionUpdate", handleSessionUpdate);
+
+        // Return cleanup function that removes the listener
+        return () => {
+            socket.off("sessionUpdate", handleSessionUpdate);
+        };
+    }, [])
 
     if (error) {
         return (

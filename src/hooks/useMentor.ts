@@ -211,6 +211,7 @@ export const useSessionRequests = (status?: string, page: number = 1, limit: num
     return {
         requests,
         pagination,
+        setRequests,
         loading,
         error,
         refetch: fetchRequests,

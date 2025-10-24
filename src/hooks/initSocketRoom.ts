@@ -5,16 +5,16 @@ export function initSocketRoom(userId: string, role: "mentor" | "mentee" | "inno
 
     switch (role) {
         case "mentor":
-            socket.emit("join_mentor_room", `mentor_${userId}`);
+            socket.emit("join_mentor_room", userId);
             break;
         case "mentee":
-            socket.emit("join_mentee_room", `mentee_${userId}`);
+            socket.emit("join_mentee_room", userId);
             break;
         case "innovator":
-            socket.emit("join_innovator_room", `innovator_${userId}`);
+            socket.emit("join_innovator_room", userId);
             break;
         case "problemSolver":
-            socket.emit("join_solver_room", `solver_${userId}`);
+            socket.emit("join_solver_room", userId);
             break;
         default:
             console.warn("Unknown role:", role)

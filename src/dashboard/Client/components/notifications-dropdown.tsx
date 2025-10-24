@@ -50,9 +50,9 @@ export function NotificationsDropdown() {
         connected,
         markAsRead,
         markAllAsRead,
+        fetchNotifications,
         deleteNotification,
-        fetchNotifications
-    } = useNotifications()
+    } = useNotifications('mentee')
 
     const {handleNotificationClick} = useNotificationHandler()
 

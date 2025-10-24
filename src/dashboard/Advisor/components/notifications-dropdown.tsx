@@ -53,7 +53,7 @@ export function NotificationsDropdown() {
         markAllAsRead,
         deleteNotification,
         fetchNotifications
-    } = useNotifications()
+    } = useNotifications("mentor")
 
     const {handleNotificationClick} = useNotificationHandler()
 

@@ -18,8 +18,6 @@ export function MainLayout({children}: { children: React.ReactNode }) {
         () => localStorage.getItem("theme") === "dark"
     );
 
-    const {addNotification} = useNotifications()
-
     useEffect(() => {
         if (isDarkMode) {
             document.documentElement.classList.add("dark");
@@ -35,7 +33,7 @@ export function MainLayout({children}: { children: React.ReactNode }) {
         const socket = getSocket()
 
         socket.on("new_notification", (notif) => {
-            addNotification(notif)
+            // addNotification(notif)
             toast.info(notif.title || "New notification")
         })
 
