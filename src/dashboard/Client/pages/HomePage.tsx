@@ -49,8 +49,6 @@ export default function HomePage() {
     const storedUser = JSON.parse(localStorage.getItem('user') || '{}')
     const menteeId = storedUser?._id
 
-    console.log("Mentee ID:", menteeId)
-
     const {events} = useMenteeDashboardSocket(menteeId)
     const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false)
 
@@ -121,21 +119,29 @@ export default function HomePage() {
                                 </p>
                             ) : (
                                 <div className={'space-y-4'}>
-                                    {sessions.map((session) => (
-                                        <SessionCard
-                                            key={session._id}
-                                            mentor={{
-                                                name: `${session.mentor.firstName} ${session.mentor.lastName}`,
-                                                initial: session.mentor.firstName[0],
-                                            }}
-                                            title={session.topic}
-                                            date={new Date(session.requestedDate).toLocaleDateString()}
-                                            time={new Date(session.requestedDate).toLocaleTimeString()}
-                                            duration={`${session.duration} mins`}
-                                            status={session.status}
-                                            onCompletePayment={() => setIsPaymentDialogOpen(true)}
-                                        />
-                                    ))}
+                                    {sessions.map((session) => {
+                                        const sessionDate = session.scheduledDate || session.requestedDate || session.date
+                                        const dateObj = new Date(sessionDate)
+
+                                        const formattedDate = isNaN(dateObj.getTime()) ? "N/A" : dateObj.toLocaleDateString()
+                                        const formattedTime = isNaN(dateObj.getTime()) ? "N/A" : dateObj.toLocaleTimeString([], {hour: "2-digit", minute: '2-digit'})
+
+                                        return (
+                                            <SessionCard
+                                                key={session._id}
+                                                mentor={{
+                                                    name: `${session.mentor.firstName} ${session.mentor.lastName}`,
+                                                    initial: session.mentor.firstName?.[0] || "M",
+                                                }}
+                                                title={session.topic || "Untitled Session"}
+                                                date={formattedDate}
+                                                time={formattedTime}
+                                                duration={`${session.duration || 0} mins`}
+                                                status={session.status || 'confirmed'}
+                                                onCompletePayment={() => setIsPaymentDialogOpen(true)}
+                                            />
+                                        )
+                                    })}
                                 </div>
                             )}
                         </div>

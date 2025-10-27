@@ -178,7 +178,6 @@ export function NotificationsDropdown() {
                                 key={notification._id}
                                 onSelect={(e) => {
                                     e.preventDefault()
-                                    console.log("Clicked notification:", notification._id)
                                     handleNotificationSelect(notification)
                                 }}
                                 className={`flex cursor-pointer flex-col border-b gap-2 focus:secondbg relative group ${

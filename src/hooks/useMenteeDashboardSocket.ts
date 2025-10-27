@@ -21,29 +21,27 @@ export function useMenteeDashboardSocket(menteeId: string) {
 
         // ✅ Dashboard updates
         const handleDashboardUpdate = (data: any) => {
-            console.log("🔔 Dashboard update received:", data)
-            toast.success(data.message || "Dashboard updated")
+            toast.success(data.message || "Dashboard updated");
             setEvents((prev) => [...prev, data])
         }
 
         // ✅ Session updates
         const handleSessionUpdate = (data: any) => {
-            console.log("🎯 Session update received:", data)
-            toast.success(data.message || "Session updated")
-            setEvents((prev) => [...prev, data])
+            toast.success(data.message || "Session updated");
+            setEvents((prev) => [...prev, data]);
         }
 
         // ✅ Register listeners
-        socket.on("dashboard_update", handleDashboardUpdate)
-        socket.on("session_updated", handleSessionUpdate)
+        socket.on("dashboard_update", handleDashboardUpdate);
+        socket.on("session_updated", handleSessionUpdate);
 
         // ✅ Clean up listeners properly
         return () => {
-            socket.emit("leave_mentee_room", menteeId)
-            socket.off("dashboard_update", handleDashboardUpdate)
-            socket.off("session_updated", handleSessionUpdate)
+            socket.emit("leave_mentee_room", menteeId);
+            socket.off("dashboard_update", handleDashboardUpdate);
+            socket.off("session_updated", handleSessionUpdate);
         }
-    }, [menteeId])
+    }, [menteeId]);
 
     return { events }
 }
@@ -53,9 +51,14 @@ export function useSessionSocket(menteeId: string, onUpdate: (data: SessionEvent
         if (!menteeId) return
 
         const socket = getSocket()
-        const handle = (data: SessionEvent) => onUpdate?.(data)
+        socket.emit("join_mentee_room", menteeId)
 
-        socket.on("session_updated", handle)
+        const handle = (data: SessionEvent) => {
+            console.log("mentee received session update:", data)
+            onUpdate?.(data)
+        }
+
+        socket.on("session_update", handle)
 
         return () => {
             socket.off("session_updated", handle)

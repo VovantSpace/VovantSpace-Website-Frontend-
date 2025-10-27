@@ -542,7 +542,7 @@ export const usePassword = () => {
 
 // Hook for notifications
 export const useNotifications = (
-    role: "mentor" | "mentee" | "innovator" | "problemSolver"
+    initialRole?: "mentor" | "mentee" | "innovator" | "problemSolver"
 ) => {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
@@ -552,13 +552,25 @@ export const useNotifications = (
 
     const { user, isAuthenticated } = useAuth();
 
+    const normalizeRole = (role?: string): "mentor" | "mentee" | "innovator" | "problemSolver" => {
+        if (!role) return "mentee";
+        const r = role.toLowerCase();
+        if (r.includes("mentor") || r.includes("advisor")) return "mentor";
+        if (r.includes("client") || r.includes("mentee")) return "mentee";
+        if (r.includes("innovator")) return "innovator";
+        if (r.includes("solver") || r.includes("problem")) return "problemSolver";
+        return "mentee";
+    };
+
+    // ✅ Role must be defined BEFORE callbacks use it
+    const role = initialRole || normalizeRole(user?.role);
+    console.log("🚀 useNotifications initialized with role:", role);
+
     // 🔗 FETCH notifications from API
     const fetchNotifications = useCallback(async () => {
         try {
             setLoading(true);
-            const response: NotificationResponse = await notificationApiRequest(
-                `?role=${role}`
-            );
+            const response: NotificationResponse = await notificationApiRequest(`?role=${role}`);
             if (response.success) {
                 setNotifications(response.notification);
                 setUnreadCount(response.unreadCount);
@@ -575,31 +587,25 @@ export const useNotifications = (
         (notification: Notification) => {
             if (notification.role && notification.role !== role) return;
             setNotifications((prev) => [notification, ...prev]);
-            if (!notification.isRead)
-                setUnreadCount((prev) => Math.max(0, prev + 1));
+            if (!notification.isRead) setUnreadCount((prev) => Math.max(0, prev + 1));
         },
         [role]
     );
 
     // ✅ Mark as read
     const markAsRead = useCallback(async (id: string) => {
-        const response = await notificationApiRequest(`/${id}/read`, {
-            method: "PATCH",
-        });
+        const response = await notificationApiRequest(`/${id}/read`, { method: "PATCH" });
         if (response.success) {
-            setNotifications((prev) =>
-                prev.map((n) => (n._id === id ? { ...n, isRead: true } : n))
-            );
+            setNotifications((prev) => prev.map((n) => (n._id === id ? { ...n, isRead: true } : n)));
             setUnreadCount((prev) => Math.max(0, prev - 1));
         }
     }, []);
 
     // ✅ Mark all as read
     const markAllAsRead = useCallback(async () => {
-        const response = await notificationApiRequest(
-            `/mark-all-read?role=${role}`,
-            { method: "PATCH" }
-        );
+        const response = await notificationApiRequest(`/mark-all-read?role=${role}`, {
+            method: "PATCH",
+        });
         if (response.success) {
             setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
             setUnreadCount(0);
@@ -608,9 +614,7 @@ export const useNotifications = (
 
     // 🗑 Delete notification
     const deleteNotification = useCallback(async (id: string) => {
-        const response = await notificationApiRequest(`/${id}`, {
-            method: "DELETE",
-        });
+        const response = await notificationApiRequest(`/${id}`, { method: "DELETE" });
         if (response.success) {
             setNotifications((prev) => prev.filter((n) => n._id !== id));
         }
@@ -649,7 +653,6 @@ export const useNotifications = (
         socket.on("disconnect", handleDisconnect);
         socket.on("new_notification", handleNewNotification);
 
-        // cleanup
         return () => {
             socket.off("connect", handleConnect);
             socket.off("disconnect", handleDisconnect);
@@ -660,9 +663,7 @@ export const useNotifications = (
     // 🕒 Initial fetch + polling (optional)
     useEffect(() => {
         fetchNotifications();
-        const interval = setInterval(() => {
-            fetchNotifications();
-        }, 30000);
+        const interval = setInterval(fetchNotifications, 30000);
         return () => clearInterval(interval);
     }, [fetchNotifications]);
 
@@ -679,6 +680,7 @@ export const useNotifications = (
         deleteNotification,
     };
 };
+
 
 
 // Hook for account verification

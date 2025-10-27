@@ -12,9 +12,9 @@ interface SessionCardProps {
   };
   title: string;
   date: string;
-  time: string;
-  duration: string;
-  status: "confirmed" | "completed" | "cancelled" | "pending_payment";
+  time?: string;
+  duration?: string;
+  status?: "confirmed" | "completed" | "cancelled" | "pending_payment";
   review?: {
     text: string;
     rating: number;
@@ -50,6 +50,25 @@ export function SessionCard({
     return () => clearInterval(timer);
   }, [remainingTime]);
 
+  const now = new Date();
+  const start = new Date(date)
+    const durationMins = parseInt(duration?.split(" ")[0] || "0", 10);
+  const end = new Date(start.getTime() + durationMins * 60 * 1000);
+
+  let computedStatus: "upcoming" | "ongoing" | "completed" | "expired" | "pending_payment" = "upcoming";
+
+  if (paymentRequired) {
+      computedStatus = "pending_payment";
+  } else if (now < start) {
+      computedStatus = "upcoming";
+  } else if (now >= start && now <= end) {
+      computedStatus = "ongoing";
+  } else if (now > end) {
+      computedStatus = "completed";
+  }
+
+  const finalStatus = status || computedStatus;
+
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -82,7 +101,7 @@ export function SessionCard({
             </div>
           </div>
         </div>
-        <StatusBadge status={status} className="border-gray-700 dark:border-gray-300 text-center" />
+        <StatusBadge status={finalStatus} className="border-gray-700 dark:border-gray-300 text-center" />
       </div>
 
       {review && (

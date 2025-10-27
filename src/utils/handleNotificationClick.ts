@@ -9,7 +9,9 @@ export const useNotificationHandler = () => {
             return;
         }
 
-        const { type, metaData } = notification;
+        const { type, metaData, role } = notification;
+        const storedUser = JSON.parse(localStorage.getItem("user") || "{}")
+        const userRole = storedUser?.role?.toLowerCase();
 
         console.group("🔔 Notification Click Debug");
         console.log("Type:", type);
@@ -22,6 +24,8 @@ export const useNotificationHandler = () => {
         // Safely extract possible IDs
         const requestId = data.requestId || data.sessionId || data.newSessionId;
 
+        const normalizedRole = (role || "").toLowerCase();
+
         // Always log which ID we ended up with
         console.log("🧭 Extracted session/request ID:", requestId);
 
@@ -29,10 +33,12 @@ export const useNotificationHandler = () => {
             // ✅ Handle both "session" and "session_request"
             case "session_request":
             case "session": {
-                if (requestId) {
-                    navigate("/dashboard/advisor/requests", {state: {requestId}});
+                if(normalizedRole.includes("mentor") || normalizedRole.includes('advisor')) {
+                    navigate('/dashboard/advisor/requests', {state: {requestId}});
+                } else if (normalizedRole.includes("mentee") || normalizedRole.includes('client')) {
+                    navigate('/dashboard/client/my-sessions', {state: {requestId}});
                 } else {
-                    console.warn("⚠️ No valid session or request ID found:", data);
+                    console.warn("⚠️ Unknown role:", role);
                 }
                 break;
             }
