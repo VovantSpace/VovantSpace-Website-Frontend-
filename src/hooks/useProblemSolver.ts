@@ -87,7 +87,7 @@ export const useExploreChallenges = (
 
     useEffect(() => {
         fetchChallenges();
-        // 👇 stringify filters so effect runs only when values change
+        // 👇 stringify filters so effects runs only when values change
     }, [page, limit, JSON.stringify(filters)]);
 
     return {challenges, pagination, loading, isFirstLoad, error, refetch: fetchChallenges};

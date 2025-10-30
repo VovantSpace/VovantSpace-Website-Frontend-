@@ -7,6 +7,8 @@ let socket: Socket | null = null;
 
 export function getSocket(): Socket {
     if (!socket) {
+
+        const token = localStorage.getItem("token");
         socket = io(SOCKET_URL, {
             withCredentials: true,
             reconnection: true,
@@ -16,7 +18,14 @@ export function getSocket(): Socket {
             randomizationFactor: 0.5,
             autoConnect: true,
             transports: ['websocket', 'polling'],
+            auth: {
+                token: token
+            }
         })
+
+        socket.onAny((event, data) => {
+            console.log("📡 Socket Event Received:", event, data);
+        });
 
         socket.on("connect", () => console.log("Socket connected:", socket?.id))
         socket.on("disconnect", (reason => console.log("Socket disconnected: ", reason)))
@@ -27,7 +36,6 @@ export function getSocket(): Socket {
     return socket
 }
 
-
 export function disconnectSocket() {
     if (socket) {
         socket.disconnect()
@@ -35,4 +43,3 @@ export function disconnectSocket() {
         socket = null
     }
 }
-

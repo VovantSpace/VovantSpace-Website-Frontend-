@@ -12,6 +12,7 @@ export function useSocket() {
         if (!user?._id || !user.role) return;
 
         const normalizedRole = normalizeRole(user.role);
+        const roomName = `${normalizedRole}_${user._id}`
 
         // connect & join the correct socket room
         if (!socket.connected) socket.connect();
@@ -22,9 +23,14 @@ export function useSocket() {
         socket.on("disconnect", (reason) =>
             console.log("⚠️ Socket disconnected:", reason)
         );
+
         socket.on("connect_error", (err) =>
             console.error("❌ Socket connection error:", err)
         );
+
+        console.log("🧩 useSocket user:", user);
+        console.log("🧩 normalizeRole output:", normalizedRole);
+
 
         initSocketRoom(user._id, normalizedRole);
 
@@ -53,26 +59,19 @@ export function useSocket() {
             socket.off("new_notification");
             socket.off("session_updated");
             socket.off("session_request:update");
-            socket.disconnect();
+            // socket.disconnect();
         };
     }, [user]);
 }
 
 // Helper to align backend role names
 function normalizeRole(role: string): "mentor" | "mentee" | "innovator" | "problemSolver" {
-    switch (role.toLowerCase()) {
-        case "advisor":
-        case "mentor":
-            return "mentor";
-        case "client":
-        case "mentee":
-            return "mentee";
-        case "innovator":
-            return "innovator";
-        case "ps":
-        case "problemsolver":
-            return "problemSolver";
-        default:
-            return "mentee";
-    }
+    const r = role.toLowerCase();
+
+    if (r.includes("mentor") || r.includes("advisor")) return "mentor";
+    if (r.includes("mentee") || r.includes("client")) return "mentee";
+    if (r.includes("innovator")) return "innovator";
+    if (r.includes("solver") || r.includes("ps") || r.includes("problem")) return "problemSolver";
+
+    return "mentee";
 }
