@@ -195,3 +195,36 @@ export const useProblemSolverProfile = () => {
 
     return { profile, loading, error, refetch: fetchProfile };
 };
+
+export const useChallengeSubmissions = (challengeId?: string) => {
+    const [submissions, setSubmissions] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null)
+
+    const fetchSubmissions = useCallback(async () => {
+        if (!challengeId) return;
+
+        try {
+            setLoading(true);
+            const res = await api.get(`${API_BASE_URL}/api/problem-solvers/challenges/${challengeId}/submissions`, {
+                withCredentials: true,
+            })
+
+            if (res.data.success) {
+                setSubmissions(res.data.data.submissions || [])
+            } else {
+                setError(res.data.message);
+            }
+        } catch (err: any) {
+            setError(err.response?.data?.message || "Failed to fetch submissions")
+        } finally {
+            setLoading(false)
+        }
+    }, [challengeId]);
+
+    useEffect(() => {
+        fetchSubmissions();
+    }, [fetchSubmissions]);
+
+    return {submissions, loading, error, refetch: fetchSubmissions}
+}

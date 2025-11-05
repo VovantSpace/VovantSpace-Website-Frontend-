@@ -1,4 +1,4 @@
-import {Bell, Trash, CheckCheck, Loader2} from "lucide-react"
+import {Bell, Trash, CheckCheck, Loader2, Wifi, WifiOff} from "lucide-react"
 import {format, formatDistanceToNow} from "date-fns"
 import React from 'react'
 import {
@@ -9,10 +9,12 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/dashboard/Innovator/components/ui/dropdown-menu"
-import {Button} from "@/dashboard/Innovator/components/ui/button"
+import {Button} from "@/dashboard/ProblemSolver/components/ui/button"
 import {ScrollArea} from "@/dashboard/Innovator/components/ui/scroll-area"
 import {Badge} from '@/dashboard/Innovator/components/ui/badge'
-import {useNotifications} from "@/hooks/userService";
+import {useNotifications} from '@/hooks/userService'
+import {useNotificationHandler} from "@/utils/handleNotificationClick";
+
 
 const getNotificationTypeColor = (type: string) => {
     const colors = {
@@ -34,6 +36,8 @@ const getNotificationIcon = (type: string) => {
         message: "💬",
         challenge: "🎯",
         system: "🔔",
+        session: "📅",
+        mentor: "👨‍🏫",
     }
     return icons[type as keyof typeof icons] || icons.system
 }
@@ -49,27 +53,43 @@ export function NotificationsDropdown() {
         markAllAsRead,
         deleteNotification,
         fetchNotifications
-    } = useNotifications('innovator')
+    } = useNotifications("innovator")
 
-    const handleNotificationClick = async (notificationId: string, isRead: boolean) => {
-        if (!isRead) {
-            await markAsRead(notificationId)
+    const {handleNotificationClick} = useNotificationHandler()
+
+    const handleNotificationSelect = async (notification: any) => {
+        try {
+            if (!notification.isRead) {
+                await markAsRead(notification._id)
+            }
+
+            // Navigate to the notification's link
+            handleNotificationClick(notification)
+        } catch (err) {
+            console.error('Failed to handle notification selection:', err)
         }
     }
 
     const handleDeleteNotification = async (notificationId: string, event: React.MouseEvent) => {
         event.stopPropagation()
-        await deleteNotification(notificationId)
+        try {
+            await deleteNotification(notificationId)
+        } catch (err) {
+            console.error('Failed to delete notification:', err)
+        }
     }
 
     const handleMarkAllAsRead = async () => {
-        await markAllAsRead()
+        try {
+            await markAllAsRead()
+        } catch (err) {
+            console.error('Failed to mark all notifications as read:', err)
+        }
     }
 
     const handleRefresh = () => {
         fetchNotifications()
     }
-
 
     return (
         <DropdownMenu>
@@ -92,6 +112,11 @@ export function NotificationsDropdown() {
                         <div className={'flex items-center gap-2'}>
                             <h4 className="text-lg font-semibold dark:text-black">Notifications</h4>
                             {loading && <Loader2 className={'h-4 w-4 animate-spin'}/>}
+                            {/*{connected ? (*/}
+                            {/*    <Wifi className={'h-4 w-4 text-green-500'} />*/}
+                            {/*) : (*/}
+                            {/*    <WifiOff className={'h-4 w-4 text-red-500'}/>*/}
+                            {/*)}*/}
                         </div>
                         <div className={'flex gap-1'}>
                             <Button
@@ -116,7 +141,6 @@ export function NotificationsDropdown() {
                                 </Button>
                             )}
                         </div>
-
                     </div>
                 </DropdownMenuLabel>
 
@@ -124,7 +148,7 @@ export function NotificationsDropdown() {
 
                 {error && (
                     <div className={'p-4 text-center'}>
-                        <p className={'text-sm text-red-500 mb-2'}>Failed to load notifications</p>
+                        <p className={'text-sm text-red-500 mb-2'}>{error}</p>
                         <Button
                             variant={'outline'}
                             size={'sm'}
@@ -150,10 +174,15 @@ export function NotificationsDropdown() {
                         {notifications.map((notification) => (
                             <DropdownMenuItem
                                 key={notification._id}
+                                onSelect={(e) => {
+                                    e.preventDefault()
+                                    console.log("Clicked notification:", notification._id)
+                                    handleNotificationSelect(notification)
+                                }}
                                 className={`flex cursor-pointer flex-col border-b gap-2 focus:secondbg relative group ${
                                     !notification.isRead ? 'bg-blue-50 dark:bg-blue-950/20' : ''
                                 }`}
-                                onClick={() => handleNotificationClick(notification._id, notification.isRead)}
+                                onClick={() => handleNotificationSelect(notification)}
                             >
                                 {/*Unread indicator*/}
                                 {!notification.isRead && (

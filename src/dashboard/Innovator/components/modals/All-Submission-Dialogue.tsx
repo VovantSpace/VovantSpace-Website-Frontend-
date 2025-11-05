@@ -1,70 +1,130 @@
-import { useState } from 'react'
-import { ChevronRight, BadgeCheck, X } from 'lucide-react'
-import { Button } from '@innovator/components/ui/button'
-import { Avatar, AvatarImage } from '@innovator/components/ui/avatar'
-import { Badge } from '@innovator/components/ui/badge'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@innovator/components/ui/dialog"
-import { SubmissionDetailsDialog } from './SubmissionDetailsDialog'
+import { useState, useEffect } from "react"
+import { ChevronRight } from "lucide-react"
+import { Button } from "@/dashboard/Innovator/components/ui/button"
+import { Avatar, AvatarImage } from "@/dashboard/Innovator/components/ui/avatar"
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from "@/dashboard/Innovator/components/ui/dialog"
+import { SubmissionDetailsDialog } from "./SubmissionDetailsDialog"
+import { Submission } from "@/types/submission"
+import {getImageUrl} from '@/utils/imageHelpers';
 
-export function AllSubmissionsDialog({ submissions, isOpen, onClose, onApprove, onReject }) {
-  const [selectedSubmission, setSelectedSubmission] = useState(null)
+interface AllSubmissionsDialogProps {
+    submissions: Submission[]
+    isOpen: boolean
+    onClose: () => void
+    onApprove?: (submission: Submission) => void
+    onReject?: (submission: Submission) => void
+}
 
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="secondbg dashtext md:max-w-2xl max-h-[90vh] overflow-y-auto border-[#2a3142]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center justify-between text-xl">
-            All Submissions
-          </DialogTitle>
-        </DialogHeader>
+export function AllSubmissionsDialog({
+                                         submissions,
+                                         isOpen,
+                                         onClose,
+                                         onApprove,
+                                         onReject,
+                                     }: AllSubmissionsDialogProps) {
+    const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null)
 
-        <div className="space-y-4">
-          {submissions.map((submission) => (
-            <div key={submission.id} className="secondbg p-4 rounded-xl flex items-center hover:bg-[#1a2230] transition-colors border border-[#2a3142]">
-              <div className='md:flex items-center justify-between w-full'>
-                <div>
-                  <Avatar className="h-14 w-14 mr-4 border dashborder ">
-                    <AvatarImage src={submission.image} />
+    const safeSubmissions = Array.isArray(submissions) ? submissions : []
 
-                  </Avatar>
+    useEffect(() => {
+        if (!open) {
+            setSelectedSubmission(null)
+        }
+    }, [isOpen])
 
-                  <div className="flex-grow">
-                    <div className="flex items-center ">
-                      <h2 className="text-lg font-semibold flex mt-2 items-center gap-2 dashtext">
-                        {submission.name}
+    return (
+        <>
+            {/* =================== MAIN DIALOG =================== */}
+            <Dialog open={isOpen} onOpenChange={onClose}>
+                <DialogContent className="secondbg dashtext md:max-w-2xl max-h-[90vh] overflow-y-auto border-[#2a3142] transition-all duration-300">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center justify-between text-xl">
+                            All Submissions
+                        </DialogTitle>
+                    </DialogHeader>
 
-                      </h2>
+                    <div className="space-y-4">
+                        {safeSubmissions.length === 0 ? (
+                            <p className="text-sm text-gray-400 text-center">No submissions yet.</p>
+                        ) : (
+                            safeSubmissions.map((submission) => (
+                                <div
+                                    key={submission._id}
+                                    className="secondbg p-4 rounded-xl flex items-center hover:bg-[#1a2230] transition-colors border border-[#2a3142]"
+                                >
+                                    <div className="md:flex items-center justify-between w-full">
+                                        {/* === Avatar + Info === */}
+                                        <div className="flex items-center gap-4">
+                                            <Avatar className="h-14 w-14 border dashborder">
+                                                <AvatarImage
+                                                    src={getImageUrl(
+                                                        submission.problemSolver?.profilePicture,
+                                                        `${submission.problemSolver?.firstName} ${submission.problemSolver?.lastName}`
+                                                    )}
+                                                />
+                                            </Avatar>
+
+                                            <div>
+                                                <h2 className="text-lg font-semibold dashtext flex items-center gap-2">
+                                                    {submission.problemSolver?.firstName}{" "}
+                                                    {submission.problemSolver?.lastName}
+                                                </h2>
+                                                <p className="text-[#6b7280] text-sm">
+                                                    {submission.problemSolver?.title || "No title"}
+                                                </p>
+                                                <div className="flex items-center mt-2 gap-2 text-sm text-[#6b7280]">
+                                                    <span>{submission.problemSolver?.rate || "—"}$</span>
+                                                    <div className="h-1 w-1 bg-[#4a5568] rounded-full" />
+                                                    <span>
+                            {submission.problemSolver?.successRate || "—"} Job Success
+                          </span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* === Action Buttons === */}
+                                        <div className="flex gap-2 md:mt-0 mt-6">
+                                            <Button
+                                                variant="outline"
+                                                className="dashbutton text-white border"
+                                                onClick={() => {
+                                                    console.log("✅ Selected submission:", submission)
+                                                    setSelectedSubmission(submission)
+                                                }}
+                                            >
+                                                <span>Details</span>
+                                                <ChevronRight className="h-4 w-4 text-[#6b7280]" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
+                        )}
                     </div>
-                    <p className="text-[#6b7280] text-sm">{submission.title}</p>
-                    <div className="flex items-center mt-2 gap-2 text-sm">
-                      <span className="text-[#6b7280]">{submission.rate}$</span>
-                      <div className="h-1 w-1 bg-[#4a5568] rounded-full" />
-                      <span className="text-[#6b7280]">{submission.successRate} Job Success</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex gap-2 md:mt-0 mt-6">
-                  <div className="flex flex-col items-center justify-center gap-2 ">
-                    <Button
-                      variant="outline"
-                      className=" dashbutton text-white border "
-                      onClick={() => setSelectedSubmission(submission)}
-                    >
-                      <span>Details</span>
-                      <ChevronRight className="h-4 w-4 text-[#6b7280]" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+                </DialogContent>
+            </Dialog>
 
-        <SubmissionDetailsDialog
-            submission={selectedSubmission}
-            isOpen={!!selectedSubmission}
-            onClose={() => setSelectedSubmission(null)} onApprove={undefined} onReject={undefined}        />
-      </DialogContent>
-    </Dialog>
-  )
+            {/* =================== CHILD DIALOG (DETAILS) =================== */}
+            {selectedSubmission && (
+                <SubmissionDetailsDialog
+                    submission={selectedSubmission}
+                    isOpen={!!selectedSubmission}
+                    onClose={() => setSelectedSubmission(null)}
+                    onApprove={(sub) => {
+                        onApprove?.(sub)
+                        setSelectedSubmission(null) // auto-close after approve
+                    }}
+                    onReject={(sub) => {
+                        onReject?.(sub)
+                        setSelectedSubmission(null) // auto-close after reject
+                    }}
+                />
+            )}
+        </>
+    )
 }

@@ -1,5 +1,4 @@
-
-import axios, { AxiosResponse } from 'axios';
+import axios, {AxiosResponse} from 'axios';
 
 const API_BASE_URL = import.meta.env.API_BASE_URL || 'http://localhost:8000/api';
 
@@ -133,15 +132,26 @@ export const challengeApi = {
         return response.data;
     },
 
+    // Get all submissions for a specific challenge
+    getChallengeSubmissions: async (challengeId: string): Promise<ApiResponse<{ submissions: any[] }>> => {
+        const response: AxiosResponse<ApiResponse<{ submissions: any[] }>> = await api.get(
+            `/challenges/${challengeId}/submissions`
+        )
+        return response.data;
+    },
+
     // Update challenge status
     updateChallengeStatus: async (id: string, status: string): Promise<ApiResponse> => {
-        const response: AxiosResponse<ApiResponse> = await api.put(`/challenges/${id}/status`, { status });
+        const response: AxiosResponse<ApiResponse> = await api.put(`/challenges/${id}/status`, {status});
         return response.data;
     },
 
     // Complete challenge
-    completeChallenge: async (id: string, winners: Array<{ problemSolver: string, reward: number }>): Promise<ApiResponse> => {
-        const response: AxiosResponse<ApiResponse> = await api.put(`/challenges/${id}/complete`, { winners });
+    completeChallenge: async (id: string, winners: Array<{
+        problemSolver: string,
+        reward: number
+    }>): Promise<ApiResponse> => {
+        const response: AxiosResponse<ApiResponse> = await api.put(`/challenges/${id}/complete`, {winners});
         return response.data;
     },
 
@@ -153,23 +163,26 @@ export const challengeApi = {
 
     // Promote the challenge
     promoteChallenge: async (id: string, promotionType: string, duration: number): Promise<ApiResponse> => {
-        const response: AxiosResponse<ApiResponse> = await api.put(`/challenges/${id}/promote`, { promotionType, duration });
+        const response: AxiosResponse<ApiResponse> = await api.put(`/challenges/${id}/promote`, {
+            promotionType,
+            duration
+        });
         return response.data;
     },
 
     // Review submission
     reviewSubmission: async (challengeId: string, submissionId: string, action: 'approve' | 'reject'): Promise<ApiResponse> => {
-        const response: AxiosResponse<ApiResponse> = await api.put(`/challenges/${challengeId}/submissions/${submissionId}`, { action });
+        const response: AxiosResponse<ApiResponse> = await api.put(`/challenges/${challengeId}/submissions/${submissionId}`, {action});
         return response.data;
     },
 
     // Get challenge analytics
     getChallengeAnalytics: async (timeRange?: string): Promise<ApiResponse<any>> => {
         const response: AxiosResponse<ApiResponse<any>> = await api.get('/challenges/analytics', {
-            params: { timeRange }
+            params: {timeRange}
         });
         return response.data;
-    }
+    },
 };
 
 // Dashboard API endpoints
@@ -187,7 +200,7 @@ export const dashboardApi = {
         status?: string;
         sortBy?: string;
     }): Promise<ApiResponse<any>> => {
-        const response: AxiosResponse<ApiResponse<any>> = await api.get('/dashboard/challenges', { params });
+        const response: AxiosResponse<ApiResponse<any>> = await api.get('/dashboard/challenges', {params});
         return response.data;
     },
 

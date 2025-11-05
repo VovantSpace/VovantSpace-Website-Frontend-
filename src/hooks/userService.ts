@@ -39,6 +39,10 @@ export interface User {
     createdAt: string;
     updatedAt: string;
 
+    country: string;
+    title: string;
+    image?: string;
+
     education?: Education[];
     certification?: Certification[];
     workExperience?: WorkExperience[];

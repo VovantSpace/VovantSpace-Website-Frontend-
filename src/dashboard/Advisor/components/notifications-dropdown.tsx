@@ -57,8 +57,6 @@ export function NotificationsDropdown() {
 
     const {handleNotificationClick} = useNotificationHandler()
 
-
-
     const handleNotificationSelect = async (notification: any) => {
         try {
             if (!notification.isRead) {

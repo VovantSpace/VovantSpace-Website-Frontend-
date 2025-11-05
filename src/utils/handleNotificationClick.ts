@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import {useNavigate} from "react-router-dom";
 
 export const useNotificationHandler = () => {
     const navigate = useNavigate();
@@ -9,7 +9,7 @@ export const useNotificationHandler = () => {
             return;
         }
 
-        const { type, metaData, role } = notification;
+        const {type, metaData, role} = notification;
         const storedUser = JSON.parse(localStorage.getItem("user") || "{}")
         const userRole = storedUser?.role?.toLowerCase();
 
@@ -33,7 +33,7 @@ export const useNotificationHandler = () => {
             // ✅ Handle both "session" and "session_request"
             case "session_request":
             case "session": {
-                if(normalizedRole.includes("mentor") || normalizedRole.includes('advisor')) {
+                if (normalizedRole.includes("mentor") || normalizedRole.includes('advisor')) {
                     navigate('/dashboard/advisor/requests', {state: {requestId}});
                 } else if (normalizedRole.includes("mentee") || normalizedRole.includes('client')) {
                     navigate('/dashboard/client/my-sessions', {state: {requestId}});
@@ -45,7 +45,9 @@ export const useNotificationHandler = () => {
 
             case "challenge": {
                 if (data.challengeId) {
-                    navigate(`/innovator/challenges/${data.challengeId}`);
+                    navigate("/dashboard/innovator/my-challenges", {
+                        state: {challengeId: data.challengeId},
+                    });
                 } else {
                     console.warn("⚠️ Missing challengeId:", data);
                 }
@@ -68,5 +70,5 @@ export const useNotificationHandler = () => {
         }
     };
 
-    return { handleNotificationClick };
+    return {handleNotificationClick};
 };
