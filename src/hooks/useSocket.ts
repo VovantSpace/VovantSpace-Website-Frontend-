@@ -1,11 +1,11 @@
-import { useEffect } from "react";
-import { getSocket } from '@/lib/socket';
-import { initSocketRoom } from "@/hooks/initSocketRoom";
-import { useAuth } from "@/hooks/userService";
-import { toast } from "react-toastify";
+import {useEffect} from "react";
+import {getSocket} from '@/lib/socket';
+import {initSocketRoom} from "@/hooks/initSocketRoom";
+import {useAuth} from "@/hooks/userService";
+import {toast} from "react-toastify";
 
 export function useSocket() {
-    const { user } = useAuth();
+    const {user} = useAuth();
     const socket = getSocket();
 
     useEffect(() => {
@@ -17,9 +17,12 @@ export function useSocket() {
         // connect & join the correct socket room
         if (!socket.connected) socket.connect();
 
-        socket.on("connect", () =>
-            console.log(`✅ Socket connected: ${socket.id}`)
+        socket.on("connect", () => {
+                console.log(`✅ Socket connected: ${socket.id}`)
+                initSocketRoom(user._id, normalizedRole);
+            }
         );
+
         socket.on("disconnect", (reason) =>
             console.log("⚠️ Socket disconnected:", reason)
         );
@@ -28,11 +31,6 @@ export function useSocket() {
             console.error("❌ Socket connection error:", err)
         );
 
-        console.log("🧩 useSocket user:", user);
-        console.log("🧩 normalizeRole output:", normalizedRole);
-
-
-        initSocketRoom(user._id, normalizedRole);
 
         socket.on("new_notification", (notification) => {
             console.log(`[${normalizedRole}] notification received:`, notification);

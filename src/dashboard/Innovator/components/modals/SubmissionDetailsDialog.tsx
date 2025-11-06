@@ -56,28 +56,7 @@ export function SubmissionDetailsDialog({
         };
 
         fetchProfile();
-    }, [submission]);
-
-    // // ✅ Utility: Get the clean profile picture or fallback avatar
-    // const getProfileImage = () => {
-    //     const name =
-    //         `${profileData?.firstName || submission?.problemSolver?.firstName || ""} ${
-    //             profileData?.lastName || submission?.problemSolver?.lastName || ""
-    //         }`.trim();
-    //
-    //     return (
-    //         profileData?.profilePicture ||
-    //         profileData?.image ||
-    //         submission?.problemSolver?.profilePicture ||
-    //         submission?.problemSolver?.image ||
-    //         `https://ui-avatars.com/api/?background=0D8ABC&color=fff&name=${encodeURIComponent(name)}`
-    //     );
-    // };
-
-    useEffect(() => {
-        console.log("Submission problem solver:", submission?.problemSolver)
-        console.log("loading profile data:", profileData)
-    }, [submission, profileData])
+    }, [submission])
 
     // ✅ Utility: Safely get a full name
     const getFullName = () => {

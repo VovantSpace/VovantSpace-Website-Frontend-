@@ -125,7 +125,8 @@ return {
     duplicateChallenge,
     promoteChallenge,
     pauseChallenge,
-    normalizeChallenge
+    normalizeChallenge,
+    setChallenges
 }
 }
 

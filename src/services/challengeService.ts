@@ -52,10 +52,7 @@ export interface Challenge {
     description: string;
     industry: string;
     requiredSkills: string[];
-    skillBudgets: Array<{
-        skill: string;
-        budget: number;
-    }>;
+    skillBudgets: Array<{ skill: string; budget: number }>;
     problemSolversNeeded: number;
     totalBudget: number;
     status: string;
@@ -66,8 +63,16 @@ export interface Challenge {
         organization?: string;
         profilePicture?: string;
     };
-    submissions: any[];
-    approvedSubmissions: any[];
+
+    // Keep both array and counts
+    submissions: any[] | number;
+    approvedSubmissions: any[] | number;
+
+    // Numeric summaries from backend
+    submissionCount?: number;
+    approvedCount?: number;
+    rejectedCount?: number;
+
     views: number;
     dueDate?: string;
     createdAt: string;
