@@ -59,11 +59,45 @@ export default function ChatsPage() {
         }
     }, [currentUser, selectedChannel])
 
+    useEffect(() => {
+        const markMessageAsRead = async () => {
+            if (!selectedChannel?._id) return
+
+            try {
+                await axios.put(
+                    `/api/chat/${selectedChannel._id}/mark-read`,
+                    {},
+                    {headers: {Authorization: `Bearer ${localStorage.getItem('token')}`}}
+                )
+
+                // Optimistically clear unread badge locally
+                setRooms((prev) =>
+                    prev.map((r) =>
+                        r._id === selectedChannel._id ? {...r, unreadCount: 0} : r
+                    )
+                )
+
+                // Also emit via socket to sync with Problem Solver dashboard
+                const socket = getSocket()
+                socket.emit('chat:messages-read', {channelId: selectedChannel._id})
+            } catch (err: any) {
+                console.error('Error marking messages as read:', err)
+            }
+        }
+
+        markMessageAsRead()
+    }, [selectedChannel])
+
     // Initial load + socket listeners
     useEffect(() => {
         fetchRooms()
 
         const socket = getSocket()
+        if (selectedChannel?._id) {
+            socket.emit('chat:join-room', selectedChannel._id)
+        }
+
+        // Listen for new chat rooms
         socket.on("chat:room-created", (newRoom: ChatRoom) => {
             console.log("🆕 New chat room created:", newRoom)
             setRooms((prev) => {
@@ -75,18 +109,33 @@ export default function ChatsPage() {
         // Listen for new incoming messages
         socket.on('chat:new-message', (newMessage: ChatMessage) => {
             console.log('New real-time message received:', newMessage)
-            setMessages((prev) => {
-                // Only update if message belongs to current open room
-                if (selectedChannel && newMessage.channelId === selectedChannel._id) {
-                    return [...prev, newMessage]
-                }
-                return prev
-            })
+
+            // update messages if the user is in that room
+            if (selectedChannel && newMessage.channelId === selectedChannel._id) {
+                setMessages((prev) => [...prev, newMessage])
+            } else {
+                // If message is from another room increment unread badge
+                setRooms((prev) =>
+                    prev.map((r) =>
+                        r._id === newMessage.channelId
+                            ? {...r, unreadCount: (r.unreadCount || 0) + 1}
+                            : r
+                    )
+                )
+            }
+        })
+
+        // When messages are marked as read, reset badge in real-time
+        socket.on('chat:messages-read', ({channelId}) => {
+            setRooms((prev) =>
+                prev.map((r) => (r._id === channelId ? {...r, unreadCount: 0} : r))
+            )
         })
 
         return () => {
             socket.off("chat:room-created")
             socket.off("chat:new-message")
+            socket.off("chat:messages-read")
         }
     }, [fetchRooms, selectedChannel])
 

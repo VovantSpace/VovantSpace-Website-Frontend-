@@ -1,7 +1,6 @@
 import {useState, useEffect, useCallback} from 'react'
 import {getSocket} from '@/lib/socket'
 
-
 export interface User {
     _id: string;
     firstName: string;
