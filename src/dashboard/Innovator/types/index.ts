@@ -76,11 +76,12 @@ export interface CallData {
 
 export interface ChatMessage {
     id: string;
+    _id?: string;
     userId: string;
     content: string;
     timestamp: string;
     channelId: string;
-    status: "pending" | "sent" | "delivered" | "seen";
+    status: "pending" | "sent" | "delivered" | "seen" | "failed";
     user?: User;
     isEncrypted?: boolean;
     seenBy?: string[];
@@ -110,6 +111,12 @@ export interface ReplyReference {
 export interface EditHistory {
     content: string;
     timestamp: string;
+}
+
+export interface ReplyReference {
+    id: string;
+    content: string;
+    userName: string;
 }
 
 export type MessageAction = "edit" | "delete" | "reply" | "react" | "star" | "report" | "poll" | "call";

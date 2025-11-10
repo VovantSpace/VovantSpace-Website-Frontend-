@@ -1,288 +1,288 @@
-import React, { useState, useRef, useEffect } from "react"
-import { Send, Plus, File, Mic, ImageIcon, PlusSquare } from 'lucide-react'
-import { Button } from "@/dashboard/Innovator/components/ui/button"
-import { Input } from "@/dashboard/Innovator/components/ui/input"
-import { ScrollArea } from "@/dashboard/Innovator/components/ui/scroll-area"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/dashboard/Innovator/components/ui/dropdown-menu"
-import type { ChatMessage, User, MessageAction, PollData } from "@/dashboard/Innovator/types"
-import { ChatMessageItem } from "./chat-message-item"
-import { VideoCallDialog } from "./video-call-dialog"
-import { EmojiPickerPopover } from "./emoji-picker-popover"
-import { ScrollToBottom } from "./scroll-to-bottom"
-import { PollCreator } from "./poll-creator"
-import { encryptMessage } from "../../lib/encryption"
+import {useState, useEffect, useRef} from "react"
+import axios from "axios"
+import {getSocket} from "@/lib/socket"
+import {encryptMessage} from "@/dashboard/Innovator/lib/encryption"
+import type {ChatMessage, User, ReplyReference} from "@/dashboard/Innovator/types"
+import {ChatMessageItem} from "./chat-message-item"
+import {Button} from "@/dashboard/Innovator/components/ui/button"
+import {Input} from "@/dashboard/Innovator/components/ui/input"
+import {X, Paperclip, Send} from "lucide-react"
 
 interface ChatInterfaceProps {
-  channelId: string
-  messages: ChatMessage[]
-  currentUser: User
-  onMessageAction: (action: MessageAction, messageId: string, data?: any) => void
+    currentUser: User
+    channelId: string
 }
 
-export function ChatInterface({
-  channelId,
-  messages: initialMessages,
-  currentUser,
-  onMessageAction,
-}: ChatInterfaceProps) {
-  // State management
-  const [messages, setMessages] = useState(initialMessages)
-  const [newMessage, setNewMessage] = useState("")
-  const [isVideoCallOpen, setIsVideoCallOpen] = useState(false)
-  const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false)
-  const [isPollCreatorOpen, setIsPollCreatorOpen] = useState(false)
-  const [showScrollBottom, setShowScrollBottom] = useState(false)
+export function ChatInterface({currentUser, channelId}: ChatInterfaceProps) {
+    const [messages, setMessages] = useState<ChatMessage[]>([])
+    const [newMessage, setNewMessage] = useState("")
+    const [activeReply, setActiveReply] = useState<ReplyReference | null>(null)
+    const messagesEndRef = useRef<HTMLDivElement>(null)
+    const [isTyping, setIsTyping] = useState(false)
+    const [typingUser, setTypingUser] = useState<string | null>(null)
 
-  // Refs
-  const scrollRef = useRef<HTMLDivElement>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const isNearBottomRef = useRef(true)
+    // 🧭 Auto-scroll when new messages arrive
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({behavior: "smooth"})
+    }, [messages])
 
-  // Scroll handling
-  useEffect(() => {
-    const scrollElement = scrollRef.current
-    if (!scrollElement) return
+    // 🔌 Fetch chat history
+    useEffect(() => {
+        const fetchMessages = async () => {
+            try {
+                const res = await axios.get(`/api/chat/${channelId}`, {
+                    headers: {Authorization: `Bearer ${localStorage.getItem("token")}`},
+                })
+                if (res.data?.success) {
+                    setMessages(res.data.data)
+                }
+            } catch (err) {
+                console.error("Error fetching chat history:", err)
+            }
+        }
 
-    const handleScroll = () => {
-      const { scrollTop, scrollHeight, clientHeight } = scrollElement
-      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100
-      isNearBottomRef.current = isNearBottom
-      setShowScrollBottom(!isNearBottom)
+        fetchMessages()
+    }, [channelId])
+
+    // 🔥 Socket events
+    useEffect(() => {
+        const socket = getSocket()
+        socket.emit("chat:join-room", channelId)
+
+        // Handle new messages
+        socket.on("chat:new-message", (incoming: ChatMessage) => {
+            setMessages((prev) => {
+                const exists = prev.some((m) => m.id === incoming.id)
+                return exists ? prev : [...prev, incoming]
+            })
+        })
+
+        // Typing indicator
+        socket.on('chat:typing', (userName: string) => {
+            setTypingUser(userName)
+            setIsTyping(true)
+            setTimeout(() => setIsTyping(false), 2000)
+        })
+
+        // Handle message edits
+        socket.on("chat:message-edited", (updated) => {
+            setMessages((prev) =>
+                prev.map((msg) =>
+                    msg.id === updated.id ? {...msg, content: updated.content, isEdited: true} : msg
+                )
+            )
+        })
+
+        socket.on("chat:message-deleted", ({id}) => {
+            setMessages((prev) => prev.filter((msg) => msg.id !== id))
+        })
+
+        return () => {
+            socket.emit("chat:leave-room", channelId)
+            socket.off("chat:new-message")
+            socket.off("chat:message-edited")
+            socket.off("chat:message-deleted")
+            socket.off("chat:typing")
+        }
+    }, [channelId])
+
+    // 📨 Handle sending message
+    const handleSendMessage = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!newMessage.trim()) return
+
+        const encryptedContent = await encryptMessage(newMessage)
+        const clientTempId = `temp-${Date.now()}`
+
+        // Optimistic UI
+        const tempMessage: ChatMessage = {
+            id: clientTempId,
+            userId: currentUser.id,
+            content: encryptedContent,
+            timestamp: new Date().toISOString(),
+            channelId,
+            status: "pending",
+            user: currentUser,
+            isEncrypted: true,
+            seenBy: [currentUser.id],
+            replyTo: activeReply ?? undefined,
+        }
+
+        setMessages((prev) => [...prev, tempMessage])
+        setNewMessage("")
+        setActiveReply(null)
+
+        try {
+            const res = await axios.post(
+                "/api/chat/send",
+                {
+                    channelId,
+                    content: encryptedContent,
+                    replyTo: activeReply,
+                },
+                {
+                    headers: {Authorization: `Bearer ${localStorage.getItem("token")}`},
+                }
+            )
+
+            if (res.data?.success) {
+                const sent = res.data.data
+                setMessages((prev) =>
+                    prev.map((msg) =>
+                        msg.id === clientTempId ? {...sent, status: "delivered"} : msg
+                    )
+                )
+            }
+        } catch (err) {
+            console.error("Error sending message:", err)
+        }
     }
 
-    scrollElement.addEventListener("scroll", handleScroll)
-    return () => scrollElement.removeEventListener("scroll", handleScroll)
-  }, [])
-
-  // Auto-scroll to the bottom for new messages
-  useEffect(() => {
-    if (scrollRef.current && isNearBottomRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
-    }
-  }, [messages])
-
-  // Message sending handler
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!newMessage.trim()) return
-
-    const encryptedContent = await encryptMessage(newMessage)
-
-    const message: ChatMessage = {
-      id: Date.now().toString(),
-      userId: currentUser.id,
-      content: encryptedContent,
-      timestamp: new Date().toISOString(),
-      channelId,
-      status: "pending",
-      user: currentUser,
-      isEncrypted: true,
-      seenBy: [currentUser.id],
+    const handleTyping = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        setNewMessage(e.target.value)
+        const socket = getSocket()
+        socket.emit('chat:typing', {
+            channelId,
+            userName: currentUser.name,
+        })
     }
 
-    setMessages((prev) => [...prev, message])
-    setNewMessage("")
+    // ✏️ Handle edit / delete / reply
+    const handleAction = async (action: string, messageId: string, data?: any) => {
+        if (action === "edit" && data?.content) {
+            try {
+                const res = await axios.put(`/api/chat/edit/${messageId}`, data, {
+                    headers: {Authorization: `Bearer ${localStorage.getItem("token")}`},
+                })
+                if (res.data?.success) {
+                    const updated = res.data.data
+                    setMessages((prev) =>
+                        prev.map((msg) =>
+                            msg.id === messageId ? {...msg, content: updated.content, isEdited: true} : msg
+                        )
+                    )
+                }
+            } catch (err) {
+                console.error("Error editing message:", err)
+            }
+        }
 
-    // Simulate message delivery
-    setTimeout(() => {
-      setMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === message.id ? { ...msg, status: "delivered" } : msg
-        )
-      )
-    }, 1000)
-  }
+        if (action === "delete") {
+            try {
+                const res = await axios.delete(`/api/chat/delete/${messageId}`, {
+                    headers: {Authorization: `Bearer ${localStorage.getItem("token")}`},
+                })
+                if (res.data?.success) {
+                    setMessages((prev) => prev.filter((msg) => msg.id !== messageId))
+                }
+            } catch (err) {
+                console.error("Error deleting message:", err)
+            }
+        }
 
-  // File handling
-  const handleFileUpload = async (type: "image" | "audio" | "document") => {
-    if (fileInputRef.current) {
-      fileInputRef.current.accept = type === "image"
-        ? "image/*"
-        : type === "audio"
-          ? "audio/*"
-          : "application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-      fileInputRef.current.click()
-    }
-  }
-
-  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
-    if (!files) return
-
-    for (const file of Array.from(files)) {
-      const fileUrl = URL.createObjectURL(file)
-
-      const fileType = file.type.startsWith("image/")
-        ? "image"
-        : file.type.startsWith("audio/")
-          ? "audio"
-          : "document"
-
-      const message: ChatMessage = {
-        id: Date.now().toString(),
-        userId: currentUser.id,
-        content: `Sent ${fileType}: ${file.name}`,
-        timestamp: new Date().toISOString(),
-        channelId,
-        status: "pending",
-        user: currentUser,
-        fileType,
-        fileUrl,
-        isEncrypted: true,
-        seenBy: [currentUser.id],
-      }
-
-      setMessages(prev => [...prev, message])
-
-      // Simulate message delivery
-      setTimeout(() => {
-        setMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === message.id ? { ...msg, status: "delivered" } : msg
-          )
-        )
-      }, 1000)
+        if (action === "reply") {
+            setActiveReply({
+                id: messageId,
+                content: data?.content || "",
+                userName: data?.userName || "",
+            })
+        }
     }
 
-    e.target.value = ""
-  }
+    // 📎 File upload
+    const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
 
-  // Poll handling
-  const handlePollSubmit = async (pollData: PollData) => {
-    const message: ChatMessage = {
-      id: Date.now().toString(),
-      userId: currentUser.id,
-      content: "Created a poll",
-      timestamp: new Date().toISOString(),
-      channelId,
-      status: "pending",
-      user: currentUser,
-      isPoll: true,
-      pollData,
-      seenBy: [currentUser.id],
+        try {
+            const formData = new FormData()
+            formData.append("file", file)
+            formData.append("channelId", channelId)
+            formData.append("uploadType", "chat")
+
+            const res = await axios.post("/api/chat/upload", formData, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem("token")}`,
+                    "Content-Type": "multipart/form-data",
+                },
+            })
+
+            if (res.data?.success) {
+                const uploaded = res.data.data
+                setMessages((prev) => [...prev, uploaded])
+            }
+        } catch (err) {
+            console.error("File upload failed:", err)
+        } finally {
+            e.target.value = ""
+        }
     }
 
-    setMessages(prev => [...prev, message])
-    setIsPollCreatorOpen(false)
+    return (
+        <div className="flex flex-col h-full">
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                {messages.map((message) => (
+                    <ChatMessageItem
+                        key={message.id}
+                        message={message}
+                        currentUser={currentUser}
+                        onAction={(action, data) => handleAction(action, message.id, data)}
+                    />
+                ))}
+                <div ref={messagesEndRef}/>
+                {/* scroll anchor */}
+            </div>
 
-    // Simulate message delivery
-    setTimeout(() => {
-      setMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === message.id ? { ...msg, status: "delivered" } : msg
-        )
-      )
-    }, 1000)
-  }
+            {/* 🗨️ Reply bar */}
+            {activeReply && (
+                <div
+                    className="p-2 border-t border-gray-300 dark:border-gray-700 bg-muted/20 flex items-center justify-between">
+                    <div className="flex flex-col text-sm">
+                        <span className="font-semibold">{activeReply.userName}</span>
+                        <span className="text-xs truncate text-gray-500">{activeReply.content}</span>
+                    </div>
+                    <Button variant="ghost" size="icon" onClick={() => setActiveReply(null)}>
+                        <X className="h-4 w-4"/>
+                    </Button>
+                </div>
+            )}
 
-  // Emoji handling
-  const handleEmojiSelect = (emoji: string) => {
-    setNewMessage((prev) => prev + emoji)
-  }
+            {/* Message input */}
+            <form
+                onSubmit={handleSendMessage}
+                className="border-t p-3 flex items-center gap-3 bg-white dark:bg-gray-900"
+            >
+                <input type="file" id="fileInput" className="hidden" onChange={handleFileSelected}/>
 
-  // Scroll to bottom handler
-  const scrollToBottom = () => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
-    }
-  }
+                {/* 📎 Attach file */}
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => document.getElementById("fileInput")?.click()}
+                    className="rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                    <Paperclip className="h-5 w-5 text-gray-600 dark:text-gray-300"/>
+                </Button>
 
-  return (
-    <div className="flex flex-col h-full dashbg overflow-hidden">
-      {/* Messages Area */}
-      <ScrollArea className="flex-1 md:pt-6 pt-0 px-4 dashbg dark:bg-black pb-20" ref={scrollRef}>
-        <div className="space-y-3 dashbg">
-          {messages.map((message) => (
-            <ChatMessageItem
-              key={message.id}
-              message={message}
-              currentUser={currentUser}
-              onAction={(action, data) => onMessageAction(action, message.id, data)}
-            />
-          ))}
+                {/* ✏️ Message field */}
+                <Input
+                    value={newMessage}
+                    onChange={handleTyping}
+                    placeholder="Type your message..."
+                    className="flex-1 rounded-full bg-gray-100 dark:bg-gray-800 dark:text-white border-none focus:ring-0 text-sm px-4 py-2"
+                />
+
+                {/* 📨 Send */}
+                <Button
+                    type="submit"
+                    disabled={!newMessage.trim()}
+                    className="rounded-full bg-green-700 hover:bg-green-800 text-white p-2"
+                >
+                    <Send className="h-5 w-5"/>
+                </Button>
+            </form>
         </div>
-      </ScrollArea>
-
-
-      <ScrollToBottom show={showScrollBottom} onClick={scrollToBottom} />
-      <div className="dark:border-gray-700 border-t fixed w-full mx-auto  border-gray-300 bottom-0">
-        {/* Message Input Area */}
-        <form onSubmit={handleSendMessage} className="flex items-center justify-center dashbg gap-2 p-4 pr-5 w-[100vw] md:w-[72vw] lg:md:w-[56vw] xl:w-[65vw] 2xl:w-[70vw]">
-          <div className="dark:bg-white rounded-md">
-            <EmojiPickerPopover
-              onEmojiSelect={handleEmojiSelect}
-              isOpen={isEmojiPickerOpen}
-              onOpenChange={() => setIsEmojiPickerOpen(false)}
-            />
-          </div>
-          <Input
-            placeholder="Type your message..."
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            className="flex-1 text-sm"
-          />
-
-          <input
-            type="file"
-            ref={fileInputRef}
-            className="hidden "
-            multiple
-            onChange={handleFileSelected}
-          />
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="dark:bg-white rounded-md" size="icon">
-                <Plus className="h-5 w-5 " />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => handleFileUpload("image")}>
-                <ImageIcon className="h-4 w-4 mr-2" />
-                Gallery
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleFileUpload("audio")}>
-                <Mic className="h-4 w-4 mr-2" />
-                Audio
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleFileUpload("document")}>
-                <File className="h-4 w-4 mr-2" />
-                Document
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setIsPollCreatorOpen(true)}>
-                <PlusSquare className="h-4 w-4 mr-2" />
-                Create Poll
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <Button type="submit" size="icon" className="dashbutton text-white">
-            <Send className="h-4 w-4" />
-          </Button>
-        </form>
-      </div>
-
-      {/* Dialogs */}
-      <VideoCallDialog
-        isOpen={isVideoCallOpen}
-        onClose={() => setIsVideoCallOpen(false)}
-        onSchedule={(data) => {
-          onMessageAction("call", Date.now().toString(), data)
-          setIsVideoCallOpen(false)
-        }}
-        mode="schedule"
-      />
-
-      <PollCreator
-        isOpen={isPollCreatorOpen}
-        onClose={() => setIsPollCreatorOpen(false)}
-        onSubmit={handlePollSubmit}
-      />
-    </div>
-  )
+    )
 }

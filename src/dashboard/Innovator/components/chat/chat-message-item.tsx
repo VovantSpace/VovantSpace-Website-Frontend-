@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect } from "react"
-import type { ChatMessage, User, MessageAction, MessageReaction } from "@/dashboard/Innovator/types"
+import type { ChatMessage, User, MessageAction } from "@/dashboard/Innovator/types"
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
-    DropdownMenuTrigger
+    DropdownMenuTrigger,
 } from "@/dashboard/Innovator/components/ui/dropdown-menu"
 import { Avatar, AvatarImage, AvatarFallback } from "@/dashboard/Innovator/components/ui/avatar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/dashboard/Innovator/components/ui/popover"
@@ -14,7 +14,6 @@ import {
     Check,
     CheckCheck,
     Star,
-    MessageSquare,
     Flag,
     Pencil,
     Trash2,
@@ -35,22 +34,34 @@ interface ChatMessageItemProps {
 }
 
 export function ChatMessageItem({ message, currentUser, onAction }: ChatMessageItemProps) {
-    const [isEditing, setIsEditing] = useState(false);
-    const [showReplyBox, setShowReplyBox] = useState(false);
-    const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
-    const [decryptedContent, setDecryptedContent] = useState(message.content);
+    const [isEditing, setIsEditing] = useState(false)
+    const [showReplyBox, setShowReplyBox] = useState(false)
+    const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false)
+    const [decryptedContent, setDecryptedContent] = useState(message.content)
 
-    const emojiPickerRef = useRef<HTMLDivElement>(null);
-    const messageRef = useRef<HTMLDivElement>(null);
+    const emojiPickerRef = useRef<HTMLDivElement>(null)
+    const messageRef = useRef<HTMLDivElement>(null)
+    const availableActions = getAvailableActions(message, currentUser)
 
-    const availableActions = getAvailableActions(message, currentUser);
-
+    // 🧠 Decrypt message once when it changes
     useEffect(() => {
-        if (message.isEncrypted) {
-            decryptMessage(message.content).then(setDecryptedContent);
+        const runDecrypt = async () => {
+            try {
+                if (message.content?.includes("|")) {
+                    const decrypted = await decryptMessage(message.content)
+                    setDecryptedContent(decrypted)
+                } else {
+                    setDecryptedContent(message.content)
+                }
+            } catch (err) {
+                console.error("Decryption failed:", err)
+                setDecryptedContent(message.content)
+            }
         }
-    }, [message.content, message.isEncrypted]);
+        runDecrypt()
+    }, [message.content])
 
+    // 🖱️ Close emoji picker on outside click
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (
@@ -58,14 +69,14 @@ export function ChatMessageItem({ message, currentUser, onAction }: ChatMessageI
                 emojiPickerRef.current &&
                 !emojiPickerRef.current.contains(event.target as Node)
             ) {
-                setIsEmojiPickerOpen(false);
+                setIsEmojiPickerOpen(false)
             }
-        };
+        }
+        document.addEventListener("mousedown", handleClickOutside)
+        return () => document.removeEventListener("mousedown", handleClickOutside)
+    }, [isEmojiPickerOpen])
 
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, [isEmojiPickerOpen]);
-
+    // 📎 Handle attached media
     const renderFileContent = () => {
         if (!message.fileType || !message.fileUrl) return null
 
@@ -104,6 +115,8 @@ export function ChatMessageItem({ message, currentUser, onAction }: ChatMessageI
         }
     }
 
+    // @ts-ignore
+    // @ts-ignore
     return (
         <div
             className="group/message relative py-1 px-2 hover:bg-gray-50 dark:hover:bg-gray-900 rounded-lg transition-colors"
@@ -117,11 +130,14 @@ export function ChatMessageItem({ message, currentUser, onAction }: ChatMessageI
                 </Avatar>
 
                 <div className="flex-1 min-w-0">
-                    {/* Message Header */}
+                    {/* Header */}
                     <div className="flex items-baseline gap-2 mb-1 text-sm">
                         <span className="font-medium dark:text-white">{message.user?.name}</span>
                         <span className="text-xs text-muted-foreground">
-              {new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+              {new Date(message.timestamp).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+              })}
             </span>
                         {message.status && message.userId === currentUser.id && (
                             <span className="ml-1 text-xs text-muted-foreground">
@@ -136,7 +152,7 @@ export function ChatMessageItem({ message, currentUser, onAction }: ChatMessageI
                         )}
                     </div>
 
-                    {/* Reply Reference */}
+                    {/* Reply reference */}
                     {message.replyTo && (
                         <div className="mb-2 text-sm border-l-2 border-blue-500 pl-2 text-muted-foreground">
                             <div className="flex items-center gap-1">
@@ -147,7 +163,7 @@ export function ChatMessageItem({ message, currentUser, onAction }: ChatMessageI
                         </div>
                     )}
 
-                    {/* Message Content */}
+                    {/* Message bubble */}
                     <div className="relative">
                         {isEditing ? (
                             <MessageEditor
@@ -182,7 +198,7 @@ export function ChatMessageItem({ message, currentUser, onAction }: ChatMessageI
                             </div>
                         )}
 
-                        {/* Hover Actions */}
+                        {/* Hover actions */}
                         <div className="absolute -right-4 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover/message:opacity-100 transition-opacity z-10">
                             <Popover open={isEmojiPickerOpen} onOpenChange={setIsEmojiPickerOpen}>
                                 <PopoverTrigger asChild>
@@ -245,22 +261,22 @@ export function ChatMessageItem({ message, currentUser, onAction }: ChatMessageI
                     </div>
 
                     {/* Reactions */}
-                    {message.reactions && message.reactions.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-2">
+                    {Array.isArray(message.reactions) && message.reactions.length > 0 && (
+                        <div className={'flex flex-wrap gap-1 mt-2'}>
                             {message.reactions.map((reaction, index) => (
                                 <button
                                     key={index}
-                                    onClick={() => onAction("react", { emoji: reaction.emoji })}
-                                    className="flex items-center gap-1 bg-gray-200 dark:bg-gray-700 rounded-full px-2 py-0.5 text-sm hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                                    onClick={() => onAction('react', {emoji: reaction.emoji})}
+                                    className={'flex items-center gap-1 bg-gray-200 darkbg-gray-700 rounded-full px-2 py-0.5 text-sm hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors'}
                                 >
                                     <span>{reaction.emoji}</span>
-                                    <span className="text-xs">{reaction.users.length}</span>
+                                    <span className={'text-xs'}>{reaction.users.length}</span>
                                 </button>
                             ))}
                         </div>
                     )}
 
-                    {/* Reply Box */}
+                    {/* Reply box */}
                     {showReplyBox && (
                         <div className="mt-3">
                             <ReplyBox

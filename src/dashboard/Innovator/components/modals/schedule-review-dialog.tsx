@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button } from "@innovator/components/ui/button";
+import { Button } from "@/dashboard/Innovator/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -11,13 +11,23 @@ import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
 
-const formatTime = (hour) => {
+const formatTime = (hour: number) => {
   const suffix = hour >= 12 ? 'PM' : 'AM';
   const displayHour = hour % 12 || 12;
   return `${displayHour}:00 ${suffix}`;
 };
 
-export function ScheduleReviewDialog({ isOpen, onClose }) {
+interface ScheduleReviewDialogProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onSchedule: (data: {
+        date: string;
+        time: string;
+        duration: string;
+    }) => void;
+}
+
+export function ScheduleReviewDialog({ isOpen, onClose, onSchedule }: ScheduleReviewDialogProps) {
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
   const [duration, setDuration] = useState("45");
@@ -59,7 +69,6 @@ export function ScheduleReviewDialog({ isOpen, onClose }) {
             <Select
               value={selectedTime}
               onValueChange={setSelectedTime}
-              className="border rounded-md"
               required
             >
               <SelectTrigger id="time">
@@ -87,7 +96,6 @@ export function ScheduleReviewDialog({ isOpen, onClose }) {
             <Select
               value={duration}
               onValueChange={setDuration}
-              className="border rounded-md"
             >
               <SelectTrigger id="duration">
                 <SelectValue placeholder="Select duration" />

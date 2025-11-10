@@ -1,10 +1,10 @@
 
 import type React from "react"
 import { useState } from "react"
-import { Button } from "@innovator/components/ui/button"
-import { Input } from "@innovator/components/ui/input"
+import { Button } from "@/dashboard/Innovator/components/ui/button"
+import { Input } from "@/dashboard/Innovator/components/ui/input"
 import { MessageSquare, X } from "lucide-react"
-import type { ReplyReference } from "./types"
+import type {ReplyReference} from "@/dashboard/Innovator/types"
 
 interface ReplyBoxProps {
   replyTo: ReplyReference

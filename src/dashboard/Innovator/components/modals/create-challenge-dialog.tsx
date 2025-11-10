@@ -113,7 +113,10 @@ export function CreateChallengeDialog({
                 location: formData.location,
             };
 
+            console.log('Challenge payload being sent to backend:', challengeData);
+
             const response = await challengeApi.createChallenge(challengeData);
+
 
             if (response.success) {
                 toast.success("Challenge created successfully!");
@@ -153,6 +156,7 @@ export function CreateChallengeDialog({
         0
     );
     const remainingBudget = Number(totalBudget) - totalAllocated;
+
 
     return (
         <Dialog open={isOpen} onOpenChange={handleClose}>

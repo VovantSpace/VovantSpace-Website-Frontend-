@@ -1,6 +1,6 @@
 import { useState } from "react"
-import { Button } from "@innovator/components/ui/button"
-import { Input } from "@innovator/components/ui/input"
+import { Button } from "@/dashboard/Innovator/components/ui/button"
+import { Input } from "@/dashboard/Innovator/components/ui/input"
 import { Check, X } from "lucide-react"
 
 interface MessageEditorProps {

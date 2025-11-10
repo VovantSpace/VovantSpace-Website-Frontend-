@@ -1,11 +1,12 @@
 // ChallengeDetailsDialogue.tsx
-import { Dialog, DialogContent } from "@/dashboard/Innovator/components/ui/dialog"
-import { Button } from "@/dashboard/Innovator/components/ui/button"
-import { Badge } from "@/dashboard/Innovator/components/ui/badge"
-import { ScrollArea } from "@/dashboard/Innovator/components/ui/scroll-area"
-import { ArrowLeft, CheckCircle2, MapPin, Clock, Star, ChevronRight } from "lucide-react"
-import { useState } from "react"
-import { SubmitPitchDialog } from "./SubmitYourPitchDialog"
+import {Dialog, DialogContent} from "@/dashboard/Innovator/components/ui/dialog"
+import {Button} from "@/dashboard/Innovator/components/ui/button"
+import {Badge} from "@/dashboard/Innovator/components/ui/badge"
+import {ScrollArea} from "@/dashboard/Innovator/components/ui/scroll-area"
+import {ArrowLeft, CheckCircle2, MapPin, Clock, Star, ChevronRight} from "lucide-react"
+import {useState} from "react"
+import {SubmitPitchDialog} from "./SubmitYourPitchDialog"
+import {normalizeSkillBudgets} from "@/utils/normalizeSkillBudget";
 
 // ✅ Slim, dialog-only type
 export interface ChallengeSummary {
@@ -21,7 +22,7 @@ export interface ChallengeSummary {
     location?: { country?: string; city?: string }
     createdAt?: string
     paymentVerified?: boolean
-    submissions?: any[] // only need count
+    submissions?: any[]
 }
 
 interface Review {
@@ -41,7 +42,7 @@ interface Review {
 export interface ChallengeDetailsDialogProps {
     isOpen: boolean
     onClose: () => void
-    challenge: ChallengeSummary                 // ✅ expects the slim type
+    challenge: ChallengeSummary
     innovator?: {
         paymentVerified?: boolean
         rating?: number
@@ -73,22 +74,10 @@ export function ChallengeDetailsDialog({
                                        }: ChallengeDetailsDialogProps) {
     const [isDialogOpen, setIsDialogOpen] = useState(false)
 
-    // Normalize fields for UI
-    const challengeData: ChallengeSummary = {
-        id: challenge?.id,
-        title: challenge?.title ?? "No Title",
-        description: challenge?.description ?? "No description provided.",
-        industry: challenge?.industry ?? "Unknown Industry",
-        totalBudget: challenge?.totalBudget ?? 0,
-        dueDate: challenge?.dueDate,
-        problemSolversNeeded: challenge?.problemSolversNeeded ?? 1,
-        requiredSkills: challenge?.requiredSkills ?? ["No requirements specified."],
-        skillBudgets: challenge?.skillBudgets ?? [],
-        location: challenge?.location ?? { city: "Unknown", country: "" },
-        createdAt: challenge?.createdAt,
-        paymentVerified: challenge?.paymentVerified ?? false,
-        submissions: challenge?.submissions ?? [],
-    }
+    console.log('Challenge data received:', challenge)
+    console.log("challenge.skillBudgets:", challenge?.skillBudgets)
+
+    const normalizedSkills = normalizeSkillBudgets(challenge?.skillBudgets || []);
 
     const innovatorData = innovator ?? {
         paymentVerified: true,
@@ -114,7 +103,7 @@ export function ChallengeDetailsDialog({
                     review: "I really liked this challenge and found it quite rewarding. Would recommend!",
                     date: "2025-02-20",
                     budget: "$500",
-                    reviewer: { name: "John Doe", rating: 4, review: "Excellent!" },
+                    reviewer: {name: "John Doe", rating: 4, review: "Excellent!"},
                 },
             ]
 
@@ -124,25 +113,25 @@ export function ChallengeDetailsDialog({
                 {/* Header */}
                 <div className="p-4 sm:p-6 sm:py-3 border-b">
                     <button onClick={onClose} className="flex items-center text-sm dark:text-white mb-2">
-                        <ArrowLeft className="h-4 w-4 mr-2" />
+                        <ArrowLeft className="h-4 w-4 mr-2"/>
                         Back to Dashboard
                     </button>
                     <div className="flex flex-col sm:flex-row justify-between items-start">
                         <div>
-                            <h2 className="text-2xl font-bold dark:text-white">{challengeData.title}</h2>
+                            <h2 className="text-2xl font-bold dark:text-white">{challenge?.title || "Untitled Challenge"}</h2>
                             <div className="flex items-center gap-2 mt-2">
                                 <span className="text-sm dark:text-white">HealthTech Inc.</span>
-                                <Badge variant="secondary">{challengeData.industry}</Badge>
+                                <Badge variant="secondary">{challenge?.industry || "General"}</Badge>
                             </div>
                         </div>
                         <div className="text-right mt-4 sm:mt-0">
                             <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                                ${challengeData.totalBudget?.toLocaleString()}
+                                ${challenge?.totalBudget?.toLocaleString()}
                             </div>
-                            {challengeData.dueDate && (
+                            {challenge?.dueDate && (
                                 <div className="flex items-center gap-1 text-sm dark:text-white mt-1">
-                                    <Clock className="h-4 w-4" />
-                                    Deadline: {new Date(challengeData.dueDate).toLocaleDateString()}
+                                    <Clock className="h-4 w-4"/>
+                                    Deadline: {new Date(challenge.dueDate).toLocaleDateString()}
                                 </div>
                             )}
                         </div>
@@ -153,11 +142,11 @@ export function ChallengeDetailsDialog({
                 <div className="grid grid-cols-2 gap-4 p-4 border-b">
                     <div className="rounded-lg border p-4">
                         <h4 className="text-sm font-medium text-gray-500">Solutions Submitted</h4>
-                        <p className="text-lg font-semibold">{challengeData.submissions?.length ?? 0}</p>
+                        <p className="text-lg font-semibold">{challenge.submissions?.length ?? 0}</p>
                     </div>
                     <div className="rounded-lg border p-4">
                         <h4 className="text-sm font-medium text-gray-500">Problem Solvers Needed</h4>
-                        <p className="text-lg font-semibold">{challengeData.problemSolversNeeded}</p>
+                        <p className="text-lg font-semibold">{challenge.problemSolversNeeded ?? 1}</p>
                     </div>
                 </div>
 
@@ -170,7 +159,7 @@ export function ChallengeDetailsDialog({
                                 <h3 className="text-lg font-semibold mb-2 dark:text-white">Description</h3>
                                 <div
                                     className="text-sm dark:text-white prose dark:prose-invert max-w-none"
-                                    dangerouslySetInnerHTML={{ __html: challengeData.description ?? "" }}
+                                    dangerouslySetInnerHTML={{__html: challenge.description ?? ""}}
                                 />
                             </div>
 
@@ -178,9 +167,11 @@ export function ChallengeDetailsDialog({
                             <div>
                                 <h3 className="text-lg font-semibold mb-2 dark:text-white">Requirements</h3>
                                 <ul className="list-disc text-sm list-inside space-y-1 dark:text-white">
-                                    {challengeData.requiredSkills?.map((req, index) => (
-                                        <li key={index}>{req}</li>
-                                    ))}
+                                    {challenge.requiredSkills?.length ? (
+                                        challenge.requiredSkills.map((req, i) => <li key={i}>{req}</li>)
+                                    ) : (
+                                        <li>No specific requirements</li>
+                                    )}
                                 </ul>
                             </div>
 
@@ -188,16 +179,20 @@ export function ChallengeDetailsDialog({
                             <div>
                                 <h3 className="text-lg font-semibold mb-2 dark:text-white">Skills/Expertise needed</h3>
                                 <div className="flex flex-wrap gap-2">
-                                    {challengeData.skillBudgets?.map((skill) => (
-                                        <Badge
-                                            key={skill.skill}
-                                            variant="secondary"
-                                            className="flex items-center gap-2 py-1.5 px-3"
-                                        >
-                                            {skill.skill}
-                                            <span className="text-xs font-normal opacity-75">${skill.budget}</span>
-                                        </Badge>
-                                    ))}
+                                    {normalizedSkills.length > 0 ? (
+                                        normalizedSkills.map((s) => (
+                                            <Badge
+                                                key={s.name}
+                                                variant={'secondary'}
+                                                className={'flex items-center gap-2 py-1.5 px-3'}
+                                            >
+                                                {s.name}
+                                                <span className={'text-xs font-normal opacity-75'}>${s.budget}</span>
+                                            </Badge>
+                                        ))
+                                    ) : (
+                                        <p className={'text-sm text-gray-500'}>No skills specified</p>
+                                    )}
                                 </div>
                             </div>
 
@@ -208,8 +203,8 @@ export function ChallengeDetailsDialog({
                                     <div key={review.id} className="rounded border p-4 mb-3 dark:text-white">
                                         <h4 className="font-medium">{review.title}</h4>
                                         <div className="flex items-center gap-1 text-yellow-500">
-                                            {Array.from({ length: review.rating }).map((_, i) => (
-                                                <Star key={i} className="h-4 w-4" />
+                                            {Array.from({length: review.rating}).map((_, i) => (
+                                                <Star key={i} className="h-4 w-4"/>
                                             ))}
                                         </div>
                                         <p className="text-sm mt-1">{review.review}</p>
@@ -226,13 +221,13 @@ export function ChallengeDetailsDialog({
 
                                 {innovatorData.paymentVerified && (
                                     <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-                                        <CheckCircle2 className="h-4 w-4" />
+                                        <CheckCircle2 className="h-4 w-4"/>
                                         <span className="text-xs">Payment method verified</span>
                                     </div>
                                 )}
 
                                 <div className="flex items-center gap-2 text-xs dark:text-white">
-                                    <MapPin className="h-4 w-4" />
+                                    <MapPin className="h-4 w-4"/>
                                     {innovatorData.location}
                                 </div>
 
@@ -240,7 +235,8 @@ export function ChallengeDetailsDialog({
                                     ⭐ {innovatorData.rating} of {innovatorData.totalReviews} reviews
                                 </div>
                                 <div className="text-sm dark:text-white">
-                                    Challenges posted: {innovatorData.challengesPosted} ({innovatorData.hireRate}% hire rate)
+                                    Challenges posted: {innovatorData.challengesPosted} ({innovatorData.hireRate}% hire
+                                    rate)
                                 </div>
                                 <div className="text-sm dark:text-white">
                                     Total spent: ${innovatorData.totalSpent?.toLocaleString()}
@@ -257,7 +253,7 @@ export function ChallengeDetailsDialog({
                                 onClick={() => setIsDialogOpen(true)}
                             >
                                 Submit Your Pitch
-                                <ChevronRight className="h-4 w-4 ml-2" />
+                                <ChevronRight className="h-4 w-4 ml-2"/>
                             </Button>
                         </div>
                     </div>
@@ -268,9 +264,9 @@ export function ChallengeDetailsDialog({
                     onClose={() => setIsDialogOpen(false)}
                     // SubmitPitchDialog expects { id, title, skills }, so pass a compact object
                     challenge={{
-                        id: challengeData.id,
-                        title: challengeData.title,
-                        skills: (challengeData.skillBudgets ?? []).map((s) => ({
+                        id: challenge.id,
+                        title: challenge.title,
+                        skills: (challenge.skillBudgets ?? []).map((s) => ({
                             name: s.skill,
                             budget: s.budget,
                         })),

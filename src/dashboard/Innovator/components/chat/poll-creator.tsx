@@ -1,11 +1,11 @@
 import { useState, useRef } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@innovator/components/ui/dialog"
-import { Button } from "@innovator/components/ui/button"
-import { Input } from "@innovator/components/ui/input"
-import { Label } from "@innovator/components/ui/label"
-import { Switch } from "@innovator/components/ui/switch"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/dashboard/Innovator/components/ui/dialog"
+import { Button } from "@/dashboard/Innovator/components/ui/button"
+import { Input } from "@/dashboard/Innovator/components/ui/input"
+import { Label } from "@/dashboard/Innovator/components/ui/label"
+import { Switch } from "@/dashboard/Innovator/components/ui/switch"
 import { Mic, X, Plus, Send } from "lucide-react"
-import type { PollData } from "./types"
+import { PollData } from "@/dashboard/Innovator/types"
 
 interface PollCreatorProps {
   isOpen: boolean

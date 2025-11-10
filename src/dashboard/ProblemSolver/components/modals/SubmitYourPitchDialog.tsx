@@ -178,17 +178,20 @@ export function SubmitPitchDialog({
                             Select Skill/Expertise:
                         </label>
                         <div className="flex flex-wrap gap-2">
-                            {challenge.skills.map((skill) => (
+                            {(challenge.skills || []).map((skill) => (
                                 <Badge
                                     key={skill.name}
                                     onClick={() => handleSkillSelection(skill.name)}
                                     className={`cursor-pointer hover:bg-muted ${
                                         selectedSkill === skill.name
-                                            ? "bg-emerald-600 hover:text-black text-white"
-                                            : "bg-muted hover:text-black text-black"
+                                            ? 'bg-emerald-600 hover:text-black text-white'
+                                            : 'bg-muted hover:text-black text-black'
                                     }`}
                                 >
                                     {skill.name}
+                                    {skill.budget > 0 && (
+                                        <span className={'ml-1 text-xs text-gray-300'}>${skill.budget}</span>
+                                    )}
                                 </Badge>
                             ))}
                         </div>
@@ -255,7 +258,7 @@ export function SubmitPitchDialog({
                                             </div>
                                         )}
 
-                                        {/* Remove button (hover only) */}
+                                        {/* Remove the button (hover only) */}
                                         <button
                                             type="button"
                                             onClick={() => handleRemoveFile(file.filename)}
