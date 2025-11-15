@@ -15,7 +15,7 @@ import {useUserService} from "@/hooks/userService";
 
 
 export function UserNav() {
-    const  {user, logout} = useUserService()
+    const  {user, logout} = useUserService('mentee')
     const navigate = useNavigate()
 
 

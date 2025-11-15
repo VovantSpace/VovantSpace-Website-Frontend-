@@ -3,7 +3,7 @@ import { Bell, CheckCircle, Info, AlertCircle } from "lucide-react";
 
 import { Card } from "@/dashboard/Innovator/components/ui/card";
 import { Button } from "@/dashboard/Innovator/components/ui/button";
-import { MainLayout } from "@/dashboard/component/main-layout";
+import { MainLayout } from "@/dashboard/Client/components/layout/main-layout";
 
 export default function AlertPage() {
   const [notifications, setNotifications] = useState([

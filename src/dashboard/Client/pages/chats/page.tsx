@@ -3,9 +3,8 @@ import {Search, Star, Menu, X} from "lucide-react"
 import {cn} from "@/dashboard/Innovator/lib/utils"
 
 import {Input} from "@/dashboard/Innovator/components/ui/input"
-import {ScrollArea} from "@/dashboard/Innovator/components/ui/scroll-area"
 import {Separator} from "@/dashboard/Innovator/components/ui/separator"
-import {MainLayout} from "@/dashboard/component/main-layout";
+import {MainLayout} from "@/dashboard/Client/components/layout/main-layout";
 import {ChatInterface} from "@/dashboard/Innovator/components/chat/chat-interface"
 import {ChatHeader} from "@/dashboard/Innovator/components/chat/chat-header"
 import {users, currentUser} from "@/dashboard/Innovator/data/user"
@@ -181,7 +180,7 @@ export default function ChatsPage() {
                             channelId={selectedChannel.id}
                             messages={messages}
                             currentUser={currentUser}
-                            onMessageAction={handleMessageAction}
+                            onSendMessage={handleMessageAction}
                         />
                     </div>
                 </div>
@@ -189,4 +188,3 @@ export default function ChatsPage() {
         </MainLayout>
     )
 }
-
