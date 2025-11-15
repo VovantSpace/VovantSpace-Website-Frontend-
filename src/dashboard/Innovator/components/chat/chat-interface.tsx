@@ -6,11 +6,11 @@ import { ChatMessageItem } from "./chat-message-item";
 import { Button } from "@/dashboard/Innovator/components/ui/button";
 import { Input } from "@/dashboard/Innovator/components/ui/input";
 import { X, Paperclip, Send } from "lucide-react";
+import axios from "axios";
 
 export interface ChatInterfaceProps {
     currentUser: User;
     channelId: string;
-    messages: ChatMessage[];
     onSendMessage: (
         content: string,
         fileUrl?: string,
@@ -21,7 +21,6 @@ export interface ChatInterfaceProps {
 export function ChatInterface({
                                   currentUser,
                                   channelId,
-                                  messages,
                                   onSendMessage,
                               }: ChatInterfaceProps) {
     const [newMessage, setNewMessage] = useState("");
@@ -29,11 +28,31 @@ export function ChatInterface({
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const [isTyping, setIsTyping] = useState(false);
     const [typingUser, setTypingUser] = useState<string | null>(null);
+    const [messages, setMessages] = useState<ChatMessage[]>([]);
 
     // Auto-scroll when new messages arrive
     useEffect(() => {
+        const fetchMessages = async () => {
+            try {
+                const response = await axios.get(`/api/chat.${channelId}`, {
+                    headers: {Authorization: `Bearer ${localStorage.getItem("token")}`},
+                });
+
+                if (response.data?.success) {
+                    setMessages(response.data.data);
+                }
+            } catch (error) {
+                console.error("Error fetching messages:", error);
+            }
+        }
+
+        fetchMessages();
+    }, [channelId]);
+
+    // Scroll to bottom when new messages arrive
+    useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages]);
+    }, [messages])
 
     // 🔥 Real-time socket events (typing, edits, deletions)
     useEffect(() => {
@@ -45,6 +64,13 @@ export function ChatInterface({
             setIsTyping(true);
             setTimeout(() => setIsTyping(false), 2000);
         });
+
+        socket.on('chat:new-message', (incoming: ChatMessage) => {
+            setMessages(prev => {
+                const exists = prev.some(m => m.id === incoming.id);
+                return exists ? prev : [...prev, incoming];
+            })
+        })
 
         return () => {
             socket.emit("chat:leave-room", channelId);

@@ -36,6 +36,7 @@ export interface Channel {
     unreadCount: number;
     company: string;
     description: string;
+    messages?: ChatMessage[];
 }
 
 export interface NotificationPreferences {

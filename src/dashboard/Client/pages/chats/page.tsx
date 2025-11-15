@@ -1,4 +1,4 @@
-import {useState} from "react"
+import {useEffect, useState} from "react"
 import {Search, Star, Menu, X} from "lucide-react"
 import {cn} from "@/dashboard/Innovator/lib/utils"
 
@@ -7,64 +7,77 @@ import {Separator} from "@/dashboard/Innovator/components/ui/separator"
 import {MainLayout} from "@/dashboard/Client/components/layout/main-layout";
 import {ChatInterface} from "@/dashboard/Innovator/components/chat/chat-interface"
 import {ChatHeader} from "@/dashboard/Innovator/components/chat/chat-header"
-import {users, currentUser} from "@/dashboard/Innovator/data/user"
-import type {Channel, StarredMessage, ChatMessage, User} from "@/dashboard/Innovator/types"
+import type {Channel, User} from "@/dashboard/Innovator/types"
+import {getSocket} from '@/lib/socket'
+import axios from "axios";
 
-const channels: Channel[] = [
-    {
-        id: "1",
-        name: "Ayotomiwa Alao",
-        company: '#ai-smart-farming',
-        unreadCount: 3,
-        description: "A Full Stack Developer and CEO",
-    },
-    {
-        id: "2",
-        name: "Abdul Rafay",
-        unreadCount: 0,
-        description: "A Full Stack Developer and CEO",
-        company: ""
-    },
-]
-
-const starredMessages: StarredMessage[] = [
-  {
-    id: "1",
-    content: "Important milestone achieved!",
-    author: users[0],
-    timestamp: "2h ago",
-    channelId: "ai-smart-farming",
-  },
-]
-
-const initialMessages: ChatMessage[] = [
-    {
-        id: "1",
-        userId: users[0].id,
-        content: "I've analyzed the crop yield data and created a preliminary ML model.",
-        timestamp: new Date().toISOString(),
-        channelId: "ai-smart-farming",
-        user: users[0],
-        status: "delivered",
-        isStarred: false
-    },
-    {
-        id: "2",
-        userId: users[1].id,
-        content: "Great work! Can you share the accuracy metrics?",
-        timestamp: new Date().toISOString(),
-        channelId: "ai-smart-farming",
-        user: users[1],
-        status: "delivered",
-        isStarred: false
-    },
-]
 
 export default function ChatsPage() {
-    const [selectedChannel, setSelectedChannel] = useState(channels[0])
+    const [channels, setChannels] = useState<Channel[]>([])
+    const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null)
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-    const [isVideoCallOpen, setIsVideoCallOpen] = useState(false)
-    const [messages, setMessages] = useState<ChatMessage[]>(initialMessages)
+    const [currentUser, setCurrentUser] = useState<User | null>(null)
+
+
+    // load current user
+    useEffect(() => {
+        const fetchUser = async () => {
+            const res = await axios.get('/api/user/profile', {
+                headers: {Authorization: `Bearer ${localStorage.getItem('token')}`}
+            })
+            setCurrentUser(res.data.data)
+        }
+
+        fetchUser()
+    }, [])
+
+    // Fetch Advisor's active/upcoming chat rooms
+    useEffect(() => {
+        const fetchChats = async () => {
+            try {
+                const res = await axios.get('/api/session-chats/my', {
+                    headers: {Authorization: `Bearer ${localStorage.getItem('token')}`}
+                })
+
+                if (res.data?.success) {
+                    setChannels(res.data.data)
+                    if (res.data.data.length > 0) {
+                        setSelectedChannel(res.data.data[0])
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load advisor chats:', error)
+            }
+        }
+        fetchChats()
+    }, [])
+
+    // Function to handle sending a message
+    const handleSendMessage = async (content: string, fileUrl?: string, fileType?: string) => {
+        if (!selectedChannel) return;
+
+        try {
+            const res = await axios.post(
+                "/api/session-chat/send",
+                {
+                    channelId: selectedChannel.id,
+                    content,
+                    fileUrl,
+                    fileType,
+                },
+                {
+                    headers: {Authorization: `Bearer ${localStorage.getItem("token")}`},
+                }
+            );
+
+            if (res.data.success) {
+                // message will arrive via socket, so no need to insert manually
+            }
+        } catch (err) {
+            console.error("Failed to send message:", err);
+        }
+    };
+
 
     // Sidebar content as a variable for reuse on mobile and desktop
     const SidebarContent = () => (
@@ -88,7 +101,7 @@ export default function ChatsPage() {
                             key={channel.id}
                             className={cn(
                                 "mb-1 flex w-full items-center justify-between  rounded-lg px-2 py-1.5 text-sm",
-                                selectedChannel.id === channel.id
+                                selectedChannel?.id === channel.id
                                     ? "dashbutton text-white"
                                     : "text-black dark:text-white hover:secondbg hover:dashtext",
                             )}
@@ -109,28 +122,39 @@ export default function ChatsPage() {
         </>
     )
 
-    const handleMessageAction = (action: string, messageId: string, data?: any) => {
-        switch (action) {
-            case "star":
-                const message = messages.find((m) => m.id === messageId)
-                if (message) {
-                    const newStarredMessage: StarredMessage = {
-                        id: message.id,
-                        content: message.content,
-                        author: message.user || users[0],
-                        timestamp: new Date(message.timestamp).toLocaleTimeString(),
-                        channelId: message.channelId,
-                    }
-                    starredMessages.push(newStarredMessage)
-                }
-                setMessages((prev) => prev.map((msg) => (msg.id === messageId ? {
-                    ...msg,
-                    isStarred: !msg.isStarred
-                } : msg)))
-                break
-            // Other actions handled by ChatInterface
+    // update unread count
+    useEffect(() => {
+        const socket = getSocket()
+
+        socket.on("chat:unread-update", ({ channelId, unreadCount }) => {
+            setChannels(prev =>
+                prev.map(ch =>
+                    ch.id === channelId ? { ...ch, unreadCount } : ch
+                )
+            )
+        })
+
+        return () => {
+            socket.off("chat:unread-update")
         }
-    }
+    }, [])
+
+// auto open room when activated
+    useEffect(() => {
+        const socket = getSocket()
+
+        socket.on("chat:activated", ({ room }) => {
+            setSelectedChannel(prev => {
+                const match = channels.find(ch => ch.id === room._id.toString())
+                return match || prev
+            })
+        })
+
+        return () => {
+            socket.off("chat:activated")
+        }
+    }, [channels])
+
 
     return (
         <MainLayout>
@@ -155,9 +179,6 @@ export default function ChatsPage() {
 
                 {/* Main Chat Content */}
                 <div className="flex-1 flex flex-col">
-                    {/* Mobile Header */}
-
-
                     {/* Chat Header */}
                     <div className="fixed w-full z-10">
                         <div
@@ -168,20 +189,23 @@ export default function ChatsPage() {
                         </div>
                         <ChatHeader
                             channel={selectedChannel}
-                            onVideoCall={() => setIsVideoCallOpen(true)}
-                            onScheduleCall={() => setIsVideoCallOpen(true)}
+                            onVideoCall={() => {
+                            }}
+                            onScheduleCall={() => {
+                            }}
                             onAudioCall={() => {
                             }} // Implement audio call functionality
                         />
                     </div>
                     {/* Chat Interface */}
                     <div className="mt-24 md:mt-10">
-                        <ChatInterface
-                            channelId={selectedChannel.id}
-                            messages={messages}
-                            currentUser={currentUser}
-                            onSendMessage={handleMessageAction}
-                        />
+                        {selectedChannel && currentUser && (
+                            <ChatInterface
+                                channelId={selectedChannel.id}
+                                currentUser={currentUser}
+                                onSendMessage={handleSendMessage}
+                            />
+                        )}
                     </div>
                 </div>
             </div>
