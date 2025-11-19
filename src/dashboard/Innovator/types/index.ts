@@ -37,6 +37,10 @@ export interface Channel {
     company: string;
     description: string;
     messages?: ChatMessage[];
+
+    status?: 'upcoming' | 'active' | 'closed'
+    nextActiveDate?: string | null;
+    closedAt?: string | null;
 }
 
 export interface NotificationPreferences {

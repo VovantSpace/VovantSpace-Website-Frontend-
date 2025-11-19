@@ -112,11 +112,6 @@ export function NotificationsDropdown() {
                         <div className={'flex items-center gap-2'}>
                             <h4 className="text-lg font-semibold dark:text-black">Notifications</h4>
                             {loading && <Loader2 className={'h-4 w-4 animate-spin'}/>}
-                            {connected ? (
-                                <Wifi className={'h-4 w-4 text-green-500'} />
-                            ) : (
-                                <WifiOff className={'h-4 w-4 text-red-500'}/>
-                            )}
                         </div>
                         <div className={'flex gap-1'}>
                             <Button

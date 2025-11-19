@@ -35,7 +35,7 @@ export default function ChatsPage() {
     useEffect(() => {
         const fetchChats = async () => {
             try {
-                const res = await axios.get('/api/session-chats/my', {
+                const res = await axios.get('/session-chats/my', {
                     headers: {Authorization: `Bearer ${localStorage.getItem('token')}`}
                 })
 

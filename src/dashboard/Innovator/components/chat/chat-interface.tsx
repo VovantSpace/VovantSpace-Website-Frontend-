@@ -16,12 +16,17 @@ export interface ChatInterfaceProps {
         fileUrl?: string,
         fileType?: string
     ) => Promise<void> | void;
+
+    status?: 'upcoming' | 'active' | 'closed'
+    nextActiveDate?: string | null;
+    closedAt?: string | null;
 }
 
 export function ChatInterface({
                                   currentUser,
                                   channelId,
                                   onSendMessage,
+    status, nextActiveDate, closedAt
                               }: ChatInterfaceProps) {
     const [newMessage, setNewMessage] = useState("");
     const [activeReply, setActiveReply] = useState<ReplyReference | null>(null);
@@ -29,6 +34,16 @@ export function ChatInterface({
     const [isTyping, setIsTyping] = useState(false);
     const [typingUser, setTypingUser] = useState<string | null>(null);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
+    const [sessionStatus, setSessionStatus] = useState<'upcoming' | 'active' | 'closed'>('active');
+    const [sessionStart, setSessionStart] = useState<Date | null>(null);
+    const [sessionClose, setSessionClose] = useState<Date | null>(null);
+
+
+    useEffect(() => {
+        if (status) setSessionStatus(status);
+        if (nextActiveDate) setSessionStart(new Date(nextActiveDate));
+        if (closedAt) setSessionClose(new Date(closedAt));
+    }, [status, nextActiveDate, closedAt])
 
     // Auto-scroll when new messages arrive
     useEffect(() => {
@@ -124,6 +139,18 @@ export function ChatInterface({
         e.target.value = "";
     };
 
+    {status === 'upcoming' && (
+        <div className={'p-2 bg-yellow-100 text-yellow-800 text-center text-sm'}>
+            Session starts soon...
+        </div>
+    )}
+
+    {status === 'closed' && (
+        <div className={'p-2 bg-red-100 text-red-800 text-center text-sm'}>
+            This session has ended. Chat is locked.
+        </div>
+    )}
+
     return (
         <div className="flex flex-col h-full">
             {/* Messages */}
@@ -181,6 +208,7 @@ export function ChatInterface({
                 {/* ✏️ Input */}
                 <Input
                     value={newMessage}
+                    disabled={status !== undefined && status !== 'active'}
                     onChange={handleTyping}
                     placeholder="Type your message..."
                     className="flex-1 rounded-full bg-gray-100 dark:bg-gray-800 dark:text-white border-none focus:ring-0 text-sm px-4 py-2"
@@ -189,7 +217,7 @@ export function ChatInterface({
                 {/* 📨 Send */}
                 <Button
                     type="submit"
-                    disabled={!newMessage.trim()}
+                    disabled={status !== undefined && status !== 'active'}
                     className="rounded-full bg-green-700 hover:bg-green-800 text-white p-2"
                 >
                     <Send className="h-5 w-5" />

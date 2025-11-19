@@ -6,7 +6,7 @@ import {getSocket} from "@/lib/socket";
 
 import {Input} from "@/dashboard/Innovator/components/ui/input";
 import {Separator} from "@/dashboard/Innovator/components/ui/separator";
-import {MainLayout} from "@/dashboard/Client/components/layout/main-layout";
+import {MainLayout} from "@/dashboard/Advisor/components/layout/main-layout";
 import {ChatInterface} from "@/dashboard/Innovator/components/chat/chat-interface";
 import {ChatHeader} from "@/dashboard/Innovator/components/chat/chat-header";
 
@@ -275,9 +275,11 @@ export default function ChatsPage() {
                         {selectedChannel ? (
                             <ChatInterface
                                 channelId={selectedChannel.id}
-                                messages={messages}
                                 currentUser={currentUser}
                                 onSendMessage={handleSendMessage}
+                                status={selectedChannel.status}
+                                nextActiveDate={selectedChannel.nextActiveDate}
+                                closedAt={selectedChannel.closedAt}
                             />
                         ) : (
                             <div className="h-full flex items-center justify-center text-gray-500 text-sm">
