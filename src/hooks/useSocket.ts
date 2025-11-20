@@ -1,6 +1,5 @@
 import {useEffect} from "react";
 import {getSocket} from '@/lib/socket';
-import {initSocketRoom} from "@/hooks/initSocketRoom";
 import {useAuth} from "@/hooks/userService";
 import {toast} from "react-toastify";
 
@@ -19,7 +18,7 @@ export function useSocket() {
 
         socket.on("connect", () => {
                 console.log(`✅ Socket connected: ${socket.id}`)
-                initSocketRoom(user._id, normalizedRole);
+                socket.emit('chat:join-room', roomName)
             }
         );
 
@@ -53,10 +52,20 @@ export function useSocket() {
             console.log("Session request update:", data);
         });
 
+        socket.on("availability_updated", (payload) => {
+            toast.success(payload.message || 'Your availability has been updated!')
+        })
+
+        socket.on('availability_created', (payload) => {
+            toast.success(payload.message || "New availability created!")
+        })
+
         return () => {
             socket.off("new_notification");
             socket.off("session_updated");
             socket.off("session_request:update");
+            socket.off("availability_updated");
+            socket.off('availability_created');
             // socket.disconnect();
         };
     }, [user]);

@@ -24,6 +24,7 @@ type TimeSlot = {
     id: string;
     startTime: string;
     endTime: string;
+    rate: number;
 };
 
 type DaySchedule = {
@@ -58,7 +59,11 @@ export default function AvailabilityPage() {
     const [newDateInput, setNewDateInput] = useState("");
     const [showDateInput, setShowDateInput] = useState(false);
     const [saving, setSaving] = useState(false);
-    const [oneTimeAvailabilities, setOneTimeAvailabilities] = useState<{ date: string; timeSlots: TimeSlot[] }[]>([]);
+    const [oneTimeAvailabilities, setOneTimeAvailabilities] = useState<{
+        date: string;
+        timeSlots: TimeSlot[],
+        hourlyRate: number
+    }[]>([]);
 
     const {
         availability,
@@ -94,10 +99,14 @@ export default function AvailabilityPage() {
         }));
     }
 
+    // Helper function to round up numbers
+    const roundRate = (value: number | string): number => {
+        return Math.round(Number(value) || 0)
+    }
+
     // Load existing availability data
     useEffect(() => {
         if (availability && availability.length > 0) {
-            console.log('Loading availability data:', availability);
 
             const updatedSchedule = schedule.map(daySchedule => {
                 const existingAvailability = availability.find(
@@ -108,12 +117,14 @@ export default function AvailabilityPage() {
                     console.log(`Found availability for ${daySchedule.day}:`, existingAvailability);
                     return {
                         ...daySchedule,
-                        timeSlots: (existingAvailability.timeSlots || []).map(slot => ({
+                        timeSlots: (existingAvailability.timeSlots || []).map((slot: any) => ({
                             id: slot.id || crypto.randomUUID(),
                             startTime: slot.startTime,
-                            endTime: slot.endTime
+                            endTime: slot.endTime,
+                            rate: roundRate(slot.rate ?? daySchedule.hourlyRate ?? 0)
+
                         })),
-                        hourlyRate: existingAvailability.hourlyRate
+                        hourlyRate: roundRate(existingAvailability.hourlyRate)
                     }
                 }
                 return daySchedule;
@@ -125,10 +136,12 @@ export default function AvailabilityPage() {
                 .filter((avail) => avail.type === 'specific_date' && avail.specificTimeDate && avail.specificTimeDate.length > 0)
                 .map((a) => ({
                     date: a.specificDate || "",
+                    hourlyRate: a.hourlyRate ?? 0,
                     timeSlots: (a.specificTimeDate || []).map((slot: any) => ({
                         id: crypto.randomUUID(),
                         startTime: slot.startTime,
-                        endTime: slot.endTime
+                        endTime: slot.endTime,
+                        rate: roundRate(slot.rate ?? 0)
                     })),
                 }))
             setOneTimeAvailabilities(oneTime)
@@ -192,7 +205,8 @@ export default function AvailabilityPage() {
                 const newSlot = {
                     id: crypto.randomUUID(),
                     startTime: '09:00',
-                    endTime: '17:00'
+                    endTime: '17:00',
+                    rate: 0
                 }
                 return {
                     ...d,
@@ -230,7 +244,7 @@ export default function AvailabilityPage() {
 
     const handleHourlyRateChange = (day: string, rate: number) => {
         setSchedule((prev) =>
-            prev.map((d) => (d.day !== day ? d : {...d, hourlyRate: rate}))
+            prev.map((d) => (d.day !== day ? d : {...d, hourlyRate: roundRate(rate)}))
         )
     }
 
@@ -253,78 +267,91 @@ export default function AvailabilityPage() {
 
     const saveAvailability = async () => {
         try {
-            setSaving(true);
+            setSaving(true)
             console.log('Saving availability...');
 
-            // Save each day's schedule
+            const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
             for (const daySchedule of schedule) {
                 if (daySchedule.timeSlots.length > 0) {
+
                     const availabilityData = {
                         type: 'recurring' as const,
                         dayOfWeek: daySchedule.dayOfWeek,
                         timeSlots: daySchedule.timeSlots.map(slot => ({
                             startTime: slot.startTime,
-                            endTime: slot.endTime
+                            endTime: slot.endTime,
+                            rate: roundRate(daySchedule.hourlyRate) || 0
                         })),
-                        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-                        hourlyRate: daySchedule.hourlyRate,
+                        timeZone: timeZone,
+                        hourlyRate: roundRate(daySchedule.hourlyRate) || 0,
                     }
 
-                    console.log(`Saving ${daySchedule.day}:`, availabilityData);
+                    console.log('Saving recurring availability:', availabilityData)
 
-                    // Check if availability already exists for this day
-                    const existingAvailability = availability?.find(
-                        (avail) => avail.type === 'recurring' && avail.dayOfWeek === daySchedule.dayOfWeek
+                    // update or create
+                    const existing = availability?.find(
+                        (avail) =>
+                            avail.type === 'recurring' &&
+                            avail.dayOfWeek === daySchedule.dayOfWeek
                     )
 
-                    if (existingAvailability) {
-                        console.log('Updating existing availability');
+                    if (existing) {
                         await updateAvailability(availabilityData)
                     } else {
-                        console.log('Creating new availability');
                         await createAvailability(availabilityData)
                     }
                 }
             }
 
-            // Handle one-time specific date availability
+            // Save specific one-time availability
             for (const entry of oneTimeAvailabilities) {
                 if (entry.date && entry.timeSlots.length > 0) {
+                    // Convert selected date
+                    const formattedDate = new Date(entry.date)
+                        .toISOString()
+                        .substring(0, 10)
+
                     const specificData = {
                         type: 'specific_date' as const,
-                        specificDate: entry.date,
-                        specificTimeDate: entry.timeSlots.map(slot => ({
+                        specificDate: formattedDate,
+                        specificTimeSlots: entry.timeSlots.map(slot => ({
                             startTime: slot.startTime,
-                            endTime: slot.endTime
+                            endTime: slot.endTime,
+                            rate: roundRate(slot.rate ?? entry.hourlyRate ?? 0)
                         })),
-                        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-                        hourlyRate: 50 // You can make this configurable
+                        timeZone: timeZone,
+                        hourlyRate: roundRate(entry.hourlyRate) || 0,
                     }
-                    console.log('Saving one-time availability:', specificData);
+
+                    console.log('Saving specific availability:', specificData)
                     await createAvailability(specificData)
                 }
             }
 
-            // Handle blackout dates (specific dates with no time slots)
+            // Save blackout dates
             for (const date of blackoutDates) {
+                const formatted = new Date(date).toISOString().substring(0, 10)
+
                 const blackoutData = {
                     type: 'specific_date' as const,
-                    specificDate: date,
-                    specificTimeDate: [],
-                    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                    specificDate: formatted,
+                    specificTimeSlots: [],
+                    timeZone: timeZone,
                     hourlyRate: 0
-                };
-                console.log('Saving blackout date:', blackoutData);
+                }
+
+                console.log('Saving blackout date:', blackoutData)
                 await createAvailability(blackoutData)
             }
 
             await refetch()
-            toast.success("Availability updated successfully")
+            toast.success("Availability updated successfully!")
         } catch (error: any) {
             console.error("Error saving availability:", error)
             toast.error(error.message || "Failed to save availability")
         } finally {
-            setSaving(false);
+            setSaving(false)
         }
     }
 
@@ -395,9 +422,9 @@ export default function AvailabilityPage() {
                             onClick={refetch}
                             variant={'outline'}
                             disabled={loading || saving}
-                            className={'dark:text-white bg-green-500 hover:bg-green-700 dashbutton'}
+                            className={'dark:text-white text-white bg-green-500 hover:bg-green-700 hover:text-white dashbutton'}
                         >
-                            {loading && <Loader2 className={'mr-2 h-4 w-4 animate-spin dark:text-black'}/>}
+                            {loading && <Loader2 className={'mr-2 h-4 w-4 animate-spin dark:text-white'}/>}
                             Refresh
                         </Button>
                         <Button
@@ -421,7 +448,8 @@ export default function AvailabilityPage() {
                 <div className="rounded-xl p-6 shadow-lg secondbg dark:!text-white">
                     <div className="flex items-center justify-between">
                         <div>
-                            <h2 className="text-xl font-semibold text-foreground dark:text-white">Availability Status</h2>
+                            <h2 className="text-xl font-semibold text-foreground dark:text-white">Availability
+                                Status</h2>
                             <p className="text-sm text-muted-foreground mt-1 dark:text-white">
                                 {isAvailable ? 'Available for bookings' : 'Currently unavailable'}
                             </p>
@@ -435,7 +463,8 @@ export default function AvailabilityPage() {
                 </div>
 
                 {/* Session Settings */}
-                <div className={`rounded-xl p-6 shadow-lg secondbg dark:!text-white ${!isAvailable ? 'opacity-50 pointer-events-none' : ''}`}>
+                <div
+                    className={`rounded-xl p-6 shadow-lg secondbg dark:!text-white ${!isAvailable ? 'opacity-50 pointer-events-none' : ''}`}>
                     <div className="flex items-center gap-2 mb-6">
                         <Clock className={'h-5 w-5'}/>
                         <h2 className="text-xl font-semibold text-foreground dark:text-white">Session Settings</h2>
@@ -498,8 +527,9 @@ export default function AvailabilityPage() {
                                     ...prev,
                                     {
                                         date: "",
+                                        hourlyRate: 0,
                                         timeSlots: [
-                                            {id: crypto.randomUUID(), startTime: "09:00", endTime: "17:00"}
+                                            {id: crypto.randomUUID(), startTime: "09:00", endTime: "17:00", rate: 0}
                                         ]
                                     }
                                 ])
@@ -530,6 +560,22 @@ export default function AvailabilityPage() {
                                                 )
                                             }}
                                         />
+                                        <Input
+                                            type={'number'}
+                                            placeholder={'Hourly rate'}
+                                            className={'w-40 secondbg mt-2'}
+                                            value={entry.hourlyRate ?? 0}
+                                            onChange={(e) => {
+                                                const rate = roundRate(e.target.value) || 0;
+                                                setOneTimeAvailabilities((prev) =>
+                                                    prev.map((a, idx) =>
+                                                        idx === i
+                                                            ? {...a, hourlyRate: rate}
+                                                            : a
+                                                    )
+                                                )
+                                            }}
+                                        />
                                         <Button
                                             variant={'ghost'}
                                             size={'icon'}
@@ -545,26 +591,31 @@ export default function AvailabilityPage() {
 
                                     {entry.timeSlots.map((slot, j) => (
                                         <div key={slot.id} className={'flex items-center gap-2 mb-2'}>
-                                            <Input
-                                                type={'time'}
-                                                value={slot.startTime}
-                                                onChange={(e) => {
-                                                    const value = e.target.value;
-                                                    setOneTimeAvailabilities((prev) =>
-                                                        prev.map((a, idx) =>
-                                                            idx === i
-                                                                ? {
-                                                                    ...a,
-                                                                    timeSlots: a.timeSlots.map((t, sidx) =>
-                                                                        sidx === j ? {...t, startTime: value} : t
-                                                                    ),
-                                                                } : a
+
+                                            <div key={slot.id} className={'flex items-center gap-2 mb-2'}>
+                                                <Input
+                                                    type={'time'}
+                                                    value={slot.startTime}
+                                                    onChange={(e) => {
+                                                        const value = e.target.value;
+                                                        setOneTimeAvailabilities((prev) =>
+                                                            prev.map((a, idx) =>
+                                                                idx === i ? {
+                                                                        ...a,
+                                                                        timeSlots: a.timeSlots.map((t, sidx) =>
+                                                                            sidx === j ? {...t, startTime: value} : t
+                                                                        )
+                                                                    }
+                                                                    : a
+                                                            )
                                                         )
-                                                    )
-                                                }}
-                                                className={'w-[110px] secondbg'}
-                                            />
+                                                    }}
+                                                    className={'w-[110px] secondbg'}
+                                                />
+                                            </div>
+
                                             <span>to</span>
+
                                             <Input
                                                 type={'time'}
                                                 value={slot.endTime}
@@ -584,6 +635,29 @@ export default function AvailabilityPage() {
                                                 }}
                                                 className={'w-[110px] secondbg'}
                                             />
+
+                                            {/*<Input*/}
+                                            {/*    type={'number'}*/}
+                                            {/*    placeholder={'Rate'}*/}
+                                            {/*    value={slot.rate}*/}
+                                            {/*    onChange={(e) => {*/}
+                                            {/*        const rate = Number(e.target.value) || 0;*/}
+                                            {/*        setOneTimeAvailabilities((prev) =>*/}
+                                            {/*            prev.map((a, idx) =>*/}
+                                            {/*                idx === i*/}
+                                            {/*                    ? {*/}
+                                            {/*                        ...a,*/}
+                                            {/*                        timeSlots: a.timeSlots.map((t, sidx) =>*/}
+                                            {/*                            sidx === j ? {...t, rate} : t*/}
+                                            {/*                        )*/}
+                                            {/*                    }*/}
+                                            {/*                    : a*/}
+                                            {/*            )*/}
+                                            {/*        )*/}
+                                            {/*    }}*/}
+                                            {/*    className={'w-[110px] secondbg'}*/}
+                                            {/*/>*/}
+
                                             <Button
                                                 variant={'ghost'}
                                                 size={'icon'}
@@ -620,7 +694,8 @@ export default function AvailabilityPage() {
                                                                 {
                                                                     id: crypto.randomUUID(),
                                                                     startTime: "09:00",
-                                                                    endTime: "10:00"
+                                                                    endTime: "10:00",
+                                                                    rate: 0
                                                                 }
                                                             ]
                                                         }
@@ -638,7 +713,8 @@ export default function AvailabilityPage() {
                 </div>
 
                 {/* Weekly Schedule */}
-                <div className={`rounded-xl p-6 shadow-lg secondbg dark:!text-white space-y-4 ${!isAvailable ? 'opacity-50 pointer-events-none' : ''}`}>
+                <div
+                    className={`rounded-xl p-6 shadow-lg secondbg dark:!text-white space-y-4 ${!isAvailable ? 'opacity-50 pointer-events-none' : ''}`}>
                     <div className="flex items-center justify-between">
                         <div className={'flex items-center gap-2'}>
                             <Calendar className={'h-5 w-5'}/>
@@ -652,7 +728,8 @@ export default function AvailabilityPage() {
                                 <div className="flex items-center justify-between mb-4">
                                     <h3 className="font-medium text-foreground dark:text-white">{daySchedule.day}</h3>
                                     <div className={'flex items-center gap-2'}>
-                                        <span className={'text-sm text-foreground dark:text-white'}>Hourly Rate: $</span>
+                                        <span
+                                            className={'text-sm text-foreground dark:text-white'}>Hourly Rate: $</span>
                                         <input
                                             type="number"
                                             min={'0'}
@@ -712,7 +789,8 @@ export default function AvailabilityPage() {
                 </div>
 
                 {/* Blackout Dates */}
-                <div className={`rounded-xl p-6 shadow-lg secondbg dark:!text-white ${!isAvailable ? 'opacity-50 pointer-events-none' : ''}`}>
+                <div
+                    className={`rounded-xl p-6 shadow-lg secondbg dark:!text-white ${!isAvailable ? 'opacity-50 pointer-events-none' : ''}`}>
                     <div className="flex items-center justify-between mb-4">
                         <div className={'flex items-center gap-2'}>
                             <X className={'h-5 w-5'}/>

@@ -44,6 +44,7 @@ const groupSessionsByDay = (sessions: any[]) => {
 
         grouped[dayKey].push({
             id: session._id,
+
             time: sessionDate.toLocaleTimeString('en-US', {
                 hour: '2-digit',
                 minute: '2-digit',
@@ -53,6 +54,9 @@ const groupSessionsByDay = (sessions: any[]) => {
             clientAvatar: session.mentee.profilePicture,
             status: session.status,
             amount: session.amount,
+
+            // topic: session.topic || 'Session',
+            // description: session.description || '',
         });
     });
 
