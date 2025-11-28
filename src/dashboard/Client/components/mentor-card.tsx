@@ -60,4 +60,3 @@ export function MentorCard({ mentor, onBookNow, onSeeProfile }: MentorCardProps)
     </div>
   )
 }
-

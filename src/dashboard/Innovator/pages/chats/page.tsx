@@ -1,50 +1,37 @@
-import {useState, useEffect, useCallback} from "react"
-import {Search, Menu, X, Loader2} from "lucide-react"
-import {cn} from "@/dashboard/Innovator/lib/utils"
+import { useState, useEffect, useCallback } from "react"
+import { Search, Menu, X, Loader2 } from "lucide-react"
+import { cn } from "@/dashboard/Innovator/lib/utils"
 import axios from "axios";
 
-import {Input} from "@/dashboard/Innovator/components/ui/input"
-import {Separator} from "@/dashboard/Innovator/components/ui/separator";
-import {MainLayout} from "../../components/layout/main-layout";
-import {ChatInterface} from "@/dashboard/Innovator/components/chat/chat-interface";
-import {ChatHeader} from "@/dashboard/Innovator/components/chat/chat-header";
-import {useAuth} from "@/hooks/userService";
-import {getSocket} from "@/lib/socket";
-import type {Channel, ChatMessage} from "@/dashboard/Innovator/types";
-import {mapToChatUser} from "@/lib/mapToChatUser";
-
-interface ChatRoom {
-    _id: string
-    name: string
-    description?: string
-    challenge?: string
-    unreadCount?: number
-    participants: { _id: string; name: string; avatar?: string }[]
-}
+import { Input } from "@/dashboard/Innovator/components/ui/input"
+import { Separator } from "@/dashboard/Innovator/components/ui/separator";
+import { MainLayout } from "../../components/layout/main-layout";
+import { ChatInterface } from "@/dashboard/Innovator/components/chat/chat-interface";
+import { ChatHeader } from "@/dashboard/Innovator/components/chat/chat-header";
+import { useAuth } from "@/hooks/userService";
+import { getSocket } from "@/lib/socket";
+import type { Channel, ChatMessage } from "@/dashboard/Innovator/types";
+import { mapToChatUser } from "@/lib/mapToChatUser";
 
 export default function ChatsPage() {
-    const {user: currentUser} = useAuth()
-    const [rooms, setRooms] = useState<ChatRoom[]>([])
-    const [selectedChannel, setSelectedChannel] = useState<ChatRoom | null>(null)
-    const [messages, setMessages] = useState<ChatMessage[]>([])
+    const { user: currentUser } = useAuth()
+    const [rooms, setRooms] = useState<Channel[]>([])
+    const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null)
     const [loading, setLoading] = useState(false)
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
     const [isVideoCallOpen, setIsVideoCallOpen] = useState(false)
 
-    // Fetch chat rooms
+    // Fetch chat rooms (Session Chats)
     const fetchRooms = useCallback(async () => {
         if (!currentUser?._id) return
         try {
             setLoading(true)
-            const res = await axios.get(`/api/chat/rooms`, {
-                headers: {Authorization: `Bearer ${localStorage.getItem("token")}`},
+            // Use the session-chats endpoint to get timing info
+            const res = await axios.get(`/session-chats/my`, {
+                headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
             })
             if (res.data?.success) {
-                const fetchedRooms = res.data.data.map((room: any) => ({
-                    ...room,
-                    id: room._id, // normalize for your ChatHeader component
-                    unreadCount: room.unreadCount || 0,
-                }))
+                const fetchedRooms = res.data.data
                 setRooms(fetchedRooms)
 
                 // Auto-select first room if none selected
@@ -59,143 +46,73 @@ export default function ChatsPage() {
         }
     }, [currentUser, selectedChannel])
 
-    useEffect(() => {
-        const markMessageAsRead = async () => {
-            if (!selectedChannel?._id) return
-
-            try {
-                await axios.put(
-                    `/api/chat/${selectedChannel._id}/mark-read`,
-                    {},
-                    {headers: {Authorization: `Bearer ${localStorage.getItem('token')}`}}
-                )
-
-                // Optimistically clear unread badge locally
-                setRooms((prev) =>
-                    prev.map((r) =>
-                        r._id === selectedChannel._id ? {...r, unreadCount: 0} : r
-                    )
-                )
-
-                // Also emit via socket to sync with Problem Solver dashboard
-                const socket = getSocket()
-                socket.emit('chat:messages-read', {channelId: selectedChannel._id})
-            } catch (err: any) {
-                console.error('Error marking messages as read:', err)
-            }
-        }
-
-        markMessageAsRead()
-    }, [selectedChannel])
-
-    // Initial load + socket listeners
+    // Initial load
     useEffect(() => {
         fetchRooms()
+    }, [fetchRooms])
 
+    // Socket listeners for Session Status & Unread
+    useEffect(() => {
         const socket = getSocket()
-        if (selectedChannel?._id) {
-            socket.emit('chat:join-room', selectedChannel._id)
-        }
 
-        // Listen for new chat rooms
-        socket.on("chat:room-created", (newRoom: ChatRoom) => {
-            console.log("🆕 New chat room created:", newRoom)
-            setRooms((prev) => {
-                const exists = prev.find((r) => r._id === newRoom._id)
-                return exists ? prev : [...prev, newRoom]
-            })
-        })
-
-        // Listen for new incoming messages
-        socket.on('chat:new-message', (newMessage: ChatMessage) => {
-            console.log('New real-time message received:', newMessage)
-
-            // update messages if the user is in that room
-            if (selectedChannel && newMessage.channelId === selectedChannel._id) {
-                setMessages((prev) => [...prev, newMessage])
-            } else {
-                // If message is from another room increment unread badge
-                setRooms((prev) =>
-                    prev.map((r) =>
-                        r._id === newMessage.channelId
-                            ? {...r, unreadCount: (r.unreadCount || 0) + 1}
-                            : r
-                    )
+        // Listen for session activation
+        socket.on("session-chat:activated", ({ room }) => {
+            setRooms(prev =>
+                prev.map(ch =>
+                    ch.id === room._id ? { ...ch, status: 'active' } : ch
                 )
+            )
+            if (selectedChannel?.id === room._id) {
+                setSelectedChannel(prev => prev ? { ...prev, status: 'active' } : null)
             }
         })
 
-        // When messages are marked as read, reset badge in real-time
-        socket.on('chat:messages-read', ({channelId}) => {
-            setRooms((prev) =>
-                prev.map((r) => (r._id === channelId ? {...r, unreadCount: 0} : r))
+        // Listen for session closing
+        socket.on("session-chat:closed", ({ room }) => {
+            setRooms(prev =>
+                prev.map(ch =>
+                    ch.id === room._id ? { ...ch, status: 'closed' } : ch
+                )
+            )
+            if (selectedChannel?.id === room._id) {
+                setSelectedChannel(prev => prev ? { ...prev, status: 'closed' } : null)
+            }
+        })
+
+        // Listen for unread updates
+        socket.on("chat:unread-update", ({ channelId, unreadCount }) => {
+            setRooms(prev =>
+                prev.map(ch =>
+                    ch.id === channelId ? { ...ch, unreadCount } : ch
+                )
             )
         })
 
         return () => {
-            socket.off("chat:room-created")
-            socket.off("chat:new-message")
-            socket.off("chat:messages-read")
+            socket.off("session-chat:activated")
+            socket.off("session-chat:closed")
+            socket.off("chat:unread-update")
         }
-    }, [fetchRooms, selectedChannel])
-
-    useEffect(() => {
-        const fetchMessages = async () => {
-            if (!selectedChannel?._id) return
-            try {
-                const res = await axios.get(`/api/chat/${selectedChannel._id}`, {
-                    headers: {Authorization: `Bearer ${localStorage.getItem('token')}`}
-                })
-                if (res.data?.success) {
-                    setMessages(res.data.data)
-                }
-            } catch (err) {
-                console.error('Error fetching chat messages:', err)
-            }
-        }
-
-        fetchMessages()
     }, [selectedChannel])
 
-    // Handle message actions (e.g. star, delete)
-    const handleMessageAction = (action: string, messageId: string, data?: any) => {
-        switch (action) {
-            case "star":
-                setMessages((prev) =>
-                    prev.map((msg) =>
-                        msg.id === messageId ? {...msg, isStarred: !msg.isStarred} : msg
-                    )
-                )
-                break
-            case "delete":
-                setMessages((prev) => prev.filter((msg) => msg.id !== messageId))
-                break
-            default:
-                break
-        }
-    }
 
+    // Handle sending message
     const handleSendMessage = async (content: string, fileUrl?: string, fileType?: string) => {
-        if (!selectedChannel?._id || !content.trim()) return
+        if (!selectedChannel?.id || !content.trim()) return
         try {
-            const res = await axios.post('/api/chat/send', {
-                    channelId: selectedChannel._id,
-                    content,
-                    fileUrl: null,
-                    fileType: null,
-                },
+            const res = await axios.post('/api/session-chat/send', {
+                channelId: selectedChannel.id,
+                content,
+                fileUrl,
+                fileType,
+            },
                 {
-                    headers: {Authorization: `Bearer ${localStorage.getItem('token')}`}
+                    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
                 }
             )
 
             if (res.data?.success) {
-                const sent = res.data.data
-                setMessages((prev) => [...prev, sent])
-
-                // Emit locally so the sender sees it instantly
-                const socket = getSocket()
-                socket.emit("chat:send-message", sent)
+                // Message will arrive via socket
             }
         } catch (err) {
             console.error('Error sending message:', err)
@@ -207,34 +124,34 @@ export default function ChatsPage() {
         <div className="fixed md:relative w-[240px]">
             <div className="p-4">
                 <div className="relative">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 dashtext"/>
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 dashtext" />
                     <Input
-                        placeholder="Search Challenge"
+                        placeholder="Search Session"
                         className="secondbg pl-9 border dashborder dashtext focus:outline-none text-sm"
                     />
                 </div>
             </div>
 
-            <Separator className="my-2 secondbg"/>
+            <Separator className="my-2 secondbg" />
 
             <div className="px-4 py-2">
                 <h2 className="mb-2 text-xs font-semibold uppercase text-gray-400">
-                    Active Chats
+                    Sessions
                 </h2>
 
                 {loading ? (
                     <div className="flex justify-center py-6">
-                        <Loader2 className="h-5 w-5 animate-spin text-gray-400"/>
+                        <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
                     </div>
                 ) : rooms.length === 0 ? (
-                    <p className="text-sm text-gray-500 py-6">No active chats yet.</p>
+                    <p className="text-sm text-gray-500 py-6">No active sessions yet.</p>
                 ) : (
                     rooms.map((room) => (
                         <button
-                            key={room._id}
+                            key={room.id}
                             className={cn(
                                 "mb-1 flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-sm transition",
-                                selectedChannel?._id === room._id
+                                selectedChannel?.id === room.id
                                     ? "dashbutton text-white"
                                     : "text-black dark:text-white hover:secondbg hover:dashtext"
                             )}
@@ -244,10 +161,10 @@ export default function ChatsPage() {
                             }}
                         >
                             <span className="truncate max-w-[180px]">{room.name}</span>
-                            {room.unreadCount && room.unreadCount > 0 && (
+                            {room.unreadCount > 0 && (
                                 <span className="rounded-full bg-red-500 text-white px-1.5 py-0.5 text-xs">
-                  {room.unreadCount}
-                </span>
+                                    {room.unreadCount}
+                                </span>
                             )}
                         </button>
                     ))
@@ -273,7 +190,7 @@ export default function ChatsPage() {
             <div className="flex min-h-[93vh] dashbg rounded-xl overflow-hidden">
                 {/* Desktop Sidebar */}
                 <div className="hidden md:block w-[245px] pr-3 border-r dashborder secondbg rounded-l-xl">
-                    <SidebarContent/>
+                    <SidebarContent />
                 </div>
 
                 {/* Mobile Sidebar Overlay */}
@@ -288,9 +205,9 @@ export default function ChatsPage() {
                                 onClick={() => setIsSidebarOpen(false)}
                                 className="mb-4 absolute right-2 top-2"
                             >
-                                <X className="h-6 w-6 dark:text-white"/>
+                                <X className="h-6 w-6 dark:text-white" />
                             </button>
-                            <SidebarContent/>
+                            <SidebarContent />
                         </div>
                     </div>
                 )}
@@ -301,20 +218,16 @@ export default function ChatsPage() {
                         <div
                             className="md:hidden w-full border-b dark:text-white border-[#2a3142] secondbg px-4 py-2 flex items-center">
                             <button className="mr-2" onClick={() => setIsSidebarOpen(true)}>
-                                <Menu className="h-4 w-4"/>
+                                <Menu className="h-4 w-4" />
                             </button>
                             <span className="font-medium text-sm">
-                {selectedChannel?.name || "Chats"}
-              </span>
+                                {selectedChannel?.name || "Sessions"}
+                            </span>
                         </div>
 
                         {selectedChannel && (
                             <ChatHeader
-                                channel={{
-                                    id: selectedChannel._id,
-                                    name: selectedChannel.name,
-                                    description: selectedChannel.description || "Challenge chat room",
-                                }}
+                                channel={selectedChannel}
                                 onVideoCall={() => setIsVideoCallOpen(true)}
                                 onScheduleCall={() => setIsVideoCallOpen(true)}
                                 onAudioCall={() => {
@@ -324,18 +237,19 @@ export default function ChatsPage() {
                     </div>
 
                     {/* Chat Interface */}
-                    <div className="mt-24 md:mt-10 flex-1">
+                    <div className="mt-24 md:mt-10 flex-1 h-[calc(100vh-140px)]">
                         {selectedChannel ? (
                             <ChatInterface
-                                channelId={selectedChannel._id}
-                                // messages={messages}
+                                channelId={selectedChannel.id}
                                 currentUser={chatUser}
-                                // onMessageAction={handleMessageAction}
-                                // onSendMessage={handleSendMessage}
+                                onSendMessage={handleSendMessage}
+                                status={selectedChannel.status}
+                                nextActiveDate={selectedChannel.nextActiveDate}
+                                closedAt={selectedChannel.closedAt}
                             />
                         ) : (
                             <div className="h-full flex items-center justify-center text-gray-500 text-sm">
-                                Select a chat to start messaging
+                                Select a session to start messaging
                             </div>
                         )}
                     </div>

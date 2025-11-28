@@ -1,5 +1,6 @@
 import {useState, useEffect, useCallback} from 'react'
 import axios from 'axios'
+import {setAvailability} from "../../backend-vovant/controllers/mentorController";
 
 export interface SessionRequest {
     _id: string;
@@ -49,6 +50,7 @@ export interface Availability {
     timeSlots?: Array<{ startTime: string; endTime: string, id?: string }>;
     specificDate?: string;
     specificTimeDate?: Array<{ startTime: string; endTime: string }>;
+    specificTimeSlots?: Array<{ startTime: string; endTime: string }>;
     timeZone: string;
     hourlyRate: number;
     isActive: boolean;
@@ -269,101 +271,111 @@ export const useMentorSessions = (status?: string, page: number = 1, limit: numb
     }
 }
 
-// Hook for availability management - FIXED VERSION
+// Hook for availability management - COMPLETELY FIXED VERSION
 export const useAvailability = (mentorId?: string, type?: string) => {
-    const [availability, setAvailability] = useState<Availability[]>([])
-    const [loading, setLoading] = useState(false)
+    const [availability, setAvailability] = useState<Availability[]>([]);
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const fetchAvailability = useCallback(async () => {
         try {
-            setLoading(true)
+            setLoading(true);
             setError(null);
 
-            const queryParams = new URLSearchParams();
-            if (type) queryParams.append('type', type);
-            if (mentorId) queryParams.append('mentorId', mentorId);
+            const params = new URLSearchParams();
+            if (type) params.append('type', type);
+            if (mentorId) params.append('mentorId', mentorId);
 
-            const endpoint = mentorId
-                ? `/mentor/availability/${mentorId}?${queryParams}`
-                : `/mentor/availability?${queryParams}`;
+            const res = await apiRequest(`/mentor/availability?${params}`);
 
-            const response = await apiRequest(endpoint);
+            let items = Array.isArray(res.data) ? res.data : res.data?.data || [];
 
-            // Handle both response structures
-            const availabilityData = response.data?.data || response.data || [];
+            // Normalize into FE structure
+            items = items.map((item: any) => ({
+                ...item,
+                specificTimeSlots: item.specificTimeSlots || [],
+                specificTimeDate: item.specificTimeDate || [],
+            }));
 
-            console.log('Fetched availability:', availabilityData);
-            setAvailability(Array.isArray(availabilityData) ? availabilityData : []);
-        } catch (err) {
-            console.error('Fetch availability error:', err);
-            setError(err instanceof Error ? err.message : 'Failed to fetch availability')
-            setAvailability([])
+            setAvailability(items);
+        } catch (e: any) {
+            setError(e.message || 'Failed to load availability');
+            setAvailability([]);
         } finally {
-            setLoading(false)
+            setLoading(false);
         }
-    }, [type, mentorId])
+    }, [mentorId, type]);
 
     useEffect(() => {
         fetchAvailability();
     }, [fetchAvailability]);
 
-    // Create new availability
-    const createAvailability = async (availabilityData: Omit<Availability, '_id' | 'mentor' | 'isActive'>) => {
+    const saveAvailability = async (payload: any) => {
+        console.log("📤 Saving availability:", payload);
+
+        // ALWAYS send "specificTimeSlots" for specific_date
+        if (payload.type === "specific_date") {
+            payload.specificTimeSlots = payload.specificTimeSlots || [];
+        }
+
         try {
-            const response = await apiRequest(`/mentor/availability`, {
+            const res = await apiRequest(`/mentor/availability`, {
                 method: 'POST',
-                body: JSON.stringify(availabilityData)
-            })
+                headers: {
+                  "Content-Type": "application/json",
+                  "Authorization": `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify(payload)
+            });
 
-            const newAvail = response.data?.data?.data || response.data?.data || response.data;
-            await fetchAvailability(); // Refetch to get an updated list
-            return newAvail;
-        } catch (err) {
-            throw new Error(err instanceof Error ? err.message : 'Failed to create availability')
+            console.log("Raw API response:", res);
+
+            await fetchAvailability();
+            return {
+                success: true,
+                data: res.data?.data || res.data || null
+            }
+
+        } catch (e: any) {
+            console.error('API error:', e)
+
+            if (e.response?.data) {
+                console.error('Response Data:', e.response.data)
+                return {
+                    success: false,
+                    error: e.response.data.error ||
+                        e.response.data.message ||
+                        "Request failed. Please try again later."
+                };
+            }
+            return { success: false, error: e.message || "Unknown error" };
         }
-    }
+    };
 
-    // Update existing availability - FIXED
-    const updateAvailability = async (availabilityData: Omit<Availability, '_id' | 'mentor' | 'isActive'>) => {
+    const createAvailability = saveAvailability;
+    const updateAvailability = saveAvailability;
+
+    const deleteAvailability = async (id: string) => {
         try {
-            const response = await apiRequest(`/mentor/availability`, {
-                method: 'POST', // Backend uses POST for both the create and update
-                body: JSON.stringify(availabilityData)
-            })
-
-            const updated = response.data?.data || response.data;
-            await fetchAvailability(); // Refetch to get updated list
-            return updated;
-        } catch (err) {
-            throw new Error(err instanceof Error ? err.message : 'Failed to update availability')
+            await apiRequest(`/mentor/availability/${id}`, { method: 'DELETE' });
+            setAvailability(prev => prev.filter(a => a._id !== id));
+            return { success: true };
+        } catch (e: any) {
+            return { success: false, error: e.message };
         }
-    }
-
-    const deleteAvailability = async (availabilityId: string) => {
-        try {
-            await apiRequest(`/mentor/availability/${availabilityId}`, {
-                method: 'DELETE',
-            })
-
-            setAvailability(prev => prev.filter(item => item._id !== availabilityId))
-        } catch (err) {
-            throw new Error(err instanceof Error ? err.message : 'Failed to delete availability')
-        }
-    }
+    };
 
     return {
         availability,
         loading,
         error,
         refetch: fetchAvailability,
-        setAvailability: setAvailability,
+        createAvailability,
         updateAvailability,
         deleteAvailability,
-        useAvailability,
-        createAvailability,
-    }
-}
+        setAvailability
+    };
+};
 
 // Hook for dashboard statistics
 export const useDashboardStats = () => {
@@ -433,8 +445,10 @@ export function useMentorDetails(mentorId: string | null, open: boolean) {
             const response = await axios.get(`/api/mentees/mentors/${mentorId}`, {
                 withCredentials: true,
             });
-            setMentor(response.data?.data?.mentor || null);
-            setError(null)
+
+            const data = response.data?.data;
+            setMentor(data?.mentor || null);
+            setError(null);
         } catch (err: any) {
             console.error('Error fetching mentor details:', err);
             setError(err.response?.data?.message || 'Failed to fetch mentor details');

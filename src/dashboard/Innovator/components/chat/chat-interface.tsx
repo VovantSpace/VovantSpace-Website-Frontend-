@@ -7,6 +7,7 @@ import { Button } from "@/dashboard/Innovator/components/ui/button";
 import { Input } from "@/dashboard/Innovator/components/ui/input";
 import { X, Paperclip, Send } from "lucide-react";
 import axios from "axios";
+import { cn } from "@/dashboard/Innovator/lib/utils";
 
 export interface ChatInterfaceProps {
     currentUser: User;
@@ -23,45 +24,79 @@ export interface ChatInterfaceProps {
 }
 
 export function ChatInterface({
-                                  currentUser,
-                                  channelId,
-                                  onSendMessage,
-    status, nextActiveDate, closedAt
-                              }: ChatInterfaceProps) {
+    currentUser,
+    channelId,
+    onSendMessage,
+    status,
+    nextActiveDate,
+    closedAt
+}: ChatInterfaceProps) {
     const [newMessage, setNewMessage] = useState("");
     const [activeReply, setActiveReply] = useState<ReplyReference | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const [isTyping, setIsTyping] = useState(false);
     const [typingUser, setTypingUser] = useState<string | null>(null);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
-    const [sessionStatus, setSessionStatus] = useState<'upcoming' | 'active' | 'closed'>('active');
-    const [sessionStart, setSessionStart] = useState<Date | null>(null);
-    const [sessionClose, setSessionClose] = useState<Date | null>(null);
 
+    // Session status state
+    const [sessionStatus, setSessionStatus] = useState<'upcoming' | 'active' | 'closed'>('active');
+    const [timeLeft, setTimeLeft] = useState<string>("");
+    const [localNextActiveDate, setLocalNextActiveDate] = useState<string | null | undefined>(nextActiveDate);
 
     useEffect(() => {
         if (status) setSessionStatus(status);
-        if (nextActiveDate) setSessionStart(new Date(nextActiveDate));
-        if (closedAt) setSessionClose(new Date(closedAt));
-    }, [status, nextActiveDate, closedAt])
+    }, [status]);
+
+    useEffect(() => {
+        setLocalNextActiveDate(nextActiveDate);
+    }, [nextActiveDate]);
+
+    // Countdown timer logic
+    useEffect(() => {
+        if (sessionStatus !== 'upcoming' || !localNextActiveDate) return;
+
+        const interval = setInterval(() => {
+            const now = new Date().getTime();
+            const start = new Date(localNextActiveDate).getTime();
+            const diff = start - now;
+
+            if (diff <= 0) {
+                setSessionStatus('active');
+                clearInterval(interval);
+                return;
+            }
+
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+            setTimeLeft(`${minutes}m ${seconds}s`);
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [sessionStatus, localNextActiveDate]);
 
     // Auto-scroll when new messages arrive
     useEffect(() => {
         const fetchMessages = async () => {
             try {
-                const response = await axios.get(`/api/chat.${channelId}`, {
-                    headers: {Authorization: `Bearer ${localStorage.getItem("token")}`},
+                const response = await axios.get(`/api/chat/${channelId}/messages`, {
+                    headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
                 });
+
+                console.log('Chat response', response.data)
 
                 if (response.data?.success) {
                     setMessages(response.data.data);
+                    if (response.data.meta) {
+                        setSessionStatus(response.data.meta.status);
+                        setLocalNextActiveDate(response.data.meta.nextActiveDate);
+                    }
                 }
             } catch (error) {
                 console.error("Error fetching messages:", error);
             }
         }
 
-        fetchMessages();
+        if (channelId) fetchMessages();
     }, [channelId]);
 
     // Scroll to bottom when new messages arrive
@@ -90,6 +125,7 @@ export function ChatInterface({
         return () => {
             socket.emit("chat:leave-room", channelId);
             socket.off("chat:typing");
+            socket.off("chat:new-message");
         };
     }, [channelId]);
 
@@ -98,8 +134,9 @@ export function ChatInterface({
         e.preventDefault();
         if (!newMessage.trim()) return;
 
-        const encrypted = await encryptMessage(newMessage);
-        await onSendMessage(encrypted, undefined, undefined);
+        // const encrypted = await encryptMessage(newMessage);
+        // await onSendMessage(encrypted, undefined, undefined);
+        await onSendMessage(newMessage, undefined, undefined);
         setNewMessage("");
         setActiveReply(null);
     };
@@ -139,22 +176,30 @@ export function ChatInterface({
         e.target.value = "";
     };
 
-    {status === 'upcoming' && (
-        <div className={'p-2 bg-yellow-100 text-yellow-800 text-center text-sm'}>
-            Session starts soon...
-        </div>
-    )}
-
-    {status === 'closed' && (
-        <div className={'p-2 bg-red-100 text-red-800 text-center text-sm'}>
-            This session has ended. Chat is locked.
-        </div>
-    )}
-
     return (
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-full relative">
+            {/* Status Banners */}
+            {sessionStatus === 'upcoming' && (
+                <div className="absolute top-0 left-0 right-0 z-10 bg-yellow-50 border-b border-yellow-200 p-3 text-center shadow-sm">
+                    <p className="text-yellow-800 text-sm font-medium">
+                        Session starts in <span className="font-bold">{timeLeft}</span>
+                    </p>
+                    <p className="text-yellow-600 text-xs mt-0.5">Chat will open 30 minutes before the session</p>
+                </div>
+            )}
+
+            {sessionStatus === 'closed' && (
+                <div className="absolute top-0 left-0 right-0 z-10 bg-gray-100 border-b border-gray-200 p-3 text-center shadow-sm">
+                    <p className="text-gray-600 text-sm font-medium">This session has ended</p>
+                    <p className="text-gray-500 text-xs mt-0.5">Chat is now read-only</p>
+                </div>
+            )}
+
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+            <div className={cn(
+                "flex-1 overflow-y-auto p-4 space-y-2",
+                (sessionStatus === 'upcoming' || sessionStatus === 'closed') && "pt-16"
+            )}>
                 {messages.map((message) => (
                     <ChatMessageItem
                         key={message.id}
@@ -178,8 +223,8 @@ export function ChatInterface({
                     <div className="flex flex-col text-sm">
                         <span className="font-semibold">{activeReply.userName}</span>
                         <span className="text-xs truncate text-gray-500">
-              {activeReply.content}
-            </span>
+                            {activeReply.content}
+                        </span>
                     </div>
                     <Button variant="ghost" size="icon" onClick={() => setActiveReply(null)}>
                         <X className="h-4 w-4" />
@@ -199,8 +244,9 @@ export function ChatInterface({
                     type="button"
                     variant="ghost"
                     size="icon"
+                    disabled={sessionStatus !== 'active'}
                     onClick={() => document.getElementById("fileInput")?.click()}
-                    className="rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
+                    className="rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50"
                 >
                     <Paperclip className="h-5 w-5 text-gray-600 dark:text-gray-300" />
                 </Button>
@@ -208,17 +254,21 @@ export function ChatInterface({
                 {/* ✏️ Input */}
                 <Input
                     value={newMessage}
-                    disabled={status !== undefined && status !== 'active'}
+                    disabled={sessionStatus !== 'active'}
                     onChange={handleTyping}
-                    placeholder="Type your message..."
-                    className="flex-1 rounded-full bg-gray-100 dark:bg-gray-800 dark:text-white border-none focus:ring-0 text-sm px-4 py-2"
+                    placeholder={
+                        sessionStatus === 'upcoming' ? "Chat opens 30 mins before session" :
+                            sessionStatus === 'closed' ? "Session ended" :
+                                "Type your message..."
+                    }
+                    className="flex-1 rounded-full bg-gray-100 dark:bg-gray-800 dark:text-white border-none focus:ring-0 text-sm px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
 
                 {/* 📨 Send */}
                 <Button
                     type="submit"
-                    disabled={status !== undefined && status !== 'active'}
-                    className="rounded-full bg-green-700 hover:bg-green-800 text-white p-2"
+                    disabled={sessionStatus !== 'active' || !newMessage.trim()}
+                    className="rounded-full bg-green-700 hover:bg-green-800 text-white p-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     <Send className="h-5 w-5" />
                 </Button>

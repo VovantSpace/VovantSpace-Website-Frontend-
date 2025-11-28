@@ -76,6 +76,11 @@ const ErrorMessage = ({
     </div>
 );
 
+// Helper function to format mentor session prices
+const roundAmount = (amount: number): number => {
+    return Math.round(Number(amount) || 0)
+}
+
 /* ---------------------------------------
    ✅ Main Mentors Component
 --------------------------------------- */
@@ -156,25 +161,7 @@ export default function Mentors() {
 
         const {date, time, topic} = bookingDetails
 
-        const bookingPromise = fetch(`${import.meta.env.VITE_API_URL}/api/session/request`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${localStorage.getItem('token')}`
-            },
-            body: JSON.stringify({
-                    mentorId: selectedMentor._id,
-                    requestedDate: date,
-                    requestedEndTime: time.endTime,
-                    topic,
-                    duration: 60,
-                    amount: selectedMentor.averageHourlyRate,
-                }
-            )
-        }).then(async (res) => {
-            if (!res.ok) throw new Error((await res.json()).message || "Booking failed");
-            return res.json();
-        })
+        const sessionAmount = roundAmount(selectedMentor.averageHourlyRate || 0)
 
         try {
             toast.loading("Booking session...")
@@ -191,11 +178,9 @@ export default function Mentors() {
                     requestedEndTime: time.endTime,
                     topic,
                     duration: 60,
-                    amount: selectedMentor.averageHourlyRate,
+                    amount: sessionAmount,
                 })
             })
-
-            const data = await response.json()
 
             toast.dismiss()
 
@@ -203,6 +188,8 @@ export default function Mentors() {
                 const data = await response.json(); // Parse the response first
                 throw new Error(data.message || "failed to book session");
             }
+
+            const data = await response.json();
 
             toast.success(`Session request sent to ${selectedMentor?.firstName}`)
             setIsConfirmOpen(false)
@@ -311,7 +298,7 @@ export default function Mentors() {
                                             reviewCount: mentor.totalSessions || 0,
                                             bio: mentor.bio,
                                             tags: mentor.specialties || [],
-                                            price: mentor.averageHourlyRate || 0,
+                                            price: roundAmount(mentor.averageHourlyRate || 0),
                                             location: mentor.country || "N/A",
                                             language:
                                                 (mentor.languages && mentor.languages.join(", ")) ||
@@ -319,7 +306,7 @@ export default function Mentors() {
                                             experience: mentor.experienceLevel || "N/A",
                                             sessionsCompleted: mentor.completedSessions || 0,
                                             about: mentor.bio,
-                                            sessionRate: mentor.averageHourlyRate || 0,
+                                            sessionRate: roundAmount(mentor.averageHourlyRate || 0),
                                         }}
                                         onSeeProfile={() => handleSeeProfile(mentor)} // ✅ pass full object
                                         onBookNow={() => handleBookNow(mentor)} // ✅ pass full object
@@ -389,7 +376,7 @@ export default function Mentors() {
                         onOpenChange={setIsBookingOpen}
                         mentorId={selectedMentor._id}
                         mentorName={`${selectedMentor.firstName} ${selectedMentor.lastName}`}
-                        mentorHourlyRate={selectedMentor?.sessionRate ?? 0}
+                        mentorHourlyRate={roundAmount(selectedMentor?.sessionRate ?? selectedMentor?.averageHourlyRate ?? 0)}
                         //menteeId="currentUserIdHere" // TODO: replace with logged-in user ID
                         onConfirm={handleConfirmBooking}
                     />
@@ -407,9 +394,9 @@ export default function Mentors() {
                             topic: bookingDetails.topic,
                         }}
                         paymentDetails={{
-                            sessionFee: selectedMentor.averageHourlyRate || 0,
-                            serviceFee: (selectedMentor.averageHourlyRate || 0) * 0.05,
-                            totalAmount: (selectedMentor.averageHourlyRate || 0) * 1.05,
+                            sessionFee: roundAmount(selectedMentor.averageHourlyRate || 0),
+                            serviceFee: roundAmount((selectedMentor.averageHourlyRate || 0) * 0.05),
+                            totalAmount: roundAmount((selectedMentor.averageHourlyRate || 0) * 1.05),
                         }}
                         onConfirm={handleConfirmRequest}
                     />
