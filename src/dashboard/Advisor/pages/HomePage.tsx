@@ -54,9 +54,8 @@ const groupSessionsByDay = (sessions: any[]) => {
             clientAvatar: session.mentee.profilePicture,
             status: session.status,
             amount: session.amount,
-
-            // topic: session.topic || 'Session',
-            // description: session.description || '',
+            topic: session.topic,
+            fullDate: session.scheduledDate,
         });
     });
 

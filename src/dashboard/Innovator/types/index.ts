@@ -35,7 +35,7 @@ export interface Channel {
     name: string;
     unreadCount: number;
     company: string;
-    description: string;
+    description?: string;
     messages?: ChatMessage[];
 
     status?: 'upcoming' | 'active' | 'closed'

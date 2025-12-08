@@ -1,7 +1,7 @@
 import { useState } from "react"
-import { Button } from "@innovator/components/ui/button"
-import { Progress } from "@innovator/components/ui/progress"
-import type { PollData } from "./types"
+import { Button } from "@/dashboard/Innovator/components/ui/button"
+import { Progress } from "@/dashboard/Innovator/components/ui/progress"
+import type { PollData } from "@/dashboard/Innovator/components/chat/types"
 
 interface PollViewProps {
   pollData: PollData
@@ -12,7 +12,7 @@ interface PollViewProps {
 
 export function PollView({ pollData, onVote, userVotes = [], className = "" }: PollViewProps) {
   const [selectedOptions, setSelectedOptions] = useState<number[]>(userVotes)
-  const totalVotes = pollData.options.reduce((sum, option) => sum + option.votes, 0)
+  const totalVotes = pollData.options.reduce((sum: any, option: { votes: any }) => sum + option.votes, 0)
 
   const handleOptionClick = (optionId: number) => {
     if (userVotes.length > 0) return // Already voted

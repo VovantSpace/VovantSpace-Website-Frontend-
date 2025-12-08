@@ -104,8 +104,8 @@ export default function AvailabilityPage() {
     const [saving, setSaving] = useState(false);
 
     const [oneTimeAvailabilities, setOneTimeAvailabilities] = useState<{
-        date: string;           // "YYYY-MM-DD"
-        timeSlots: TimeSlot[];  // slots for that date
+        date: string;
+        timeSlots: TimeSlot[];
         hourlyRate: number;
     }[]>([]);
 
@@ -152,42 +152,49 @@ export default function AvailabilityPage() {
     useEffect(() => {
         if (!availability || availability.length === 0) return;
 
-        console.log("📥 ===== LOADING AVAILABILITY DATA =====");
-        console.log("📥 Total availability entries:", availability.length);
+        console.log("📥 RAW AVAILABILITY FROM API (normalized in hook):", availability);
 
-        // ===== LOAD RECURRING SCHEDULES =====
+        // We assume `availability` already has:
+        // - dayOfWeek as number (0–6) for recurring
+        // - specificTimeSlots: Array
+        // - specificTimeDate: Array (fallback, may be [])
+        // - specificDate: ISO string
+        const normalizedAvailability = availability.map((a: any) => ({
+            ...a,
+            dayOfWeek:
+                typeof a.dayOfWeek === "string"
+                    ? DAY_ENUM_TO_INDEX[a.dayOfWeek.toUpperCase()] ?? a.dayOfWeek
+                    : a.dayOfWeek,
+            specificTimeSlots: a.specificTimeSlots || [],
+            specificTimeDate: a.specificTimeDate || [],
+        }));
+
+        console.log("📤 NORMALIZED AVAILABILITY (local):", normalizedAvailability);
+
+        // ----------------------------------------------------
+        // ⭐ LOAD RECURRING AVAILABILITY INTO schedule[]
+        // ----------------------------------------------------
         const updatedSchedule = schedule.map((daySchedule) => {
-            const existingAvailability = availability.find((avail: any) => {
-                if (avail.type !== "recurring") return false;
-
-                const dayField = avail.dayOfWeek;
-                let idx: number | undefined;
-
-                if (typeof dayField === "number") {
-                    idx = dayField;
-                } else if (typeof dayField === "string") {
-                    idx = DAY_ENUM_TO_INDEX[dayField.toUpperCase()] ?? undefined;
-                }
-
-                return idx === daySchedule.dayOfWeek;
+            const existing = normalizedAvailability.find((a: any) => {
+                if (a.type !== "recurring") return false;
+                return a.dayOfWeek === daySchedule.dayOfWeek;
             });
 
-            if (existingAvailability) {
+            if (existing) {
                 console.log(
-                    `✅ Found recurring availability for ${daySchedule.day}:`,
-                    existingAvailability
+                    `✅ Recurring match for ${daySchedule.day}:`,
+                    existing
                 );
-                const slots = (existingAvailability as any).timeSlots || [];
 
                 return {
                     ...daySchedule,
-                    timeSlots: slots.map((slot: any) => ({
+                    timeSlots: (existing.timeSlots ?? []).map((slot: any) => ({
                         id: slot.id || crypto.randomUUID(),
                         startTime: slot.startTime,
                         endTime: slot.endTime,
-                        rate: roundRate(slot.rate ?? daySchedule.hourlyRate ?? 0),
+                        rate: roundRate(slot.rate ?? existing.hourlyRate ?? 0),
                     })),
-                    hourlyRate: roundRate(existingAvailability.hourlyRate),
+                    hourlyRate: roundRate(existing.hourlyRate ?? 0),
                 };
             }
 
@@ -195,44 +202,32 @@ export default function AvailabilityPage() {
         });
 
         setSchedule(updatedSchedule);
-        console.log("✅ Recurring schedules loaded");
+        console.log("📌 Updated recurring schedule:", updatedSchedule);
 
-        // ===== LOAD ONE-TIME AVAILABILITIES =====
-        const oneTime = availability
-            .filter((avail: any) => {
-                if (avail.type !== "specific_date") return false;
-
+        // ----------------------------------------------------
+        // ⭐ LOAD ONE-TIME (specific_date) AVAILABILITY
+        // ----------------------------------------------------
+        const oneTime = normalizedAvailability
+            .filter((a: any) => a.type === "specific_date")
+            .filter((a: any) => {
                 const slots =
-                    (avail.specificTimeSlots && avail.specificTimeSlots.length > 0
-                        ? avail.specificTimeSlots
-                        : avail.specificTimeDate) || [];
+                    a.specificTimeSlots?.length
+                        ? a.specificTimeSlots
+                        : a.specificTimeDate;
 
-                const hasSlots = Array.isArray(slots) && slots.length > 0;
-
-                console.log("🔍 Checking specific_date for one-time:", {
-                    _id: avail._id,
-                    type: avail.type,
-                    specificDate: avail.specificDate,
-                    specificTimeSlots: avail.specificTimeSlots,
-                    specificTimeDate: avail.specificTimeDate,
-                    hasSlots,
-                    slotsCount: slots.length,
-                });
-
-                return hasSlots;
+                return Array.isArray(slots) && slots.length > 0;
             })
             .map((a: any) => {
-                const rawDate = a.specificDate;
-                const formattedDate = rawDate
-                    ? new Date(rawDate).toISOString().substring(0, 10)
+                const formattedDate = a.specificDate
+                    ? new Date(a.specificDate).toISOString().substring(0, 10)
                     : "";
 
                 const slots =
-                    (a.specificTimeSlots && a.specificTimeSlots.length > 0
+                    a.specificTimeSlots?.length
                         ? a.specificTimeSlots
-                        : a.specificTimeDate) || [];
+                        : a.specificTimeDate;
 
-                const oneTimeEntry = {
+                const entry = {
                     date: formattedDate,
                     hourlyRate: a.hourlyRate ?? 0,
                     timeSlots: slots.map((slot: any) => ({
@@ -243,63 +238,56 @@ export default function AvailabilityPage() {
                     })),
                 };
 
-                console.log("✅ Loaded one-time availability:", oneTimeEntry);
-                return oneTimeEntry;
+                console.log("📌 Loaded one-time entry:", entry);
+                return entry;
             });
 
-        console.log(`✅ One-time availabilities loaded: ${oneTime.length}`);
         setOneTimeAvailabilities(oneTime);
+        console.log("📌 One-time availability:", oneTime);
 
-        // ===== LOAD BLACKOUT DATES =====
-        const blackouts = availability
-            .filter((avail: any) => {
-                if (avail.type !== "specific_date") return false;
-
+        // ----------------------------------------------------
+        // ⭐ LOAD BLACKOUT DATES (specific_date with NO slots)
+        // ----------------------------------------------------
+        const blackouts = normalizedAvailability
+            .filter((a: any) => a.type === "specific_date")
+            .filter((a: any) => {
                 const slots =
-                    (avail.specificTimeSlots && avail.specificTimeSlots.length > 0
-                        ? avail.specificTimeSlots
-                        : avail.specificTimeDate) || [];
+                    a.specificTimeSlots?.length
+                        ? a.specificTimeSlots
+                        : a.specificTimeDate;
 
-                const hasNoTimeSlots = !Array.isArray(slots) || slots.length === 0;
-
-                console.log(`🔍 Checking for blackout ${avail._id}:`, {
-                    type: avail.type,
-                    specificDate: avail.specificDate,
-                    specificTimeSlots: avail.specificTimeSlots,
-                    specificTimeDate: avail.specificTimeDate,
-                    hasNoTimeSlots,
-                    slotsCount: slots.length,
-                });
-
-                return hasNoTimeSlots;
+                return !Array.isArray(slots) || slots.length === 0;
             })
             .map((a: any) => {
-                const rawDate = a.specificDate;
-                const formattedDate = rawDate
-                    ? new Date(rawDate).toISOString().substring(0, 10)
+                const formattedDate = a.specificDate
+                    ? new Date(a.specificDate).toISOString().substring(0, 10)
                     : "";
-                console.log("✅ Loaded blackout date:", formattedDate);
                 return formattedDate;
             })
-            .filter((d: string) => d !== "");
+            .filter((date: string) => date !== "");
 
-        console.log(`✅ Blackout dates loaded: ${blackouts.length}`);
         setBlackoutDates(blackouts);
+        console.log("📌 Blackout dates:", blackouts);
 
-        // Global availability toggle
-        setIsAvailable(availability.some((avail: any) => avail.isActive));
+        // ----------------------------------------------------
+        // ⭐ GLOBAL AVAILABILITY TOGGLE
+        // ----------------------------------------------------
+        const anyActive = normalizedAvailability.some((a: any) => a.isActive);
+        setIsAvailable(anyActive);
 
-        console.log("🏁 ===== AVAILABILITY LOADING COMPLETE =====");
+        console.log("🏁 AVAILABILITY LOADING COMPLETE");
         console.log("📊 Summary:", {
             recurringDays: updatedSchedule.filter((d) => d.timeSlots.length > 0).length,
             oneTimeCount: oneTime.length,
             blackoutCount: blackouts.length,
+            isAvailable: anyActive,
         });
-    }, [availability]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [availability]); // ← keep dependency ONLY on availability
 
     const parseTime = (time: string) => {
-        if (!time) return 0;
+        if (!time) return NaN;
         const [hours, minutes] = time.split(":").map(Number);
+        if (Number.isNaN(hours) || Number.isNaN(minutes)) return NaN;
         return hours * 60 + minutes;
     };
 
@@ -314,10 +302,16 @@ export default function AvailabilityPage() {
     const generateSessions = (timeSlot: TimeSlot) => {
         const slotStart = parseTime(timeSlot.startTime);
         const slotEnd = parseTime(timeSlot.endTime);
-        const duration = parseInt(sessionDuration);
-        const buffer = parseInt(bufferTime);
+        const duration = parseInt(sessionDuration, 10);
+        const buffer = parseInt(bufferTime, 10);
 
-        if (!slotStart || !slotEnd || slotStart >= slotEnd || duration <= 0) return [];
+        if (
+            Number.isNaN(slotStart) ||
+            Number.isNaN(slotEnd) ||
+            slotStart >= slotEnd ||
+            duration <= 0
+        )
+            return [];
 
         const sessions: Session[] = [];
         let currentStart = slotStart;
@@ -341,7 +335,7 @@ export default function AvailabilityPage() {
         setSchedule((prev) =>
             prev.map((d) => {
                 if (d.day !== day) return d;
-                const newSlot = {
+                const newSlot: TimeSlot = {
                     id: crypto.randomUUID(),
                     startTime: "09:00",
                     endTime: "17:00",
@@ -412,336 +406,71 @@ export default function AvailabilityPage() {
     const saveAvailability = async () => {
         try {
             setSaving(true);
-            console.log("🔄 ===== STARTING SAVE AVAILABILITY =====");
 
             const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-            console.log("⏰ Timezone:", timeZone);
 
-            // -------------------------------------------------
-            // Helper builders (pure functions)
-            // -------------------------------------------------
+            // --------------------------
+            // Recurring availability
+            // --------------------------
+            const recurring = schedule
+                .filter(d => d.timeSlots.length > 0)
+                .map(day => ({
+                    dayOfWeek: DAY_INDEX_TO_ENUM[day.dayOfWeek],
+                    timeSlots: day.timeSlots.map(slot => ({
+                        startTime: slot.startTime,
+                        endTime: slot.endTime,
+                        rate: slot.rate
+                    })),
+                    hourlyRate: day.hourlyRate
+                }));
 
-            const buildRecurringPayloads = () => {
-                return schedule
-                    .filter((day) => day.timeSlots.length > 0)
-                    .map((day) => ({
-                        type: "recurring" as const,
-                        dayOfWeek: day.dayOfWeek,
-                        timeSlots: day.timeSlots.map((slot) => ({
-                            startTime: slot.startTime,
-                            endTime: slot.endTime,
-                            rate:
-                                roundRate(slot.rate) ||
-                                roundRate(day.hourlyRate) ||
-                                0,
-                        })),
-                        timeZone,
-                        hourlyRate: roundRate(day.hourlyRate) || 0,
-                    }));
+            // --------------------------
+            // One-time specific dates
+            // --------------------------
+            const specific = oneTimeAvailabilities
+                .filter(item => item.date && item.timeSlots.length > 0)
+                .map(item => ({
+                    specificDate: item.date,
+                    timeSlots: item.timeSlots.map(s => ({
+                        startTime: s.startTime,
+                        endTime: s.endTime,
+                        rate: s.rate
+                    })),
+                    hourlyRate: item.hourlyRate
+                }));
+
+            // --------------------------
+            // Blackouts
+            // --------------------------
+            const blackouts = blackoutDates;
+
+            const payload = {
+                type: "full_update",
+                recurring,
+                specific,
+                blackouts,
+                timezone: timeZone
             };
 
-            const buildOneTimePayloads = () => {
-                const filtered = oneTimeAvailabilities.filter((entry, index) => {
-                    const hasDate = entry.date && entry.date.trim() !== "";
-                    const hasTimeSlots =
-                        entry.timeSlots && entry.timeSlots.length > 0;
-                    const hasValidRate =
-                        typeof entry.hourlyRate === "number" &&
-                        entry.hourlyRate > 0;
+            console.log("FINAL PAYLOAD:", payload);
 
-                    console.log(`🔍 Entry ${index}:`, {
-                        date: entry.date,
-                        hasDate,
-                        timeSlots: entry.timeSlots,
-                        hasTimeSlots,
-                        slotsCount: entry.timeSlots?.length || 0,
-                        hourlyRate: entry.hourlyRate,
-                        hasValidRate,
-                        willInclude: hasDate && hasTimeSlots && hasValidRate,
-                    });
+            const result = await createAvailability(payload);
 
-                    return hasDate && hasTimeSlots && hasValidRate;
-                });
-
-                console.log("✅ Filtered one-time entries:", filtered.length);
-
-                return filtered.map((entry) => {
-                    // entry.date is already "YYYY-MM-DD"
-                    const formattedDate = entry.date;
-
-                    return {
-                        type: "specific_date" as const,
-                        specificDate: formattedDate,
-                        specificTimeSlots: entry.timeSlots.map((slot) => ({
-                            startTime: slot.startTime,
-                            endTime: slot.endTime,
-                            rate: roundRate(slot.rate || entry.hourlyRate || 0),
-                        })),
-                        timeZone,
-                        hourlyRate: roundRate(entry.hourlyRate) || 0,
-                    };
-                });
-            };
-
-            const buildBlackoutPayloads = (oneTimePayloads: any[]) => {
-                const oneTimeDates = new Set(
-                    oneTimePayloads.map((p) => p.specificDate)
-                );
-
-                return blackoutDates
-                    .filter((date) => date && date.trim() !== "")
-                    .map((date) => {
-                        // blackoutDates already store "YYYY-MM-DD"
-                        return date;
-                    })
-                    .filter((formattedDate) => {
-                        const isOverlapping = oneTimeDates.has(formattedDate);
-                        if (isOverlapping) {
-                            console.log(
-                                `Skipping blackout for ${formattedDate} because it overlaps with one-time availability`
-                            );
-                        }
-                        return !isOverlapping;
-                    })
-                    .map((formattedDate) => ({
-                        type: "specific_date" as const,
-                        specificDate: formattedDate,
-                        specificTimeSlots: [],
-                        timeZone,
-                        hourlyRate: 0,
-                    }));
-            };
-
-            // -------------------------------------------------
-            // BUILD ALL PAYLOADS
-            // -------------------------------------------------
-
-            const recurringPayloads = buildRecurringPayloads();
-            const oneTimePayloads = buildOneTimePayloads();
-            const blackoutPayloads = buildBlackoutPayloads(oneTimePayloads);
-
-            console.log("\n📊 ===== PAYLOAD SUMMARY =====");
-            console.log("🔄 Recurring:", recurringPayloads.length);
-            console.log("📅 One-time:", oneTimePayloads.length);
-            console.log("🚫 Blackouts:", blackoutPayloads.length);
-
-            // Track results
-            let recurringCount = 0;
-            let oneTimeCount = 0;
-            let blackoutCount = 0;
-            const errors: string[] = [];
-
-            // -------------------------------------------------
-            // SAVE RECURRING AVAILABILITY (SEQUENTIALLY)
-            // -------------------------------------------------
-
-            console.log("\n🔄 ===== SAVING RECURRING =====");
-            for (const payload of recurringPayloads) {
-                try {
-                    const existing = availability?.find((a: any) => {
-                        if (a.type !== "recurring") return false;
-
-                        const dayField = a.dayOfWeek;
-                        let idx: number | undefined;
-
-                        if (typeof dayField === "number") {
-                            idx = dayField;
-                        } else if (typeof dayField === "string") {
-                            idx = DAY_ENUM_TO_INDEX[dayField.toUpperCase()] ?? undefined;
-                        }
-
-                        return idx === payload.dayOfWeek;
-                    });
-
-                    console.log(
-                        `Processing day ${payload.dayOfWeek}:`,
-                        existing ? "UPDATE" : "CREATE"
-                    );
-
-                    let result;
-                    if (existing) {
-                        console.log(
-                            `✏️ Updating recurring for day ${payload.dayOfWeek}`
-                        );
-                        result = await updateAvailability(payload);
-                    } else {
-                        console.log(
-                            `➕ Creating recurring for day ${payload.dayOfWeek}`
-                        );
-                        result = await createAvailability(payload);
-                    }
-
-                    console.log('Recurring API result:', result)
-                    if (result && !result.error) {
-                        recurringCount++;
-                        console.log(
-                            `✅ Recurring saved successfully (count: ${recurringCount})`
-                        );
-                    } else {
-                        const errorMsg = result?.error || (typeof result?.message === 'string' ? result.message : "") ||
-                            "Failed to save";
-                        console.error(`❌ Recurring save failed:`, errorMsg);
-                        errors.push(
-                            `Recurring (Day ${payload.dayOfWeek}): ${errorMsg}`
-                        );
-                    }
-                } catch (err: any) {
-                    console.error(`❌ Error saving recurring:`, err);
-                    errors.push(
-                        `Recurring (Day ${payload.dayOfWeek}): ${
-                            err.message || "Unknown error"
-                        }`
-                    );
-                }
-            }
-
-            // -------------------------------------------------
-            // SAVE ONE-TIME AVAILABILITY (SEQUENTIALLY)
-            // -------------------------------------------------
-
-            console.log(
-                `\n📅 ===== SAVING ONE-TIME (${oneTimePayloads.length} entries) =====`
-            );
-
-            for (let i = 0; i < oneTimePayloads.length; i++) {
-                const payload = oneTimePayloads[i];
-                try {
-                    console.log(
-                        `\n➕ [${i + 1}/${oneTimePayloads.length}] Creating one-time availability`
-                    );
-                    console.log(`📅 Date: ${payload.specificDate}`);
-                    console.log(`🕐 Slots: ${payload.specificTimeSlots.length}`);
-                    console.log(`💰 Rate: $${payload.hourlyRate}`);
-
-                    const result = await createAvailability(payload);
-
-                    console.log("One-time API result:", result)
-                    if (result && !result.error) {
-                        console.log(`✅ SUCCESS! One-time availability saved`);
-                        oneTimeCount++;
-                    } else {
-                        const errorMsg = result?.error || (typeof result?.message === 'string' ?
-                            result.message : ""
-                        ) || "Failed to save";
-                        console.error(`❌ One-time save failed:`, errorMsg);
-                        errors.push(
-                            `One-time (${payload.specificDate}): ${errorMsg}`
-                        );
-                    }
-                } catch (err: any) {
-                    console.error(
-                        `❌ FAILED! Error saving one-time availability:`,
-                        {
-                            error: err,
-                            message: err.message,
-                            payload: payload,
-                        }
-                    );
-                    errors.push(
-                        `One-time (${payload.specificDate}): ${
-                            err.message || "Unknown error"
-                        }`
-                    );
-                }
-            }
-
-            // -------------------------------------------------
-            // SAVE BLACKOUT DATES (SEQUENTIALLY)
-            // -------------------------------------------------
-
-            console.log(
-                `\n🚫 ===== SAVING BLACKOUTS (${blackoutPayloads.length} dates) =====`
-            );
-            for (const payload of blackoutPayloads) {
-                try {
-                    console.log(
-                        `➕ Creating blackout date for ${payload.specificDate}`
-                    );
-                    const result = await createAvailability(payload);
-
-                    console.log("Blackout API result:", result)
-                    if (result && !result.error) {
-                        blackoutCount++;
-                        console.log(
-                            `✅ Blackout saved (count: ${blackoutCount})`
-                        );
-                    } else {
-                        const errorMsg = result?.error || (typeof result?.message === 'string' ? result.message : "") ||
-                        "Failed to save";
-                        console.error(`❌ Blackout save failed:`, errorMsg);
-                        errors.push(
-                            `Blackout (${payload.specificDate}): ${errorMsg}`
-                        );
-                    }
-                } catch (err: any) {
-                    console.error(`❌ Error saving blackout:`, err);
-                    errors.push(
-                        `Blackout (${payload.specificDate}): ${
-                            err.message || "Unknown error"
-                        }`
-                    );
-                }
-            }
-
-            // -------------------------------------------------
-            // FINALIZE
-            // -------------------------------------------------
-
-            console.log("\n🔄 Refetching availability...");
-            await refetch();
-            console.log("✅ Refetch complete");
-
-            console.log("\n📊 ===== FINAL RESULTS =====");
-            console.log("✅ Recurring saved:", recurringCount);
-            console.log("✅ One-time saved:", oneTimeCount);
-            console.log("✅ Blackouts saved:", blackoutCount);
-            console.log("❌ Errors:", errors.length);
-
-            const totalSaved =
-                recurringCount + oneTimeCount + blackoutCount;
-            const totalExpected =
-                recurringPayloads.length +
-                oneTimePayloads.length +
-                blackoutPayloads.length;
-
-            if (errors.length === 0 && totalSaved > 0) {
-                const parts: string[] = [];
-                if (recurringCount > 0) parts.push(`${recurringCount} recurring`);
-                if (oneTimeCount > 0) parts.push(`${oneTimeCount} one-time`);
-                if (blackoutCount > 0) parts.push(`${blackoutCount} blackout`);
-
-                const message = `✅ Successfully saved: ${parts.join(
-                    ", "
-                )} availability!`;
-                console.log("🎉 SHOWING SUCCESS TOAST:", message);
-                toast.success(message);
-            } else if (errors.length === 0 && totalSaved === 0) {
-                console.log("ℹ️ No changes to save");
-                toast.info("No changes to save");
-            } else if (totalSaved > 0 && errors.length > 0) {
-                const message = `⚠️ Saved ${totalSaved}/${totalExpected} items. ${errors.length} failed.`;
-                console.log("⚠️ SHOWING WARNING TOAST:", message);
-                console.error("Failed items:", errors);
-                toast.warning(message);
+            if (result.success) {
+                toast.success("Availability updated successfully!");
+                refetch();
             } else {
-                const message = `❌ Failed to save availability. Please check console.`;
-                console.log("❌ SHOWING ERROR TOAST:", message);
-                console.error("All errors:", errors);
-                toast.error(message);
+                toast.error(result.error || "Failed to save availability");
             }
 
-            console.log("🏁 ===== SAVE COMPLETE =====\n");
-        } catch (error: any) {
-            console.error("💥 ===== FATAL ERROR =====");
-            console.error("❌ Error:", error);
-            console.error("❌ Message:", error.message);
-            console.error("❌ Stack:", error.stack);
-            toast.error(`Failed to save: ${error.message || "Unknown error"}`);
+        } catch (e: any) {
+            console.error("Save availability error", e);
+            toast.error(e.message || "Unknown error");
         } finally {
             setSaving(false);
-            console.log("🔓 Save state unlocked (saving = false)");
         }
     };
+
 
     const handleDeleteDay = async (dayOfWeek: number) => {
         try {
@@ -801,7 +530,7 @@ export default function AvailabilityPage() {
         );
     }
 
-    if (loading && !availability) {
+    if (loading && availability.length === 0) {
         return (
             <MainLayout>
                 <div className={"p-4"}>
@@ -947,14 +676,7 @@ export default function AvailabilityPage() {
                                     {
                                         date: "",
                                         hourlyRate: 50,
-                                        timeSlots: [
-                                            {
-                                                id: crypto.randomUUID(),
-                                                startTime: "09:00",
-                                                endTime: "17:00",
-                                                rate: 50,
-                                            },
-                                        ],
+                                        timeSlots: [],
                                     },
                                 ])
                             }
@@ -1442,25 +1164,25 @@ function TimeSlotSelector({
                         onChange={(e) => onTimeChange("endTime", e.target.value)}
                         className="w-[120px] secondbg border border-gray-700 focus:border-transparent focus:ring-0"
                     />
-                    <div className="flex items-center gap-2">
-                        <span className="text-sm text-muted-foreground dark:text-white">
-                            $
-                        </span>
-                        <Input
-                            type="number"
-                            value={slot.rate}
-                            min={0}
-                            step={1}
-                            placeholder="Rate"
-                            onChange={(e) =>
-                                onTimeChange(
-                                    "rate",
-                                    Math.round(Number(e.target.value)) || 0
-                                )
-                            }
-                            className="w-[80px] secondbg border border-gray-700 focus:border-transparent focus:ring-0"
-                        />
-                    </div>
+                    {/*<div className="flex items-center gap-2">*/}
+                    {/*    <span className="text-sm text-muted-foreground dark:text-white">*/}
+                    {/*        $*/}
+                    {/*    </span>*/}
+                    {/*    <Input*/}
+                    {/*        type="number"*/}
+                    {/*        value={slot.rate}*/}
+                    {/*        min={0}*/}
+                    {/*        step={1}*/}
+                    {/*        placeholder="Rate"*/}
+                    {/*        onChange={(e) =>*/}
+                    {/*            onTimeChange(*/}
+                    {/*                "rate",*/}
+                    {/*                Math.round(Number(e.target.value)) || 0*/}
+                    {/*            )*/}
+                    {/*        }*/}
+                    {/*        className="w-[80px] secondbg border border-gray-700 focus:border-transparent focus:ring-0"*/}
+                    {/*    />*/}
+                    {/*</div>*/}
                 </div>
                 <Button
                     variant="ghost"

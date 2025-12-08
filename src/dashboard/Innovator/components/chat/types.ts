@@ -1,40 +1,62 @@
-// User types
-export interface User {
-  id: string
-  name: string
-  role: "admin" | "innovator" | "problem-solver" | "user"
-  skill: string
-  avatar: string
-  status: "online" | "away" | "offline"
-  lastSeen?: string
-}
+import {PollOption} from "@/dashboard/Innovator/types";
 
+export type SessionStatus = "upcoming" | "active" | "closed";
 
-// Call types
-export interface CallData {
-  id: string
-  title: string
-  startTime: string
-  type: "audio" | "video"
-  status: "scheduled" | "ongoing" | "ended"
-  participants: string[]
-  hostId: string
-  screenSharing?: boolean
-}
-
-// Channel types
 export interface Channel {
-  id: string
-  name: string
-  //unreadCount: number
-  description: string
-  isEncrypted?: boolean
+    description?: string;
+    id: string;
+    name: string;
+    mentorId: string;
+    menteeId: string;
+    sessionRequestId: string;
+
+    // meta
+    status: SessionStatus;
+    nextActiveDate: string | null;
+    closedAt: string | null;
+    messages?: ChatMessage[];
+
+    unreadCount: number;
 }
 
-// API response type
-export interface ApiResponse<T> {
-  success: boolean
-  data?: T
-  error?: string
+export interface ChatMessage {
+    id: string;
+    channelId: string;
+    senderId: string;
+    senderName: string;
+    senderAvatar?: string;
+
+    content?: string;
+    fileUrl?: string;
+    fileType?: string;
+
+    createdAt: string;
 }
 
+export interface User {
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+    avatar?: string;
+
+    timeZone: string;
+    bio?: string;
+    phone?: string;
+    skills: string[];
+}
+
+export interface CallData {
+    type: "video" | "audio";
+    channelId: string;
+    userId: string;
+    scheduled?: boolean; // true if it’s a scheduled session
+    timestamp?: string;   // ISO time when call started
+}
+
+export interface PollData {
+    question: string;
+    options: PollOption[];
+    allowMultiple: boolean;
+    audioUrl?: string;
+}

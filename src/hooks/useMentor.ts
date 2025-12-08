@@ -271,11 +271,58 @@ export const useMentorSessions = (status?: string, page: number = 1, limit: numb
     }
 }
 
-// Hook for availability management - COMPLETELY FIXED VERSION
+// Hook for availability management - FULLY FIXED VERSION
 export const useAvailability = (mentorId?: string, type?: string) => {
     const [availability, setAvailability] = useState<Availability[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    const token = localStorage.getItem("token");
+
+    const authHeaders = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+    };
+
+    // Mapping DAY ENUM -> numeric index
+    const DAY_ENUM_TO_INDEX: Record<string, number> = {
+        SUNDAY: 0,
+        MONDAY: 1,
+        TUESDAY: 2,
+        WEDNESDAY: 3,
+        THURSDAY: 4,
+        FRIDAY: 5,
+        SATURDAY: 6,
+    };
+
+    /** Normalize response from backend → Availability[] */
+    const normalizeItem = (a: any): Availability => {
+        let normalizedDay: number | undefined;
+
+        if (typeof a.dayOfWeek === "number") {
+            normalizedDay = a.dayOfWeek;
+        } else if (typeof a.dayOfWeek === "string") {
+            normalizedDay = DAY_ENUM_TO_INDEX[a.dayOfWeek.toUpperCase()];
+        }
+
+        return {
+            _id: a._id,
+            mentor: a.mentor,
+            type: a.type,
+            dayOfWeek: normalizedDay,
+            specificDate: a.specificDate,
+            timeSlots: Array.isArray(a.timeSlots) ? a.timeSlots : [],
+            specificTimeSlots: Array.isArray(a.specificTimeSlots)
+                ? a.specificTimeSlots
+                : [],
+            specificTimeDate: Array.isArray(a.specificTimeDate)
+                ? a.specificTimeDate
+                : [],
+            timeZone: a.timeZone || a.timezone || "UTC",
+            hourlyRate: a.hourlyRate ?? 0,
+            isActive: a.isActive ?? true,
+        };
+    };
 
     const fetchAvailability = useCallback(async () => {
         try {
@@ -283,24 +330,31 @@ export const useAvailability = (mentorId?: string, type?: string) => {
             setError(null);
 
             const params = new URLSearchParams();
-            if (type) params.append('type', type);
-            if (mentorId) params.append('mentorId', mentorId);
+            if (mentorId) params.append("mentorId", mentorId);
+            if (type) params.append("type", type);
 
             const res = await apiRequest(`/mentor/availability?${params}`);
 
-            let items = Array.isArray(res.data) ? res.data : res.data?.data || [];
+            let items = Array.isArray(res.data)
+                ? res.data
+                : Array.isArray(res.data?.data)
+                    ? res.data.data
+                    : [];
 
-            // Normalize into FE structure
-            items = items.map((item: any) => ({
-                ...item,
-                specificTimeSlots: item.specificTimeSlots || [],
-                specificTimeDate: item.specificTimeDate || [],
-            }));
+            const normalized = items.map(normalizeItem);
 
-            setAvailability(items);
-        } catch (e: any) {
-            setError(e.message || 'Failed to load availability');
+            setAvailability(normalized);
+            return normalized;
+        } catch (err: any) {
+            console.error("useAvailability fetch error:", err);
+            const msg =
+                err?.message ||
+                err?.response?.data?.message ||
+                "Failed to load availability";
+
+            setError(msg);
             setAvailability([]);
+            return [];
         } finally {
             setLoading(false);
         }
@@ -310,45 +364,24 @@ export const useAvailability = (mentorId?: string, type?: string) => {
         fetchAvailability();
     }, [fetchAvailability]);
 
+    /** Save (create or update) availability */
     const saveAvailability = async (payload: any) => {
-        console.log("📤 Saving availability:", payload);
-
-        // ALWAYS send "specificTimeSlots" for specific_date
-        if (payload.type === "specific_date") {
-            payload.specificTimeSlots = payload.specificTimeSlots || [];
-        }
-
         try {
             const res = await apiRequest(`/mentor/availability`, {
-                method: 'POST',
-                headers: {
-                  "Content-Type": "application/json",
-                  "Authorization": `Bearer ${localStorage.getItem('token')}`
-                },
-                body: JSON.stringify(payload)
+                method: "POST",
+                headers: authHeaders,
+                body: JSON.stringify(payload),
             });
 
-            console.log("Raw API response:", res);
-
             await fetchAvailability();
-            return {
-                success: true,
-                data: res.data?.data || res.data || null
-            }
+            return { success: true, data: res.data?.data ?? res.data };
+        } catch (err: any) {
+            const msg =
+                err?.message ||
+                err?.response?.data?.error ||
+                "Failed to save availability";
 
-        } catch (e: any) {
-            console.error('API error:', e)
-
-            if (e.response?.data) {
-                console.error('Response Data:', e.response.data)
-                return {
-                    success: false,
-                    error: e.response.data.error ||
-                        e.response.data.message ||
-                        "Request failed. Please try again later."
-                };
-            }
-            return { success: false, error: e.message || "Unknown error" };
+            return { success: false, error: msg };
         }
     };
 
@@ -357,11 +390,22 @@ export const useAvailability = (mentorId?: string, type?: string) => {
 
     const deleteAvailability = async (id: string) => {
         try {
-            await apiRequest(`/mentor/availability/${id}`, { method: 'DELETE' });
-            setAvailability(prev => prev.filter(a => a._id !== id));
+            await apiRequest(`/mentor/availability/${id}`, {
+                method: "DELETE",
+                headers: authHeaders,
+            });
+
+            setAvailability((prev) => prev.filter((a) => a._id !== id));
+
             return { success: true };
-        } catch (e: any) {
-            return { success: false, error: e.message };
+        } catch (err: any) {
+            return {
+                success: false,
+                error:
+                    err?.message ||
+                    err?.response?.data?.message ||
+                    "Failed to delete availability",
+            };
         }
     };
 
@@ -373,9 +417,10 @@ export const useAvailability = (mentorId?: string, type?: string) => {
         createAvailability,
         updateAvailability,
         deleteAvailability,
-        setAvailability
+        setAvailability,
     };
 };
+
 
 // Hook for dashboard statistics
 export const useDashboardStats = () => {

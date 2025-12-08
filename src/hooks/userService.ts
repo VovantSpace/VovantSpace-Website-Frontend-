@@ -1,5 +1,6 @@
 import {useState, useEffect, useCallback} from 'react'
 import {getSocket} from '@/lib/socket'
+import {isTokenExpired} from '@/utils/checkTokenExpiry'
 
 export interface User {
     _id: string;
@@ -232,7 +233,7 @@ const notificationApiRequest = async (endpoint: string, options: RequestInit = {
 }
 
 // Hook for authentication
-export const useAuth = () => {
+export const  useAuth = () => {
     const [user, setUser] = useState<User | null>(null);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -243,22 +244,27 @@ export const useAuth = () => {
         const initializeAuth = async () => {
             const token = localStorage.getItem('token');
 
-            if (token) {
-                try {
-                    const response = await apiRequest('/profile');
-                    if (response.success) {
-                        setUser(response.user);
-                        setIsAuthenticated(true);
-                    } else {
-                        localStorage.removeItem('token');
-                        setIsAuthenticated(false);
-                    }
-                } catch (err) {
+            if (!token || isTokenExpired(token)) {
+                localStorage.removeItem('token');
+                setUser(null);
+                setIsAuthenticated(false);
+                setLoading(false);
+                return;
+            }
+
+            try {
+                const response = await apiRequest('/profile');
+                const userData = response.user || response.data?.user || null;
+
+                if (!userData) {
                     localStorage.removeItem('token');
-                    setIsAuthenticated(false);
-                    setError(err instanceof Error ? err.message : 'Authentication failed');
+                    setIsAuthenticated(false)
+                } else {
+                    setUser(userData);
+                    setIsAuthenticated(true);
                 }
-            } else {
+            } catch (err) {
+                localStorage.removeItem('token');
                 setIsAuthenticated(false);
             }
 
@@ -280,7 +286,7 @@ export const useAuth = () => {
 
             if (response.success) {
                 localStorage.setItem('token', response.token);
-                setUser(response.user);
+                setUser(response.user || response.data?.user);
                 setIsAuthenticated(true);
             }
 
@@ -306,7 +312,7 @@ export const useAuth = () => {
 
             if (response.success) {
                 localStorage.setItem('token', response.token);
-                setUser(response.user);
+                setUser(response.user || response.data?.user);
                 setIsAuthenticated(true);
             }
 
@@ -339,7 +345,7 @@ export const useAuth = () => {
         login,
         signup,
         logout,
-        clearError,
+        clearError: () => setError(null),
         setUser
     };
 };

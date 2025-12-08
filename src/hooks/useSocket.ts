@@ -14,7 +14,12 @@ export function useSocket() {
         const roomName = `${normalizedRole}_${user._id}`
 
         // connect & join the correct socket room
-        if (!socket.connected) socket.connect();
+        if (!socket.connected) {
+            socket.connect()
+        }
+
+        console.log("Joining room:", roomName)
+        socket.emit("chat:join-room", roomName)
 
         socket.on("connect", () => {
                 console.log(`✅ Socket connected: ${socket.id}`)

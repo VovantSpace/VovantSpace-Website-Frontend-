@@ -8,7 +8,7 @@ let socket: Socket | null = null;
 export function getSocket(): Socket {
     if (!socket) {
 
-        const token = localStorage.getItem("token");
+        const token = localStorage.getItem("token") || "";
         socket = io(SOCKET_URL, {
             withCredentials: true,
             reconnection: true,
