@@ -7,6 +7,8 @@ const api = axios.create({
     baseURL: `${API_BASE_URL}/api`,
     withCredentials: true, // send cookies if refresh token is stored in HttpOnly cookie
 });
+console.log("UTILS/API.ts is being used with:", API_BASE_URL);
+
 
 // Flag to avoid multiple refresh calls
 let isRefreshing = false;
