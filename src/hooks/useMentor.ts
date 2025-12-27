@@ -1,6 +1,5 @@
 import {useState, useEffect, useCallback} from 'react'
-import axios from 'axios'
-import {setAvailability} from "../../backend-vovant/controllers/mentorController";
+import api from "@/utils/api"
 
 export interface SessionRequest {
     _id: string;
@@ -487,7 +486,7 @@ export function useMentorDetails(mentorId: string | null, open: boolean) {
         if (!mentorId || !open) return;
         setLoading(true);
         try {
-            const response = await axios.get(`/api/mentees/mentors/${mentorId}`, {
+            const response = await api.get(`/api/mentees/mentors/${mentorId}`, {
                 withCredentials: true,
             });
 
