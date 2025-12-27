@@ -1,6 +1,7 @@
 import {io, Socket} from 'socket.io-client'
 
 const SOCKET_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+console.log("SOCKET_URL:", SOCKET_URL);
 
 // Singleton socket instance
 let socket: Socket | null = null;
