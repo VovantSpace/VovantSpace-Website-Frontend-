@@ -1,7 +1,7 @@
 import {useState, useEffect} from "react";
 import {Search, Loader2} from "lucide-react";
 import {cn} from "@/dashboard/Innovator/lib/utils";
-import axios from "axios";
+import api from "@/utils/api"
 import {getSocket} from "@/lib/socket";
 
 import {Input} from "@/dashboard/Innovator/components/ui/input";
@@ -23,9 +23,7 @@ export default function ChatsPage() {
     useEffect(() => {
         const loadUser = async () => {
             try {
-                const res = await axios.get("/api/user/profile", {
-                    headers: {Authorization: `Bearer ${localStorage.getItem("token")}`},
-                });
+                const res = await api.get("/user/profile");
 
                 const u = res.data?.user || res.data?.data;
                 if (!u) return;
@@ -78,9 +76,7 @@ export default function ChatsPage() {
     useEffect(() => {
         const loadChats = async () => {
             try {
-                const res = await axios.get("/api/chat/session-chats/my", {
-                    headers: {Authorization: `Bearer ${localStorage.getItem("token")}`},
-                });
+                const res = await api.get("/api/chat/session-chats/my")
 
                 if (res.data.success) {
                     const normalized = res.data.data.map((ch: Channel) => ({
@@ -118,11 +114,8 @@ export default function ChatsPage() {
 
         const loadMessages = async () => {
             try {
-                const res = await axios.patch(
-                    `/api/chat/${selectedChannel.id}/read`,
-                    {},
-                    {headers: {Authorization: `Bearer ${localStorage.getItem("token")}`}}
-                )
+                const res = await api.patch(
+                    `/api/chat/${selectedChannel.id}/read`,)
 
                 setChannels(prev =>
                     prev.map(c =>
@@ -142,7 +135,7 @@ export default function ChatsPage() {
 
         const loadMessages = async () => {
             try {
-                const res = await axios.get(`/api/chat/${selectedChannel.id}/messages`, {
+                const res = await api.get(`/api/chat/${selectedChannel.id}/messages`, {
                     headers: {Authorization: `Bearer ${localStorage.getItem("token")}`},
                 });
 
@@ -243,7 +236,7 @@ export default function ChatsPage() {
         if (!selectedChannel) return;
 
         try {
-            await axios.post(
+            await api.post(
                 "/api/chat/send",
                 {
                     channelId: selectedChannel.id,
@@ -251,7 +244,6 @@ export default function ChatsPage() {
                     fileUrl,
                     fileType,
                 },
-                {headers: {Authorization: `Bearer ${localStorage.getItem("token")}`}}
             );
         } catch (err) {
             console.error("Failed to send message:", err);
