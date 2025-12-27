@@ -9,7 +9,7 @@ import { ChatInterface } from "@/dashboard/Innovator/components/chat/chat-interf
 import { ChatHeader } from "@/dashboard/Innovator/components/chat/chat-header"
 import type { Channel, User } from "@/dashboard/Innovator/components/chat/types"
 import { getSocket } from "@/lib/socket"
-import axios from "axios"
+import api from "@/utils/api";
 
 export default function ChatsPage() {
     const [channels, setChannels] = useState<Channel[]>([])
@@ -23,9 +23,7 @@ export default function ChatsPage() {
     useEffect(() => {
         const fetchUser = async () => {
             try {
-                const res = await axios.get("/api/user/profile", {
-                    headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-                })
+                const res = await api.get("/user/profile")
 
                 const u = res.data?.user || res.data?.data
                 if (!u) return
@@ -54,9 +52,7 @@ export default function ChatsPage() {
     useEffect(() => {
         const fetchChats = async () => {
             try {
-                const res = await axios.get("/api/chat/session-chats/my", {
-                    headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-                })
+                const res = await api.get("/api/chat/session-chats/my")
 
                 if (res.data?.success) {
                     const chats: Channel[] = res.data.data || []
@@ -96,15 +92,8 @@ export default function ChatsPage() {
 
         const markAsRead = async () => {
             try {
-                await axios.patch(
-                    `/api/chat/${selectedChannel.id}/read`,
-                    {},
-                    {
-                        headers: {
-                            Authorization: `Bearer ${localStorage.getItem("token")}`,
-                        },
-                    }
-                );
+                await api.patch(
+                    `/api/chat/${selectedChannel.id}/read`,);
 
                 // Update UI immediately
                 setChannels((prev) =>
@@ -202,7 +191,7 @@ export default function ChatsPage() {
         if (!selectedChannel) return
 
         try {
-            await axios.post(
+            await api.post(
                 "/api/chat/send",
                 {
                     channelId: selectedChannel.id,
@@ -210,9 +199,6 @@ export default function ChatsPage() {
                     fileUrl,
                     fileType,
                 },
-                {
-                    headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-                }
             )
         } catch (err) {
             console.error("Failed to send message:", err)
