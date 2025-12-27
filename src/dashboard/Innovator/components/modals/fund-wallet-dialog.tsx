@@ -1,7 +1,8 @@
 import type React from "react"
 import { useState } from "react"
+import axios from "axios"
 import { CreditCard, DollarSign } from "lucide-react"
-
+import {stripePromise} from "@/lib/stripe";
 import { Button } from "../../components/ui/button"
 import {
   Dialog,
@@ -31,15 +32,42 @@ export function FundWalletDialog({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (Number(amount) < 5) {
-      return
-    }
-    setIsLoading(true)
-    // Add funding logic here
-    setTimeout(() => {
-      setIsLoading(false)
-      onClose()
-    }, 1000)
+
+      const numericAmount = Number(amount)
+      if(numericAmount < 5) return;
+
+      setIsLoading(true)
+
+      try {
+          const res = await axios.post('/apirequest/wallet/topup', {
+              amount: numericAmount,
+              currency: "usd"
+          })
+
+          const {clientSecret} = res.data
+
+          // Confirm payment with stripe
+          const stripe = await stripePromise
+          if(!stripe) throw new Error("Stripe not loaded")
+
+          const result = await stripe.confirmCardPayment(clientSecret, {
+              payment_method: {
+                  card: {
+                      // Temp: using stripe's default card for testing
+                  } as any,
+              }
+          })
+
+          if (result.error) {
+              throw result.error
+          }
+
+          onClose()
+      }catch (err) {
+          console.error("Wallet funding failed:", err)
+      } finally {
+          setIsLoading(false)
+      }
   }
 
   return (

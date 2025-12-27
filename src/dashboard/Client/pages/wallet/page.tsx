@@ -1,5 +1,3 @@
-
-
 import { useState } from "react"
 import { Button } from "@/dashboard/Innovator/components/ui/button"
 import { Card } from "@/dashboard/Innovator/components/ui/card"
@@ -7,14 +5,21 @@ import { MainLayout } from "@/dashboard/Client/components/layout/main-layout";
 import { SendFundSettingsDialog } from "@/dashboard/Innovator/components/modals/SendFundSettingsDialog"
 import { ArrowDownRight, ArrowUpRight, RefreshCw } from "lucide-react"
 import { FundWalletDialog } from "@/dashboard/Innovator/components/modals/fund-wallet-dialog";
-
+import {useWalletSocket} from "@/hooks/useWalletSocket"
 
 export default function WalletPage() {
   
   const [isSendFundsSettingsOpen, setIsSendFundsSettingsOpen] = useState(false)
-  const [isFundWaletDialogOpen, setisFundWaletDialogOpen] = useState(false)
+  const [isFundWalletDialogOpen, setIsFundWalletDialogOpen] = useState(false)
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [selectedPeriod, setSelectedPeriod] = useState("All Time")
+    const {wallet, refetch: refetchWallet} = useWallet()
+    const {transactions, refetch: refetchTransactions} = useTransactions()
+
+    useWalletSocket(() => {
+        refetchWallet()
+        refetchWallet()
+    })
 
   const RecentTransactions = [
     {
@@ -86,7 +91,7 @@ export default function WalletPage() {
         <div className="grid gap-4 sm:grid-cols-2">
           <Card
             className="dashbutton  p-6 transition-colors hover:secondbg cursor-pointer"
-            onClick={() => setisFundWaletDialogOpen(true)}
+            onClick={() => setIsFundWalletDialogOpen(true)}
           >
             <div className="flex items-center gap-4">
               <div className="rounded-full secondbg p-3">
@@ -193,7 +198,7 @@ export default function WalletPage() {
           }
         </div>
 
-        <FundWalletDialog isOpen={isFundWaletDialogOpen} onClose={() => setisFundWaletDialogOpen(false)} />
+        <FundWalletDialog isOpen={isFundWalletDialogOpen} onClose={() => setIsFundWalletDialogOpen(false)} />
 
        
         <SendFundSettingsDialog
