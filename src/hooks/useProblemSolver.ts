@@ -1,46 +1,46 @@
-import {useState, useEffect, useCallback} from "react";
-import axios from "axios";
-import api from '../utils/api'
-import {toast} from "react-toastify";
+import { useState, useEffect, useCallback } from "react";
+import api from "@/utils/api";
+import { toast } from "react-toastify";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
-
-// Fetches the problem solver's stats
+/* =========================
+   PROBLEM SOLVER STATS
+========================= */
 export const useProblemSolverStats = () => {
     const [stats, setStats] = useState<any | null>(null);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [error, setError] = useState<any | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     const fetchStats = useCallback(async () => {
         try {
             setLoading(true);
-            const res = await api.get(`${API_BASE_URL}/api/problem-solvers/dashboard/stats`, {withCredentials: true})
+            const res = await api.get("/problem-solvers/dashboard/stats");
+
             if (res.data.success) {
-                console.log("Problem Solver Stats:", res.data.data.stats);
-                setStats(res.data.data.stats || null);
+                setStats(res.data.data.stats ?? null);
             } else {
                 setError(res.data.message);
             }
-        } catch (error: any) {
-            setError(error.response?.data?.message || "Failed to fetch stats");
+        } catch (err: any) {
+            setError(err.response?.data?.message || "Failed to fetch stats");
         } finally {
-            setLoading(false)
+            setLoading(false);
         }
-    }, [])
+    }, []);
 
     useEffect(() => {
-        fetchStats()
-    }, [fetchStats])
+        fetchStats();
+    }, [fetchStats]);
 
-    return {stats, loading, error, refetch: fetchStats};
-}
+    return { stats, loading, error, refetch: fetchStats };
+};
 
-
-// Fetches challenges for the problems solvers
+/* =========================
+   EXPLORE CHALLENGES
+========================= */
 export const useExploreChallenges = (
     filters: any = {},
-    page: number = 1,
-    limit: number = 10
+    page = 1,
+    limit = 10
 ) => {
     const [challenges, setChallenges] = useState<any[]>([]);
     const [pagination, setPagination] = useState({
@@ -56,18 +56,14 @@ export const useExploreChallenges = (
         try {
             setLoading(true);
 
-            const res = await api.get(
-                `${API_BASE_URL}/api/problem-solvers/challenges/explore`,
-                {
-                    params: {...filters, page, limit},
-                    withCredentials: true,
-                }
-            );
+            const res = await api.get("/problem-solvers/challenges/explore", {
+                params: { ...filters, page, limit },
+            });
 
             if (res.data.success) {
-                setChallenges(res.data.data.challenges || []);
+                setChallenges(res.data.data.challenges ?? []);
                 setPagination(
-                    res.data.data.pagination || {
+                    res.data.data.pagination ?? {
                         currentPage: 1,
                         totalPages: 1,
                         totalChallenges: 0,
@@ -87,82 +83,101 @@ export const useExploreChallenges = (
 
     useEffect(() => {
         fetchChallenges();
-        // 👇 stringify filters so effects runs only when values change
     }, [page, limit, JSON.stringify(filters)]);
 
-    return {challenges, pagination, loading, isFirstLoad, error, refetch: fetchChallenges};
+    return {
+        challenges,
+        pagination,
+        loading,
+        isFirstLoad,
+        error,
+        refetch: fetchChallenges,
+    };
 };
 
-// API that handles the pitches
-export const useMySubmissions = (status?: string, page: number = 1, limit: number = 10) => {
-    const [submissions, setSubmissions] = useState<any[]>([])
-    const [pagination, setPagination] = useState({currentPage: 1, totalPages: 1, totalSubmissions: 0})
+/* =========================
+   MY SUBMISSIONS
+========================= */
+export const useMySubmissions = (
+    status?: string,
+    page = 1,
+    limit = 10
+) => {
+    const [submissions, setSubmissions] = useState<any[]>([]);
+    const [pagination, setPagination] = useState({
+        currentPage: 1,
+        totalPages: 1,
+        totalSubmissions: 0,
+    });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     const fetchSubmissions = useCallback(async () => {
         try {
-            setLoading(true)
-            const res = await api.get(`${API_BASE_URL}/api/problem-solvers/submissions`, {
-                params: {status, page, limit},
-                withCredentials: true
-            })
+            setLoading(true);
+            const res = await api.get("/problem-solvers/submissions", {
+                params: { status, page, limit },
+            });
+
             if (res.data.success) {
-                setSubmissions(res.data.data.submissions || []);
-                setPagination(res.data.data.pagination || {currentPage: 1, totalPages: 1, totalSubmissions: 0})
+                setSubmissions(res.data.data.submissions ?? []);
+                setPagination(res.data.data.pagination ?? pagination);
             } else {
                 setError(res.data.message);
             }
         } catch (err: any) {
             setError(err.response?.data?.message || "Failed to fetch submissions");
         } finally {
-            setLoading(false)
+            setLoading(false);
         }
-    }, [status, page, limit])
+    }, [status, page, limit]);
 
     useEffect(() => {
-        fetchSubmissions()
-    }, [fetchSubmissions])
+        fetchSubmissions();
+    }, [fetchSubmissions]);
 
-    return {submissions, pagination, loading, error, refetch: fetchSubmissions}
-}
+    return { submissions, pagination, loading, error, refetch: fetchSubmissions };
+};
 
+/* =========================
+   SUBMIT PITCH
+========================= */
 export const useSubmitPitch = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [success, setSuccess] = useState(false)
+    const [success, setSuccess] = useState(false);
 
-    const submitPitch = useCallback(
-        async (challengeId: string, payload: any) => {
-            try {
-                setLoading(true);
-                setError(null);
-                setSuccess(false)
+    const submitPitch = useCallback(async (challengeId: string, payload: any) => {
+        try {
+            setLoading(true);
+            setError(null);
+            setSuccess(false);
 
-                const res = await api.post(
-                    `${API_BASE_URL}/api/problem-solvers/challenges/${challengeId}/pitch`,
-                        payload,
-                    {withCredentials: true}
-                )
+            const res = await api.post(
+                `/problem-solvers/challenges/${challengeId}/pitch`,
+                payload
+            );
 
-                if (res.data.success) {
-                    setSuccess(true)
-                    return res.data.data
-                } else {
-                    setError(res.data.message || "Failed to submit pitch");
-                }
-            } catch (err: any) {
-                setError(err.response?.data?.message || "Error Submitting pitch!");
-            } finally {
-                setLoading(false)
+            if (res.data.success) {
+                setSuccess(true);
+                toast.success("Pitch submitted successfully");
+                return res.data.data;
+            } else {
+                setError(res.data.message || "Failed to submit pitch");
             }
-        },
+        } catch (err: any) {
+            setError(err.response?.data?.message || "Error submitting pitch");
+        } finally {
+            setLoading(false);
+        }
+    }, []);
 
-        []
-    )
-    return {submitPitch, loading, error, success}
-}
+    return { submitPitch, loading, error, success };
+};
 
+/* =========================
+   PROFILE
+========================= */
 export const useProblemSolverProfile = () => {
     const [profile, setProfile] = useState<any | null>(null);
     const [loading, setLoading] = useState(true);
@@ -171,15 +186,12 @@ export const useProblemSolverProfile = () => {
     const fetchProfile = useCallback(async () => {
         try {
             setLoading(true);
-            const res = await api.get(
-                `${API_BASE_URL}/api/problem-solvers/profile`,
-                { withCredentials: true }
-            );
+            const res = await api.get("/problem-solvers/profile");
 
             if (res.data.success) {
                 setProfile(res.data.data);
             } else {
-                setError(res.data.message || "Failed to fetch profile");
+                setError(res.data.message);
             }
         } catch (err: any) {
             setError(err.response?.data?.message || "Failed to fetch profile");
@@ -188,7 +200,6 @@ export const useProblemSolverProfile = () => {
         }
     }, []);
 
-    // ✅ only run once on mount
     useEffect(() => {
         fetchProfile();
     }, [fetchProfile]);
@@ -196,29 +207,32 @@ export const useProblemSolverProfile = () => {
     return { profile, loading, error, refetch: fetchProfile };
 };
 
+/* =========================
+   CHALLENGE SUBMISSIONS
+========================= */
 export const useChallengeSubmissions = (challengeId?: string) => {
     const [submissions, setSubmissions] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null)
+    const [error, setError] = useState<string | null>(null);
 
     const fetchSubmissions = useCallback(async () => {
         if (!challengeId) return;
 
         try {
             setLoading(true);
-            const res = await api.get(`${API_BASE_URL}/api/problem-solvers/challenges/${challengeId}/submissions`, {
-                withCredentials: true,
-            })
+            const res = await api.get(
+                `/problem-solvers/challenges/${challengeId}/submissions`
+            );
 
             if (res.data.success) {
-                setSubmissions(res.data.data.submissions || [])
+                setSubmissions(res.data.data.submissions ?? []);
             } else {
                 setError(res.data.message);
             }
         } catch (err: any) {
-            setError(err.response?.data?.message || "Failed to fetch submissions")
+            setError(err.response?.data?.message || "Failed to fetch submissions");
         } finally {
-            setLoading(false)
+            setLoading(false);
         }
     }, [challengeId]);
 
@@ -226,5 +240,5 @@ export const useChallengeSubmissions = (challengeId?: string) => {
         fetchSubmissions();
     }, [fetchSubmissions]);
 
-    return {submissions, loading, error, refetch: fetchSubmissions}
-}
+    return { submissions, loading, error, refetch: fetchSubmissions };
+};
