@@ -8,7 +8,7 @@ import { Separator } from "@/dashboard/Innovator/components/ui/separator";
 import { MainLayout } from "../../components/layout/main-layout";
 import { ChatInterface } from "@/dashboard/Innovator/components/chat/chat-interface";
 import { ChatHeader } from "@/dashboard/Innovator/components/chat/chat-header";
-import { useAuth } from "@/hooks/userService";
+import  useAuth  from "@/hooks/userService";
 import { getSocket } from "@/lib/socket";
 import type { Channel, ChatMessage } from "@/dashboard/Innovator/types";
 import { mapToChatUser } from "@/lib/mapToChatUser";

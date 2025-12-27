@@ -6,7 +6,7 @@ import { ChatMessageItem } from "./chat-message-item";
 import { Button } from "@/dashboard/Innovator/components/ui/button";
 import { Input } from "@/dashboard/Innovator/components/ui/input";
 import { X, Paperclip, Send } from "lucide-react";
-import axios from "axios";
+import api from "@/utils/api"
 import { cn } from "@/dashboard/Innovator/lib/utils";
 
 export interface ChatInterfaceProps {
@@ -78,9 +78,7 @@ export function ChatInterface({
     useEffect(() => {
         const fetchMessages = async () => {
             try {
-                const response = await axios.get(`/api/chat/${channelId}/messages`, {
-                    headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-                });
+                const response = await api.get(`/api/chat/${channelId}/messages`);
 
                 console.log('Chat response', response.data)
 
