@@ -1,6 +1,9 @@
-import {useState, useEffect, useCallback} from 'react'
-import api from "@/utils/api"
+import { useState, useEffect, useCallback } from "react";
+import api from "@/utils/api";
 
+/**
+ * TYPES
+ */
 export interface SessionRequest {
     _id: string;
     mentor: string;
@@ -14,13 +17,13 @@ export interface SessionRequest {
     requestedDate: string;
     duration: number;
     amount: string;
-    status: 'pending' | 'accepted' | 'declined' | 'counter_proposed';
+    status: "pending" | "accepted" | "declined" | "counter_proposed";
     declineReason: string;
     counterProposal?: {
         proposedDate: string;
         proposedEndTime: string;
         message?: string;
-    }
+    };
     createdAt: string;
 }
 
@@ -37,16 +40,16 @@ export interface MentorSession {
     scheduledDate: string;
     duration: number;
     amount: number;
-    status: 'scheduled' | 'completed' | 'cancelled';
+    status: "scheduled" | "completed" | "cancelled";
     rating?: number;
 }
 
 export interface Availability {
     _id: string;
     mentor: string;
-    type: 'recurring' | 'specific_date';
+    type: "recurring" | "specific_date";
     dayOfWeek?: number;
-    timeSlots?: Array<{ startTime: string; endTime: string, id?: string }>;
+    timeSlots?: Array<{ startTime: string; endTime: string; id?: string }>;
     specificDate?: string;
     specificTimeDate?: Array<{ startTime: string; endTime: string }>;
     specificTimeSlots?: Array<{ startTime: string; endTime: string }>;
@@ -73,14 +76,6 @@ export interface PaginationData {
     totalRequests?: number;
     totalSessions?: number;
     limit: number;
-}
-
-interface Education {
-    institution: string;
-    degree: string;
-    field: string;
-    startDate: string;
-    endDate: string;
 }
 
 interface Certification {
@@ -123,33 +118,51 @@ export interface Mentor {
     hasPendingRequests?: boolean;
 }
 
-// Base API configuration
-const API_BASE_URL = import.meta.env.API_BASE_URL || 'http://localhost:8000/api';
+/**
+ * Shared API request helper (uses Axios client from src/utils/api.ts)
+ * IMPORTANT: api.ts already has baseURL = `${VITE_API_BASE_URL}/api`
+ * So here we pass paths like "/mentor/..." (NOT "/api/mentor/...").
+ */
+type ApiResponse<T = any> = {
+    success?: boolean;
+    message?: string;
+    data?: T;
+};
 
-const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
-    const token = localStorage.getItem('authToken') ||
-        localStorage.getItem('token') ||
-        localStorage.getItem('accessToken');
-
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-            ...options.headers,
-        },
-        ...options
-    })
-
-    if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Something went wrong');
-    }
-
-    return response.json();
+function getErrorMessage(err: any, fallback: string) {
+    return (
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        err?.message ||
+        fallback
+    );
 }
 
-// Hook for session requests
-export const useSessionRequests = (status?: string, page: number = 1, limit: number = 10) => {
+async function apiRequest<T = any>(
+    method: "get" | "post" | "patch" | "delete",
+    url: string,
+    body?: any
+): Promise<ApiResponse<T>> {
+    try {
+        const res = await api.request({
+            method,
+            url,
+            data: body,
+        });
+        return res.data;
+    } catch (err: any) {
+        throw new Error(getErrorMessage(err, "Something went wrong"));
+    }
+}
+
+/**
+ * Hook for session requests
+ */
+export const useSessionRequests = (
+    status?: string,
+    page: number = 1,
+    limit: number = 10
+) => {
     const [requests, setRequests] = useState<SessionRequest[]>([]);
     const [pagination, setPagination] = useState<PaginationData | null>(null);
     const [loading, setLoading] = useState(false);
@@ -163,18 +176,23 @@ export const useSessionRequests = (status?: string, page: number = 1, limit: num
             const queryParams = new URLSearchParams({
                 page: page.toString(),
                 limit: limit.toString(),
-            })
+            });
 
-            if (status) {
-                queryParams.append('status', status);
-            }
+            if (status) queryParams.append("status", status);
 
-            const response = await apiRequest(`/mentor/requests?${queryParams}`);
-            setRequests(response.data.requests || []);
-            setPagination(response.data.pagination);
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to fetch requests')
+            const response = await apiRequest<{ requests: SessionRequest[]; pagination: PaginationData }>(
+                "get",
+                `/mentor/requests?${queryParams.toString()}`
+            );
+
+            const payload = response.data as any;
+
+            setRequests(payload?.requests || []);
+            setPagination(payload?.pagination || null);
+        } catch (err: any) {
+            setError(err?.message || "Failed to fetch requests");
             setRequests([]);
+            setPagination(null);
         } finally {
             setLoading(false);
         }
@@ -186,28 +204,25 @@ export const useSessionRequests = (status?: string, page: number = 1, limit: num
 
     const respondToRequest = async (
         requestId: string,
-        action: 'accept' | 'decline' | 'counter_propose',
-        data?: { declineReason?: string, counterProposal?: any }
+        action: "accept" | "decline" | "counter_propose",
+        data?: { declineReason?: string; counterProposal?: any }
     ) => {
-        try {
-            const response = await apiRequest(`/mentor/requests/${requestId}/respond`, {
-                method: 'PATCH',
-                body: JSON.stringify({action, ...data}),
-            })
+        const response = await apiRequest<{ sessionRequest: SessionRequest }>(
+            "patch",
+            `/mentor/requests/${requestId}/respond`,
+            { action, ...(data || {}) }
+        );
 
-            setRequests(prev =>
-                prev.map(req =>
-                    req._id === requestId
-                        ? {...req, ...response.data.sessionRequest}
-                        : req
-                )
-            )
+        const updated = (response.data as any)?.sessionRequest;
 
-            return response.data.sessionRequest;
-        } catch (err) {
-            throw new Error(err instanceof Error ? err.message : 'Failed to respond to request')
+        if (updated) {
+            setRequests((prev) =>
+                prev.map((req) => (req._id === requestId ? { ...req, ...updated } : req))
+            );
         }
-    }
+
+        return updated;
+    };
 
     return {
         requests,
@@ -216,13 +231,19 @@ export const useSessionRequests = (status?: string, page: number = 1, limit: num
         loading,
         error,
         refetch: fetchRequests,
-        respondToRequest
-    }
-}
+        respondToRequest,
+    };
+};
 
-// Hook for mentor sessions
-export const useMentorSessions = (status?: string, page: number = 1, limit: number = 10) => {
-    const [sessions, setSessions] = useState<MentorSession[]>([])
+/**
+ * Hook for mentor sessions
+ */
+export const useMentorSessions = (
+    status?: string,
+    page: number = 1,
+    limit: number = 10
+) => {
+    const [sessions, setSessions] = useState<MentorSession[]>([]);
     const [pagination, setPagination] = useState<PaginationData | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -235,18 +256,23 @@ export const useMentorSessions = (status?: string, page: number = 1, limit: numb
             const queryParams = new URLSearchParams({
                 page: page.toString(),
                 limit: limit.toString(),
-            })
+            });
 
-            if (status) {
-                queryParams.append('status', status);
-            }
+            if (status) queryParams.append("status", status);
 
-            const response = await apiRequest(`/mentor/sessions?${queryParams}`);
-            setSessions(response.data.sessions || [])
-            setPagination(response.data.pagination);
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to fetch sessions')
+            const response = await apiRequest<{ sessions: MentorSession[]; pagination: PaginationData }>(
+                "get",
+                `/mentor/sessions?${queryParams.toString()}`
+            );
+
+            const payload = response.data as any;
+
+            setSessions(payload?.sessions || []);
+            setPagination(payload?.pagination || null);
+        } catch (err: any) {
+            setError(err?.message || "Failed to fetch sessions");
             setSessions([]);
+            setPagination(null);
         } finally {
             setLoading(false);
         }
@@ -257,8 +283,8 @@ export const useMentorSessions = (status?: string, page: number = 1, limit: numb
     }, [fetchSessions]);
 
     const addSession = (newSession: MentorSession) => {
-        setSessions(prev => [newSession, ...prev]);
-    }
+        setSessions((prev) => [newSession, ...prev]);
+    };
 
     return {
         sessions,
@@ -267,21 +293,16 @@ export const useMentorSessions = (status?: string, page: number = 1, limit: numb
         error,
         refetch: fetchSessions,
         addSession,
-    }
-}
+    };
+};
 
-// Hook for availability management - FULLY FIXED VERSION
+/**
+ * Hook for availability management
+ */
 export const useAvailability = (mentorId?: string, type?: string) => {
     const [availability, setAvailability] = useState<Availability[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-
-    const token = localStorage.getItem("token");
-
-    const authHeaders = {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-    };
 
     // Mapping DAY ENUM -> numeric index
     const DAY_ENUM_TO_INDEX: Record<string, number> = {
@@ -298,9 +319,8 @@ export const useAvailability = (mentorId?: string, type?: string) => {
     const normalizeItem = (a: any): Availability => {
         let normalizedDay: number | undefined;
 
-        if (typeof a.dayOfWeek === "number") {
-            normalizedDay = a.dayOfWeek;
-        } else if (typeof a.dayOfWeek === "string") {
+        if (typeof a.dayOfWeek === "number") normalizedDay = a.dayOfWeek;
+        else if (typeof a.dayOfWeek === "string") {
             normalizedDay = DAY_ENUM_TO_INDEX[a.dayOfWeek.toUpperCase()];
         }
 
@@ -311,12 +331,8 @@ export const useAvailability = (mentorId?: string, type?: string) => {
             dayOfWeek: normalizedDay,
             specificDate: a.specificDate,
             timeSlots: Array.isArray(a.timeSlots) ? a.timeSlots : [],
-            specificTimeSlots: Array.isArray(a.specificTimeSlots)
-                ? a.specificTimeSlots
-                : [],
-            specificTimeDate: Array.isArray(a.specificTimeDate)
-                ? a.specificTimeDate
-                : [],
+            specificTimeSlots: Array.isArray(a.specificTimeSlots) ? a.specificTimeSlots : [],
+            specificTimeDate: Array.isArray(a.specificTimeDate) ? a.specificTimeDate : [],
             timeZone: a.timeZone || a.timezone || "UTC",
             hourlyRate: a.hourlyRate ?? 0,
             isActive: a.isActive ?? true,
@@ -332,25 +348,19 @@ export const useAvailability = (mentorId?: string, type?: string) => {
             if (mentorId) params.append("mentorId", mentorId);
             if (type) params.append("type", type);
 
-            const res = await apiRequest(`/mentor/availability?${params}`);
+            const res = await apiRequest<any>("get", `/mentor/availability?${params.toString()}`);
 
-            let items = Array.isArray(res.data)
+            const items = Array.isArray(res.data)
                 ? res.data
-                : Array.isArray(res.data?.data)
-                    ? res.data.data
+                : Array.isArray((res.data as any)?.data)
+                    ? (res.data as any).data
                     : [];
 
             const normalized = items.map(normalizeItem);
-
             setAvailability(normalized);
             return normalized;
         } catch (err: any) {
-            console.error("useAvailability fetch error:", err);
-            const msg =
-                err?.message ||
-                err?.response?.data?.message ||
-                "Failed to load availability";
-
+            const msg = err?.message || "Failed to load availability";
             setError(msg);
             setAvailability([]);
             return [];
@@ -366,45 +376,21 @@ export const useAvailability = (mentorId?: string, type?: string) => {
     /** Save (create or update) availability */
     const saveAvailability = async (payload: any) => {
         try {
-            const res = await apiRequest(`/mentor/availability`, {
-                method: "POST",
-                headers: authHeaders,
-                body: JSON.stringify(payload),
-            });
-
+            const res = await apiRequest<any>("post", "/mentor/availability", payload);
             await fetchAvailability();
             return { success: true, data: res.data?.data ?? res.data };
         } catch (err: any) {
-            const msg =
-                err?.message ||
-                err?.response?.data?.error ||
-                "Failed to save availability";
-
-            return { success: false, error: msg };
+            return { success: false, error: err?.message || "Failed to save availability" };
         }
     };
 
-    const createAvailability = saveAvailability;
-    const updateAvailability = saveAvailability;
-
     const deleteAvailability = async (id: string) => {
         try {
-            await apiRequest(`/mentor/availability/${id}`, {
-                method: "DELETE",
-                headers: authHeaders,
-            });
-
+            await apiRequest<any>("delete", `/mentor/availability/${id}`);
             setAvailability((prev) => prev.filter((a) => a._id !== id));
-
             return { success: true };
         } catch (err: any) {
-            return {
-                success: false,
-                error:
-                    err?.message ||
-                    err?.response?.data?.message ||
-                    "Failed to delete availability",
-            };
+            return { success: false, error: err?.message || "Failed to delete availability" };
         }
     };
 
@@ -413,15 +399,16 @@ export const useAvailability = (mentorId?: string, type?: string) => {
         loading,
         error,
         refetch: fetchAvailability,
-        createAvailability,
-        updateAvailability,
+        createAvailability: saveAvailability,
+        updateAvailability: saveAvailability,
         deleteAvailability,
         setAvailability,
     };
 };
 
-
-// Hook for dashboard statistics
+/**
+ * Hook for dashboard statistics
+ */
 export const useDashboardStats = () => {
     const [stats, setStats] = useState<DashboardStats | null>(null);
     const [loading, setLoading] = useState(false);
@@ -432,15 +419,15 @@ export const useDashboardStats = () => {
             setLoading(true);
             setError(null);
 
-            const response = await apiRequest('/mentor/dashboard/stats')
-            setStats(response.data)
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to fetch dashboard stats')
+            const response = await apiRequest<DashboardStats>("get", "/mentor/dashboard/stats");
+            setStats((response.data as any) || null);
+        } catch (err: any) {
+            setError(err?.message || "Failed to fetch dashboard stats");
             setStats(null);
         } finally {
-            setLoading(false)
+            setLoading(false);
         }
-    }, [])
+    }, []);
 
     useEffect(() => {
         fetchStats();
@@ -451,22 +438,24 @@ export const useDashboardStats = () => {
         loading,
         error,
         refetch: fetchStats,
-    }
-}
+    };
+};
 
-// Combined hook for the entire mentor dashboard
+/**
+ * Combined hook for mentor dashboard
+ */
 export const useMentorDashboard = () => {
     const dashboardStats = useDashboardStats();
-    const sessionRequests = useSessionRequests('pending', 1, 5);
-    const upcomingSessions = useMentorSessions('scheduled', 1, 5)
-    const availability = useAvailability()
+    const sessionRequests = useSessionRequests("pending", 1, 5);
+    const upcomingSessions = useMentorSessions("scheduled", 1, 5);
+    const availability = useAvailability();
 
     const refetchAll = () => {
-        dashboardStats.refetch()
-        sessionRequests.refetch()
-        upcomingSessions.refetch()
-        availability.refetch()
-    }
+        dashboardStats.refetch();
+        sessionRequests.refetch();
+        upcomingSessions.refetch();
+        availability.refetch();
+    };
 
     return {
         dashboardStats,
@@ -474,8 +463,8 @@ export const useMentorDashboard = () => {
         upcomingSessions,
         availability,
         refetchAll,
-    }
-}
+    };
+};
 
 export function useMentorDetails(mentorId: string | null, open: boolean) {
     const [mentor, setMentor] = useState<Mentor | null>(null);
@@ -485,8 +474,11 @@ export function useMentorDetails(mentorId: string | null, open: boolean) {
     const fetchMentorDetails = useCallback(async () => {
         if (!mentorId || !open) return;
         setLoading(true);
+
         try {
-            const response = await api.get(`/api/mentees/mentors/${mentorId}`, {
+            // IMPORTANT: api.ts already includes "/api" in baseURL
+            // so do NOT prefix with "/api" here.
+            const response = await api.get(`/mentees/mentors/${mentorId}`, {
                 withCredentials: true,
             });
 
@@ -494,8 +486,7 @@ export function useMentorDetails(mentorId: string | null, open: boolean) {
             setMentor(data?.mentor || null);
             setError(null);
         } catch (err: any) {
-            console.error('Error fetching mentor details:', err);
-            setError(err.response?.data?.message || 'Failed to fetch mentor details');
+            setError(getErrorMessage(err, "Failed to fetch mentor details"));
         } finally {
             setLoading(false);
         }

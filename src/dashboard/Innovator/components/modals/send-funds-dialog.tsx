@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { Send } from "lucide-react"
 
-import { Button } from "@innovator/components/ui/button"
+import { Button } from "@/dashboard/Innovator/components/ui/button"
 import {
   Dialog,
   DialogContent,
