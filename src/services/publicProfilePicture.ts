@@ -1,26 +1,17 @@
 import {User} from '@/hooks/userService'
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+import api from "@/utils/api"
 
 export async function getPublicProfile(problemSolverId: string): Promise<User> {
     try {
-        const token = localStorage.getItem("token");
+        const response = await api.get(
+            `/problem-solver/${problemSolverId}/profile`
+        )
 
-        const response = await fetch(`${API_BASE_URL}/api/problem-solver/${problemSolverId}/profile`, {
-            method: "GET",
-            headers: {
-                "Content-Type": "application/json",
-                ...(token && { Authorization: `Bearer ${token}` }),
-            },
-        });
+        const data = response.data?.data
 
-        const result = await response.json();
-
-        if (!response.ok || !result.success) {
-            throw new Error(result.message || `Failed to fetch profile for ${problemSolverId}`);
-        }
-
-        const data = result.data;
+       if (!data) {
+           throw new Error("Invalid profile response")
+       }
 
         // ✅ Ensure portfolio, education, certifications are arrays
         return {
