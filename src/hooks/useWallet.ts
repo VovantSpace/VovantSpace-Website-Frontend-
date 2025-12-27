@@ -1,5 +1,5 @@
 import {useState, useCallback} from "react";
-import axios from "axios";
+import api from '@/utils/api'
 
 export type Wallet = {
     availableBalance: number;
@@ -13,7 +13,7 @@ export function useWallet() {
     const fetchWallet = useCallback(async () => {
         setLoading(true)
         try {
-            const res = await axios.get('/api/wallet')
+            const res = await api.get('/wallet')
             setWallet(res.data.wallet)
         } finally {
             setLoading(false)

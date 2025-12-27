@@ -1,5 +1,5 @@
 import {useState, useCallback} from 'react'
-import axios from 'axios'
+import api from '@/utils/api'
 
 export type Transaction = {
     _id: string;
@@ -16,7 +16,7 @@ export function useTransactions() {
     const fetchTransactions = useCallback(async () => {
         setLoading(true)
         try {
-            const res = await axios.get('/api/transactions')
+            const res = await api.get('/transactions')
             setTransactions(res.data.transactions)
         } finally {
             setLoading(false)
