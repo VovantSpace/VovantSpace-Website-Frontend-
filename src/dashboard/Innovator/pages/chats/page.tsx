@@ -1,20 +1,20 @@
-import { useState, useEffect, useCallback } from "react"
-import { Search, Menu, X, Loader2 } from "lucide-react"
-import { cn } from "@/dashboard/Innovator/lib/utils"
-import axios from "axios";
+import {useState, useEffect, useCallback} from "react"
+import {Search, Menu, X, Loader2} from "lucide-react"
+import {cn} from "@/dashboard/Innovator/lib/utils"
+import api from "@/utils/api";
 
-import { Input } from "@/dashboard/Innovator/components/ui/input"
-import { Separator } from "@/dashboard/Innovator/components/ui/separator";
-import { MainLayout } from "../../components/layout/main-layout";
-import { ChatInterface } from "@/dashboard/Innovator/components/chat/chat-interface";
-import { ChatHeader } from "@/dashboard/Innovator/components/chat/chat-header";
-import  useAuth  from "@/hooks/userService";
-import { getSocket } from "@/lib/socket";
-import type { Channel, ChatMessage } from "@/dashboard/Innovator/types";
-import { mapToChatUser } from "@/lib/mapToChatUser";
+import {Input} from "@/dashboard/Innovator/components/ui/input"
+import {Separator} from "@/dashboard/Innovator/components/ui/separator";
+import {MainLayout} from "../../components/layout/main-layout";
+import {ChatInterface} from "@/dashboard/Innovator/components/chat/chat-interface";
+import {ChatHeader} from "@/dashboard/Innovator/components/chat/chat-header";
+import userService from "@/hooks/userService";
+import {getSocket} from "@/lib/socket";
+import type {Channel, ChatMessage} from "@/dashboard/Innovator/types";
+import {mapToChatUser} from "@/lib/mapToChatUser";
 
 export default function ChatsPage() {
-    const { user: currentUser } = useAuth()
+    const currentUser = userService.getCurrentUser()
     const [rooms, setRooms] = useState<Channel[]>([])
     const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null)
     const [loading, setLoading] = useState(false)
@@ -27,9 +27,7 @@ export default function ChatsPage() {
         try {
             setLoading(true)
             // Use the session-chats endpoint to get timing info
-            const res = await axios.get(`/session-chats/my`, {
-                headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-            })
+            const res = await api.get(`/session-chats/my`)
             if (res.data?.success) {
                 const fetchedRooms = res.data.data
                 setRooms(fetchedRooms)
@@ -56,34 +54,34 @@ export default function ChatsPage() {
         const socket = getSocket()
 
         // Listen for session activation
-        socket.on("session-chat:activated", ({ room }) => {
+        socket.on("session-chat:activated", ({room}) => {
             setRooms(prev =>
                 prev.map(ch =>
-                    ch.id === room._id ? { ...ch, status: 'active' } : ch
+                    ch.id === room._id ? {...ch, status: 'active'} : ch
                 )
             )
             if (selectedChannel?.id === room._id) {
-                setSelectedChannel(prev => prev ? { ...prev, status: 'active' } : null)
+                setSelectedChannel(prev => prev ? {...prev, status: 'active'} : null)
             }
         })
 
         // Listen for session closing
-        socket.on("session-chat:closed", ({ room }) => {
+        socket.on("session-chat:closed", ({room}) => {
             setRooms(prev =>
                 prev.map(ch =>
-                    ch.id === room._id ? { ...ch, status: 'closed' } : ch
+                    ch.id === room._id ? {...ch, status: 'closed'} : ch
                 )
             )
             if (selectedChannel?.id === room._id) {
-                setSelectedChannel(prev => prev ? { ...prev, status: 'closed' } : null)
+                setSelectedChannel(prev => prev ? {...prev, status: 'closed'} : null)
             }
         })
 
         // Listen for unread updates
-        socket.on("chat:unread-update", ({ channelId, unreadCount }) => {
+        socket.on("chat:unread-update", ({channelId, unreadCount}) => {
             setRooms(prev =>
                 prev.map(ch =>
-                    ch.id === channelId ? { ...ch, unreadCount } : ch
+                    ch.id === channelId ? {...ch, unreadCount} : ch
                 )
             )
         })
@@ -100,15 +98,12 @@ export default function ChatsPage() {
     const handleSendMessage = async (content: string, fileUrl?: string, fileType?: string) => {
         if (!selectedChannel?.id || !content.trim()) return
         try {
-            const res = await axios.post('/api/session-chat/send', {
-                channelId: selectedChannel.id,
-                content,
-                fileUrl,
-                fileType,
-            },
-                {
-                    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-                }
+            const res = await api.post('/api/session-chat/send', {
+                    channelId: selectedChannel.id,
+                    content,
+                    fileUrl,
+                    fileType,
+                },
             )
 
             if (res.data?.success) {
@@ -124,7 +119,7 @@ export default function ChatsPage() {
         <div className="fixed md:relative w-[240px]">
             <div className="p-4">
                 <div className="relative">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 dashtext" />
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 dashtext"/>
                     <Input
                         placeholder="Search Session"
                         className="secondbg pl-9 border dashborder dashtext focus:outline-none text-sm"
@@ -132,7 +127,7 @@ export default function ChatsPage() {
                 </div>
             </div>
 
-            <Separator className="my-2 secondbg" />
+            <Separator className="my-2 secondbg"/>
 
             <div className="px-4 py-2">
                 <h2 className="mb-2 text-xs font-semibold uppercase text-gray-400">
@@ -141,7 +136,7 @@ export default function ChatsPage() {
 
                 {loading ? (
                     <div className="flex justify-center py-6">
-                        <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+                        <Loader2 className="h-5 w-5 animate-spin text-gray-400"/>
                     </div>
                 ) : rooms.length === 0 ? (
                     <p className="text-sm text-gray-500 py-6">No active sessions yet.</p>
@@ -190,7 +185,7 @@ export default function ChatsPage() {
             <div className="flex min-h-[93vh] dashbg rounded-xl overflow-hidden">
                 {/* Desktop Sidebar */}
                 <div className="hidden md:block w-[245px] pr-3 border-r dashborder secondbg rounded-l-xl">
-                    <SidebarContent />
+                    <SidebarContent/>
                 </div>
 
                 {/* Mobile Sidebar Overlay */}
@@ -205,9 +200,9 @@ export default function ChatsPage() {
                                 onClick={() => setIsSidebarOpen(false)}
                                 className="mb-4 absolute right-2 top-2"
                             >
-                                <X className="h-6 w-6 dark:text-white" />
+                                <X className="h-6 w-6 dark:text-white"/>
                             </button>
-                            <SidebarContent />
+                            <SidebarContent/>
                         </div>
                     </div>
                 )}
@@ -218,7 +213,7 @@ export default function ChatsPage() {
                         <div
                             className="md:hidden w-full border-b dark:text-white border-[#2a3142] secondbg px-4 py-2 flex items-center">
                             <button className="mr-2" onClick={() => setIsSidebarOpen(true)}>
-                                <Menu className="h-4 w-4" />
+                                <Menu className="h-4 w-4"/>
                             </button>
                             <span className="font-medium text-sm">
                                 {selectedChannel?.name || "Sessions"}

@@ -58,6 +58,11 @@ export const loginUser = async (
     password: string
 ): Promise<AuthResponse> => {
     const res = await api.post("/user/login", { email, password });
+
+    const {user, accessToken} = res.data;
+
+    localStorage.setItem("token", accessToken);
+    localStorage.setItem("currentUser", JSON.stringify(user));
     return res.data;
 };
 
@@ -66,10 +71,26 @@ export const signupUser = async (payload: any) => {
     return res.data;
 };
 
+export const getCurrentUser = (): User | null => {
+    try {
+        const raw = localStorage.getItem("currentUser");
+        if (!raw) return null;
+        return JSON.parse(raw) as User;
+    } catch (error) {
+        return null;
+    }
+}
+
 export const logoutUser = async () => {
     const res = await api.post("/user/logout");
+
+    localStorage.removeItem("token");
+    localStorage.removeItem("currentUser");
+
     return res.data;
 };
+
+
 
 /* =========================
    USER PROFILE
@@ -217,6 +238,7 @@ export default {
     loginUser,
     signupUser,
     logoutUser,
+    getCurrentUser,
     getMyProfile,
     updateProfile,
     updateUserRole,

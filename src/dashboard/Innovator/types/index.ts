@@ -124,4 +124,14 @@ export interface ReplyReference {
     userName: string;
 }
 
+export interface ChatChannel {
+    id: string;
+    name: string;
+    description?: string;
+
+    status?: "upcoming" | "active" | "closed"
+    nextActiveDate?: string | null;
+    closedAt?: string | null;
+}
+
 export type MessageAction = "edit" | "delete" | "reply" | "react" | "star" | "report" | "poll" | "call";

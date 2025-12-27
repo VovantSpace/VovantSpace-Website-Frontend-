@@ -7,11 +7,12 @@ import {
 import { useState, useEffect } from "react";
 import { VideoCallDialog } from "./video-call-dialog";
 import { ScheduleReviewDialog } from "../modals/schedule-review-dialog";
-import type { Channel, ChatMessage, User, CallData } from "@/dashboard/Innovator/components/chat/types";
+import type { Channel, ChatMessage, User, CallData, } from "@/dashboard/Innovator/components/chat/types";
 import { format } from "date-fns";
+import type {ChatChannel} from "@/dashboard/Innovator/types"
 
 interface ChatHeaderProps {
-    channel: Channel | null;
+    channel: ChatChannel | null;
     onVideoCall: (data: CallData) => void;
     onAudioCall: (data: CallData) => void;
     onScheduleCall: (data: { date: string; time: string; duration: string }) => void;
