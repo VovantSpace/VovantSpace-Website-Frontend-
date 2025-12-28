@@ -25,7 +25,7 @@ import ReauthenticateDialog from "@/dashboard/Client/components/Reauthenticatedi
 import EditableField from "@/dashboard/Client/components/EditableField";
 import Select from "react-select";
 import {WorkExperienceEntry} from "@/dashboard/Advisor/components/modals/WorkExperienceEntry";
-import {useUserService, NotificationPreferences} from '@/hooks/userService'
+import notificationService from '@/hooks/notificationService'
 
 interface FormValues {
     firstName: string;
@@ -233,7 +233,7 @@ export default function ProfilePage() {
         notificationPreferences,
         updateNotificationPreferences,
         notificationsLoading
-    } = useUserService()
+    } = notificationService()
 
     const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false)
     const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false)
@@ -347,9 +347,9 @@ export default function ProfilePage() {
 
             setTempProfileData(profileData);
             setOriginalProfileData(profileData);
-            setTempEducations(user.education || []);
-            setTempCertifications(user.certification || []);
-            setWorkExperiences(user.workExperience || []);
+            setTempEducations(user.education ?? []);
+            setTempCertifications(user.certification ?? []);
+            setWorkExperiences(user.workExperience ?? []);
 
             // Update formik values directly
             formik.setValues({
@@ -546,6 +546,16 @@ export default function ProfilePage() {
         )
     }
 
+    if(!user) {
+        return (
+            <MainLayout>
+                <div className={'flex items-center justify-center min-h-screen'}>
+                    <p className={'text-gray-600'}>No user profile found.</p>
+                </div>
+            </MainLayout>
+        )
+    }
+
     const handleNotificationUpdate = async (key: keyof NotificationPreferences, value: boolean) => {
         try {
             await updateNotificationPreferences({
@@ -601,11 +611,20 @@ export default function ProfilePage() {
                                 <div className="relative">
                                     <div
                                         className=" relative flex h-24 w-24 items-center justify-center rounded-full bg-[#00bf8f] text-3xl dashtext">
-                                        {user?.profilePicture ? (
-                                            <img src={`${API_BASE_URL}${user.profilePicture}`} alt="" className={'h-full w-full object-cover'}/>
+                                        {user.profilePicture ? (
+                                            <img
+                                                src={
+                                                    user.profilePicture.startsWith("http")
+                                                        ? user.profilePicture
+                                                        : `${API_BASE_URL}${user.profilePicture}`
+                                                }
+                                                alt=""
+                                                className="h-full w-full object-cover"
+                                            />
                                         ) : (
                                             getUserInitials()
                                         )}
+
                                     </div>
                                     <Button
                                         size="icon"

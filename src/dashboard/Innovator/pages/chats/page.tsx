@@ -8,13 +8,13 @@ import {Separator} from "@/dashboard/Innovator/components/ui/separator";
 import {MainLayout} from "../../components/layout/main-layout";
 import {ChatInterface} from "@/dashboard/Innovator/components/chat/chat-interface";
 import {ChatHeader} from "@/dashboard/Innovator/components/chat/chat-header";
-import userService from "@/hooks/userService";
+import notificationService from "@/hooks/notificationService";
 import {getSocket} from "@/lib/socket";
 import type {Channel, ChatMessage} from "@/dashboard/Innovator/types";
 import {mapToChatUser} from "@/lib/mapToChatUser";
 
 export default function ChatsPage() {
-    const currentUser = userService.getCurrentUser()
+    const currentUser = notificationService.getCurrentUser()
     const [rooms, setRooms] = useState<Channel[]>([])
     const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null)
     const [loading, setLoading] = useState(false)

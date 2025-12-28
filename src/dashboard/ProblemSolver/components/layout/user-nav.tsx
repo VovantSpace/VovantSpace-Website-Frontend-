@@ -11,11 +11,11 @@ import {
     DropdownMenuTrigger,
 } from "@/dashboard/ProblemSolver/components/ui/dropdown-menu"
 import { Button } from "@/dashboard/ProblemSolver/components/ui/button"
-import {useUserService} from "@/hooks/userService";
+import notificationService from "@/hooks/notificationService";
 
 
 export function UserNav() {
-    const  {user, logout} = useUserService()
+    const  {user, logout} = notificationService()
     const navigate = useNavigate()
 
 

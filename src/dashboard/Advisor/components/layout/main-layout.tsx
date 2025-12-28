@@ -8,7 +8,7 @@ import {MobileNav} from "@/dashboard/Advisor/components/layout/mobile-nav";
 import {NotificationsDropdown} from "@/dashboard/Advisor/components/notifications-dropdown";
 import {useSocket} from '@/hooks/useSocket'
 import {getSocket} from '@/lib/socket'
-import {useNotifications} from '@/hooks/userService'
+import {useNotifications} from '@/hooks/notificationService'
 import {toast} from 'react-toastify'
 
 export function MainLayout({children}: { children: React.ReactNode }) {

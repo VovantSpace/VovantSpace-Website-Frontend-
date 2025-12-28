@@ -1,6 +1,6 @@
 import {useEffect, useState} from "react";
 import {getSocket} from '@/lib/socket'
-import {useAuth} from '@/hooks/userService'
+import {useAuth} from '@/hooks/notificationService'
 import axios from "axios";
 
 export interface ChatRoom {

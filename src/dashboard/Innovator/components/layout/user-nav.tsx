@@ -11,14 +11,12 @@ import {
     DropdownMenuTrigger,
 } from "@/dashboard/Innovator/components/ui/dropdown-menu"
 import {Button} from "@/dashboard/Innovator/components/ui/button"
-import userService from "@/hooks/userService";
+import {useAuth} from "@/hooks/useAuth"
 
 
 export function UserNav() {
-    const user = userService.getCurrentUser()
+    const {user, logout} = useAuth()
     const navigate = useNavigate()
-
-
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
     // Generate user initials from the first and last name
@@ -29,11 +27,8 @@ export function UserNav() {
 
     // function that handles logout and redirects back to the homepage
     const handleLogOut = async () => {
-        try {
-            await userService.logoutUser()
-        } finally {
-            navigate("/")
-        }
+        await logout()
+        navigate("/")
     }
 
     if (!user) return null;

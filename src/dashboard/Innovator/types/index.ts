@@ -134,4 +134,14 @@ export interface ChatChannel {
     closedAt?: string | null;
 }
 
+export interface Notification {
+    _id: string;
+    title: string;
+    description?: string;
+    type: string;
+    isRead: boolean;
+    createdAt: string;
+    metadata?: Record<string, any>
+}
+
 export type MessageAction = "edit" | "delete" | "reply" | "react" | "star" | "report" | "poll" | "call";

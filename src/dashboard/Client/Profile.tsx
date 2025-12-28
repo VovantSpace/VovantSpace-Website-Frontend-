@@ -10,11 +10,14 @@ import {Separator} from "@/dashboard/Innovator/components/ui/separator";
 import {MainLayout} from "@/dashboard/Client/components/layout/main-layout";
 import {ChangePasswordDialog} from "@/dashboard/Innovator/components/modals/change-password-dialog";
 import {UploadImageDialog} from "@/dashboard/Innovator/components/modals/upload-image-dialog";
-import {useUserService, NotificationPreferences} from "@/hooks/userService";
+import notificationService from '@/hooks/notificationService'
 import {toast} from "react-hot-toast";
 import CountryandTime from "@/dashboard/ProblemSolver/pages/profile/CountryandTime";
 import ReauthenticateDialog from "@/dashboard/Client/components/Reauthenticatedialog";
 import tick from "@/assets/tick.png";
+import {useNotifications} from "@/hooks/useNotifications"
+import {useAuth} from "@/hooks/useAuth";
+import api from "@/utils/api";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
@@ -59,6 +62,12 @@ const EXPERTISE_SPECIALTIES = {
     ],
 };
 
+type NotificationPreferences = {
+    emailNotifications: boolean;
+    challengeUpdates: boolean;
+    newMessages: boolean;
+}
+
 const validationSchema = Yup.object({
     firstName: Yup.string().required("First Name is required"),
     lastName: Yup.string().required("Last Name is required"),
@@ -69,25 +78,33 @@ const validationSchema = Yup.object({
 });
 
 export default function ClientProfilePage() {
-    const {
-        user,
-        updateProfile,
-        refreshProfile,
-        uploadProfilePicture,
-        notificationPreferences,
-        updateNotificationPreferences,
-        profileLoading,
-        notificationsLoading,
-    } = useUserService();
+    const {user, authLoading, authError, refreshProfile} = useAuth()
+    const {notifications, loading: notificationsLoading} = useNotifications(
+        user?.role === "Advisor/Mentor" ? "mentor" :
+            user?.role === "Innovator" ? "innovator" :
+                "mentee"
+    )
 
+    const [profileLoading, setProfileLoading] = useState(false)
     const [isEditing, setIsEditing] = useState(false);
     const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
     const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
     const [showAuthDialog, setShowAuthDialog] = useState(false);
+    const [notificationPreferences, setNotificationPreferences] = useState<any>(null)
+
+    type ProfileFormValues = {
+        firstName: string;
+        lastName: string;
+        email: string;
+        phone: string;
+        country: string;
+        timeZone: string;
+        advisorType: string;
+        reason: string[]
+    }
 
     // --- Formik Setup ---
-    // --- Formik Setup ---
-    const formik = useFormik({
+    const formik = useFormik<ProfileFormValues>({
         initialValues: {
             firstName: user?.firstName || "",
             lastName: user?.lastName || "",
@@ -131,7 +148,7 @@ export default function ClientProfilePage() {
                 };
 
                 console.log("Submitting updated profile:", payload);
-                await updateProfile(payload);
+                //const updatedUser = await updateProfile(payload);
 
                 toast.success("Profile updated successfully!");
                 setIsEditing(false);
@@ -166,18 +183,68 @@ export default function ClientProfilePage() {
         return `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase();
     };
 
-    const handleNotificationUpdate = async (key: keyof NotificationPreferences, value: boolean) => {
+
+    const uploadProfilePicture = async (file: File) => {
         try {
-            await updateNotificationPreferences({[key]: value});
-            toast.success("Notification preferences updated");
-        } catch (err: any) {
-            toast.error(err.message || "Failed to update notifications");
+            setProfileLoading(true)
+
+            const formData = new FormData();
+            formData.append('image', file);
+
+            const res = await api.post('/user/profile-picture', formData, {
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                }
+            })
+
+            return res.data?.imageUrl
+
+            // toast.success("Profile picture updated")
+            // await refreshProfile()
+        } catch (err)  {
+            console.error(err)
+            toast.error("Failed to upload profile picture")
+        } finally {
+            setProfileLoading(false)
         }
-    };
+    }
+
+    // Function that handles notification update
+    const handleNotificationUpdate = async (key: string, value: boolean) => {
+        const updated = await notificationService.updateNotificationPreferences({
+            ...notificationPreferences,
+            [key]: value,
+        })
+
+        setNotificationPreferences(updated)
+    }
 
     useEffect(() => {
         console.log("Formik initialized")
     }, [formik]);
+
+    const NOTIFICATION_OPTIONS: {
+        label: string;
+        desc: string;
+        key: keyof NotificationPreferences;
+    }[] = [
+        {
+            label: "Email Notifications",
+            desc: "Receive important updates about your session via email",
+            key: "emailNotifications",
+        },
+        {
+            label: "Session Updates",
+            desc: "Receive updates about your Sessions",
+            key: "challengeUpdates",
+        },
+        {
+            label: "New Messages",
+            desc: "Receive updates about new messages",
+            key: "newMessages",
+        },
+    ];
+
 
     return (
 
@@ -398,42 +465,32 @@ export default function ClientProfilePage() {
                 </Card>
 
                 {/* ---------- NOTIFICATIONS ---------- */}
+                {/* ---------- NOTIFICATIONS ---------- */}
                 <Card className="bg-[#EAF5F1] border-none p-6 space-y-4">
-                    <h2 className="text-lg font-semibold text-black">Notification Preferences</h2>
+                    <h2 className="text-lg font-semibold text-black">
+                        Notification Preferences
+                    </h2>
 
-                    {[
-                        {
-                            label: "Email Notifications",
-                            desc: "Receive important updates about your session via email",
-                            key: "emailNotifications",
-                        },
-                        {
-                            label: "Session Updates",
-                            desc: "Receive updates about your Sessions",
-                            key: "challengeUpdates",
-                        },
-                        {
-                            label: "New Messages",
-                            desc: "Receive updates about new messages",
-                            key: "newMessages",
-                        },
-                    ].map((n) => (
+                    {NOTIFICATION_OPTIONS.map((n) => (
                         <div key={n.key} className="flex items-center justify-between">
                             <div>
                                 <Label className="text-black">{n.label}</Label>
                                 <p className="text-sm text-gray-600">{n.desc}</p>
                             </div>
+
                             <Switch
-                                checked={notificationPreferences?.[n.key as keyof NotificationPreferences] || false}
+                                checked={notificationPreferences?.[n.key] ?? false}
                                 onCheckedChange={(checked) =>
-                                    handleNotificationUpdate(n.key as keyof NotificationPreferences, checked)
+                                    handleNotificationUpdate(n.key, checked)
                                 }
                                 disabled={notificationsLoading}
                             />
                         </div>
                     ))}
-                    <Separator className="bg-gray-300"/>
+
+                    <Separator className="bg-gray-300" />
                 </Card>
+
 
                 {/* ---------- DIALOGS ---------- */}
                 <ChangePasswordDialog isOpen={isPasswordDialogOpen} onClose={() => setIsPasswordDialogOpen(false)}/>

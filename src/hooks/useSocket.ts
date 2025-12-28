@@ -1,6 +1,6 @@
 import {useEffect} from "react";
 import {getSocket} from '@/lib/socket';
-import {useAuth} from "@/hooks/userService";
+import {useAuth} from "@/hooks/useAuth";
 import {toast} from "react-toastify";
 
 export function useSocket() {

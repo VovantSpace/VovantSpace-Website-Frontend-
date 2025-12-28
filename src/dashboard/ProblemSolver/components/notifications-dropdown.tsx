@@ -12,7 +12,7 @@ import {
 import {Button} from "@/dashboard/ProblemSolver/components/ui/button"
 import {ScrollArea} from "@/dashboard/Innovator/components/ui/scroll-area"
 import {Badge} from '@/dashboard/Innovator/components/ui/badge'
-import {useNotifications} from "@/hooks/userService";
+import { useNotifications } from "@/hooks/useNotifications";
 
 const getNotificationTypeColor = (type: string) => {
     const colors = {
@@ -44,10 +44,9 @@ export function NotificationsDropdown() {
         unreadCount,
         loading,
         error,
-        connected,
         markAsRead,
         markAllAsRead,
-        fetchNotifications,
+        refetch,
         deleteNotification,
     } = useNotifications('problemSolver')
 
@@ -67,7 +66,7 @@ export function NotificationsDropdown() {
     }
 
     const handleRefresh = () => {
-        fetchNotifications()
+        refetch()
     }
 
 

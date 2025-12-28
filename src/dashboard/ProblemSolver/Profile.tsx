@@ -17,10 +17,13 @@ import "react-phone-input-2/lib/style.css"
 import {toast} from 'react-hot-toast';
 import * as Yup from 'yup';
 import {useFormik} from 'formik';
+import api from "@/utils/api"
 
 import ReauthenticateDialog from "@/dashboard/Client/components/Reauthenticatedialog";
 import EditableField from "@/dashboard/Client/components/EditableField";
-import {useUserService, NotificationPreferences} from '@/hooks/userService'
+import {useAuth} from '@/hooks/useAuth'
+import {useNotifications} from '@/hooks/useNotifications'
+import notificationService from "@/hooks/notificationService";
 
 interface Education {
     institution: string;
@@ -133,22 +136,15 @@ const validationSchema = Yup.object().shape({
 
 
 export default function ProfilePage() {
-    const {
-        user,
-        isAuthenticated,
-        authLoading,
-        authError,
-        updateProfile,
-        refreshProfile,
-        uploadProfilePicture,
-        updateUserRole,
-        profileLoading,
-        profileError,
-        notificationPreferences,
-        updateNotificationPreferences,
-        notificationsLoading
-    } = useUserService()
 
+    const {user, authLoading, authError, refreshProfile} = useAuth()
+    const {notifications, loading: notificationsLoading} = useNotifications(
+        user?.role === "Advisor/Mentor" ? "mentor" :
+            user?.role === "Innovator" ? "innovator" :
+                "mentee"
+    )
+
+    const [profileLoading, setProfileLoading] = useState(false)
     const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false)
     const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false)
     const [isGetVerifiedDialogueOpen, setIsGetVerifiedDialogueOpen] = useState(false)
@@ -160,6 +156,7 @@ export default function ProfilePage() {
     const [tempEducations, setTempEducations] = useState<any[]>([])
     const [tempCertifications, setTempCertifications] = useState<any[]>([])
     const [workExperiences, setWorkExperiences] = useState<any[]>([])
+    const [notificationPreferences, setNotificationPreferences] = useState<any>(null)
     const [tempProfileData, setTempProfileData] = useState({
         firstName: "",
         lastName: "",
@@ -201,6 +198,12 @@ export default function ProfilePage() {
         reason: [] as string[],
         experienceLevel: "",
     })
+
+    useEffect(() => {
+        if (!user) return;
+
+        notificationService.getNotificationPreferences().then(setNotificationPreferences);
+    }, [user])
 
     const [selectedSkill, setSelectedSkill] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
@@ -336,7 +339,7 @@ export default function ProfilePage() {
 
             console.log('Saving profile data:', profileUpdateData); // Debug log
 
-            const updatedUser = await updateProfile(profileUpdateData);
+            //const updatedUser = await updateProfile(profileUpdateData);
 
             // Update original data after successful save
             const updatedProfileData = {
@@ -387,6 +390,31 @@ export default function ProfilePage() {
         setSelectedSkill(prev => prev === skill ? '' : skill);
     };
 
+    const uploadProfilePicture = async (file: File) => {
+        try {
+            setProfileLoading(true)
+
+            const formData = new FormData();
+            formData.append('image', file);
+
+           const res = await api.post('/user/profile-picture', formData, {
+               headers: {
+                   "Content-Type": "multipart/form-data",
+               }
+           })
+
+            return res.data?.imageUrl
+
+            // toast.success("Profile picture updated")
+            // await refreshProfile()
+        } catch (err)  {
+            console.error(err)
+            toast.error("Failed to upload profile picture")
+        } finally {
+            setProfileLoading(false)
+        }
+    }
+
 
     const handleAuthSuccess = () => {
         setIsEditing(true)
@@ -426,7 +454,7 @@ export default function ProfilePage() {
     }
 
     // Loading states and error handling
-    if (authLoading || profileLoading) {
+    if (authLoading) {
         return (
             <MainLayout>
                 <div className={'flex items-center justify-center min-h-screen'}>
@@ -440,12 +468,12 @@ export default function ProfilePage() {
         )
     }
 
-    if (authError || profileError) {
+    if (authError) {
         return (
             <MainLayout>
                 <div className={'flex items-center justify-center min-h-screen'}>
                     <div className={'text-center'}>
-                        <p className={'text-red-600'}>Error: {authError || profileError}</p>
+                        <p className={'text-red-600'}>Error: {authError}</p>
                         <button
                             onClick={() => refreshProfile()}
                             className={'mt-4 px-4 py-2 bg-emerald-600 text-white rounded'}
@@ -458,16 +486,14 @@ export default function ProfilePage() {
         )
     }
 
-    const handleNotificationUpdate = async (key: keyof NotificationPreferences, value: boolean) => {
-        try {
-            await updateNotificationPreferences({
-                [key]: value
-            })
-            toast.success('Notification preferences updated')
-        } catch (error: any) {
-            console.error('Failed to update notification preferences:', error)
-            toast.error(error.message || "Failed to update notification preferences")
-        }
+    // Function that handles notification update
+    const handleNotificationUpdate = async (key: string, value: boolean) => {
+        const updated = await notificationService.updateNotificationPreferences({
+            ...notificationPreferences,
+            [key]: value,
+        })
+
+        setNotificationPreferences(updated)
     }
 
     const getUserInitials = () => {

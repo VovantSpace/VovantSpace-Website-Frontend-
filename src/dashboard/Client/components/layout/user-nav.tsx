@@ -11,11 +11,11 @@ import {
     DropdownMenuTrigger,
 } from "@/dashboard/ProblemSolver/components/ui/dropdown-menu"
 import {Button} from "@/dashboard/ProblemSolver/components/ui/button"
-import userService from "@/hooks/userService";
+import notificationService from "@/hooks/notificationService";
 
 
 export function UserNav() {
-    const user = userService.getCurrentUser()
+    const user = notificationService.getCurrentUser()
     const navigate = useNavigate()
 
 
@@ -30,7 +30,7 @@ export function UserNav() {
     // function that handles logout and redirects back to the homepage
     const handleLogOut = async () => {
         try {
-            await userService.logoutUser()
+            await notificationService.logoutUser()
         } finally {
             navigate("/")
         }

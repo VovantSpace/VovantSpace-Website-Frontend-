@@ -1,4 +1,4 @@
-import {User} from '@/hooks/userService'
+import {User} from '@/hooks/notificationService'
 import api from "@/utils/api"
 
 export async function getPublicProfile(problemSolverId: string): Promise<User> {

@@ -5,7 +5,7 @@ import {Avatar, AvatarImage} from "@/dashboard/Innovator/components/ui/avatar";
 import {FullProfileDialog} from "./ViewPSFullProfile";
 import {Submission} from "@/types/submission";
 import {getPublicProfile} from "@/services/publicProfilePicture";
-import {User} from "@/hooks/userService";
+import {User} from "@/hooks/notificationService";
 import {getImageUrl} from "@/utils/imageHelpers";
 
 interface SubmissionDetailsDialogProps {
