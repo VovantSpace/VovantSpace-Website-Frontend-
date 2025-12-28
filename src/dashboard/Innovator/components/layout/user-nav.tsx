@@ -1,5 +1,5 @@
-import { LogOut, Settings, ChevronDown } from "lucide-react"
-import { Link, useNavigate } from "react-router-dom"
+import {LogOut, Settings, ChevronDown} from "lucide-react"
+import {Link, useNavigate} from "react-router-dom"
 
 import {
     DropdownMenu,
@@ -10,12 +10,12 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/dashboard/Innovator/components/ui/dropdown-menu"
-import { Button } from "@/dashboard/Innovator/components/ui/button"
-import {useUserService} from "@/hooks/userService";
+import {Button} from "@/dashboard/Innovator/components/ui/button"
+import userService from "@/hooks/userService";
 
 
 export function UserNav() {
-    const  {user, logout} = useUserService()
+    const user = userService.getCurrentUser()
     const navigate = useNavigate()
 
 
@@ -28,9 +28,12 @@ export function UserNav() {
     }
 
     // function that handles logout and redirects back to the homepage
-    const handleLogOut = () => {
-        logout()
-        navigate("/")
+    const handleLogOut = async () => {
+        try {
+            await userService.logoutUser()
+        } finally {
+            navigate("/")
+        }
     }
 
     if (!user) return null;
@@ -39,15 +42,18 @@ export function UserNav() {
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative rounded-full !bg-transparent">
-                    <div className="flex h-8 w-8 -ml-3 items-center justify-center rounded-full uppercase dashbggreen text-white text-sm overflow-hidden">
+                    <div
+                        className="flex h-8 w-8 -ml-3 items-center justify-center rounded-full uppercase dashbggreen text-white text-sm overflow-hidden">
                         {user?.profilePicture ? (
-                            <img src={`${API_BASE_URL}${user.profilePicture}`} alt="" className={'h-full w-full object-cover rounded-full'}/>
+                            <img src={`${API_BASE_URL}${user.profilePicture}`} alt=""
+                                 className={'h-full w-full object-cover rounded-full'}/>
                         ) : (
                             getUserInitials()
                         )}
                     </div>
 
-                    <ChevronDown className={'h-4 w-4 text-gray-500 transition-transform duration-200 group-hover:rotate-180'}/>
+                    <ChevronDown
+                        className={'h-4 w-4 text-gray-500 transition-transform duration-200 group-hover:rotate-180'}/>
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-48 mr-10" align="end" forceMount>
@@ -62,17 +68,17 @@ export function UserNav() {
                         )}
                     </div>
                 </DropdownMenuLabel>
-                <DropdownMenuSeparator />
+                <DropdownMenuSeparator/>
                 <DropdownMenuGroup>
                     <DropdownMenuItem>
-                        <Settings className="mr-2 h-4 w-4" />
+                        <Settings className="mr-2 h-4 w-4"/>
                         <Link to={'/dashboard/ps/profile'}>Settings</Link>
                     </DropdownMenuItem>
 
                 </DropdownMenuGroup>
-                <DropdownMenuSeparator />
+                <DropdownMenuSeparator/>
                 <DropdownMenuItem onClick={handleLogOut} className={'cursor-pointer'}>
-                    <LogOut className="mr-2 h-4 w-4" />
+                    <LogOut className="mr-2 h-4 w-4"/>
                     <span>Log out</span>
                 </DropdownMenuItem>
             </DropdownMenuContent>

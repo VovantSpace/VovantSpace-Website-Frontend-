@@ -11,11 +11,11 @@ import {
   DropdownMenuTrigger,
 } from "@/dashboard/Innovator/components/ui/dropdown-menu"
 import { Button } from "@/dashboard/Innovator/components/ui/button"
-import {useUserService} from "@/hooks/userService";
+import userService from "@/hooks/userService";
 
 
 export function UserNav() {
-    const  {user, logout} = useUserService()
+    const user = userService.getCurrentUser();
     const navigate = useNavigate()
 
 
@@ -28,9 +28,13 @@ export function UserNav() {
     }
 
     // function that handles logout and redirects back to the homepage
-    const handleLogOut = () => {
-        logout()
-        navigate("/")
+    const handleLogOut = async () => {
+        try {
+            await userService.logoutUser()
+        } finally {
+            navigate('/')
+        }
+
     }
 
     if (!user) return null;
