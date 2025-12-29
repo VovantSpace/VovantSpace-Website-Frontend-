@@ -52,7 +52,7 @@ export default function ChatsPage() {
     useEffect(() => {
         const fetchChats = async () => {
             try {
-                const res = await api.get("/api/chat/session-chats/my")
+                const res = await api.get("/chat/session-chats/my")
 
                 if (res.data?.success) {
                     const chats: Channel[] = res.data.data || []
@@ -93,7 +93,7 @@ export default function ChatsPage() {
         const markAsRead = async () => {
             try {
                 await api.patch(
-                    `/api/chat/${selectedChannel.id}/read`,);
+                    `/chat/${selectedChannel.id}/read`,);
 
                 // Update UI immediately
                 setChannels((prev) =>

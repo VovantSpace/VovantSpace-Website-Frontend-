@@ -1,13 +1,13 @@
 import {useEffect, useState} from "react";
 import {useNavigate, useParams, useSearchParams} from "react-router-dom";
-import {useAppContext} from "@/context/AppContext.jsx";
+import {useAuth} from "@/context/AuthContext";
 import {handleOauthCallback} from "@/utils/oauthUtils.js";
 
 const OAuthCallback = () => {
     const navigate = useNavigate();
     const {provider} = useParams();
     const [searchParams] = useSearchParams();
-    const {oauthLogin} = useAppContext();
+    const {oauthLogin} = useAuth();
     const [isProcessing, setIsProcessing] = useState(true);
     const [error, setError] = useState(null);
     const [retryCount, setRetryCount] = useState(0);

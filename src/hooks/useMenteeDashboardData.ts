@@ -1,5 +1,5 @@
 import {useEffect, useState, useCallback} from "react";
-import axios from 'axios'
+import api from '@/utils/api'
 
 export function useMenteeDashboardData(menteeId: string) {
     const [stats, setStats] = useState<any>(null)
@@ -13,9 +13,9 @@ export function useMenteeDashboardData(menteeId: string) {
         setLoading(true)
         try {
             const [statsRes, sessionsRes, notificationsRes] = await Promise.all([
-                axios.get("/api/mentees/dashboard/stats", {withCredentials: true}),
-                axios.get("/api/mentees/sessions?type=upcoming", {withCredentials: true}),
-                axios.get("/api/notifications", {withCredentials: true})
+                api.get("/mentees/dashboard/stats", {withCredentials: true}),
+                api.get("/mentees/sessions?type=upcoming", {withCredentials: true}),
+                api.get("/notifications", {withCredentials: true})
             ])
             setStats(statsRes.data.data || {})
             setSessions(sessionsRes.data?.data?.sessions || sessionsRes.data?.sessions || [])

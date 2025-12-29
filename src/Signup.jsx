@@ -9,12 +9,12 @@ import ProblemSolver from './components/signup/ProblemSolver';
 import Advisor from './components/signup/Advisor';
 import Client from './components/signup/Client';
 import RoleSelectionGrid from './components/RoleSelectionGrid';
-import {useAppContext} from './context/AppContext';
+import {useAuth} from './context/AuthContext.js';
 
 const Signup = () => {
     const navigate = useNavigate();
     const {state} = useLocation();
-    const {signup, isLoading} = useAppContext();
+    const {signup, isLoading} = useAuth();
     const [submitError, setSubmitError] = useState('');
     const [step, setStep] = useState(1);
 

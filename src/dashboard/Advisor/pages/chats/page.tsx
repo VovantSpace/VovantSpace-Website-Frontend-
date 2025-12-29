@@ -76,7 +76,7 @@ export default function ChatsPage() {
     useEffect(() => {
         const loadChats = async () => {
             try {
-                const res = await api.get("/api/chat/session-chats/my")
+                const res = await api.get("/chat/session-chats/my")
 
                 if (res.data.success) {
                     const normalized = res.data.data.map((ch: Channel) => ({
@@ -115,7 +115,7 @@ export default function ChatsPage() {
         const loadMessages = async () => {
             try {
                 const res = await api.patch(
-                    `/api/chat/${selectedChannel.id}/read`,)
+                    `/chat/${selectedChannel.id}/read`,)
 
                 setChannels(prev =>
                     prev.map(c =>
@@ -135,7 +135,7 @@ export default function ChatsPage() {
 
         const loadMessages = async () => {
             try {
-                const res = await api.get(`/api/chat/${selectedChannel.id}/messages`, {
+                const res = await api.get(`/chat/${selectedChannel.id}/messages`, {
                     headers: {Authorization: `Bearer ${localStorage.getItem("token")}`},
                 });
 

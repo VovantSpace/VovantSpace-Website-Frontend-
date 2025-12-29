@@ -16,7 +16,7 @@ import CountryandTime from "@/dashboard/ProblemSolver/pages/profile/CountryandTi
 import ReauthenticateDialog from "@/dashboard/Client/components/Reauthenticatedialog";
 import tick from "@/assets/tick.png";
 import {useNotifications} from "@/hooks/useNotifications"
-import {useAuth} from "@/hooks/useAuth";
+import {useAuth} from "@/context/AuthContext";
 import api from "@/utils/api";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";

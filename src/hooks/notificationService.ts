@@ -102,7 +102,7 @@ export async function markNotificationAsRead(id: string): Promise<void> {
 }
 
 export async function markAllNotificationsAsRead(): Promise<void> {
-    await api.patch("/notifications/read-all");
+    await api.patch("/notifications/mark-all-read");
 }
 
 export async function handleDeleteNotification(notificationId: string): Promise<void> {

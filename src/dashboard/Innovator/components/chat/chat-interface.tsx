@@ -78,7 +78,7 @@ export function ChatInterface({
     useEffect(() => {
         const fetchMessages = async () => {
             try {
-                const response = await api.get(`/api/chat/${channelId}/messages`);
+                const response = await api.get(`/chat/${channelId}/messages`);
 
                 console.log('Chat response', response.data)
 

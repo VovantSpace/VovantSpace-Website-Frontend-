@@ -5,11 +5,11 @@ import {FaGoogle, FaGithub, FaLock, FaEnvelope} from 'react-icons/fa';
 import {BsArrowRight} from 'react-icons/bs';
 import Loginimg from './assets/login.jpeg';
 import {Link, useNavigate} from 'react-router-dom';
-import {useAppContext} from '@/context/AppContext';
+import {useAuth} from '@/context/AuthContext'
 import {useState, useEffect} from 'react';
 
 const Login = () => {
-    const {login, isLoading} = useAppContext();
+    const {login, isLoading} = useAuth();
     const navigate = useNavigate();
     const [errorMessage, setErrorMessage] = useState('');
     const [isOauthLoading, setIsOauthLoading] = useState(false);

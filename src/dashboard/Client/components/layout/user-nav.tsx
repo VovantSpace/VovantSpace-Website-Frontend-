@@ -11,29 +11,37 @@ import {
     DropdownMenuTrigger,
 } from "@/dashboard/ProblemSolver/components/ui/dropdown-menu"
 import {Button} from "@/dashboard/ProblemSolver/components/ui/button"
-import notificationService from "@/hooks/notificationService";
+import {useAuth} from "@/context/AuthContext"
 
 
 export function UserNav() {
-    const user = notificationService.getCurrentUser()
+    const {user, logout} = useAuth()
     const navigate = useNavigate()
 
 
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
     // Generate user initials from the first and last name
+    // Generate user initials from the first and last name
     const getUserInitials = () => {
-        if (!user?.firstName || !user?.lastName) return "U"
-        return `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase()
-    }
+        if (!user) return "U";
+
+        if (user.firstName && user.lastName) {
+            return `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();
+        }
+
+        if (user.email) {
+            return user.email[0].toUpperCase();
+        }
+
+        return "U";
+    };
+
 
     // function that handles logout and redirects back to the homepage
     const handleLogOut = async () => {
-        try {
-            await notificationService.logoutUser()
-        } finally {
-            navigate("/")
-        }
+        await logout()
+        navigate("/")
     }
 
     if (!user) return null;

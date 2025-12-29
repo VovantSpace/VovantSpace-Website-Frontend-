@@ -27,7 +27,7 @@ import Select from "react-select";
 import {WorkExperienceEntry} from "@/dashboard/Advisor/components/modals/WorkExperienceEntry";
 import notificationService from '@/hooks/notificationService'
 import {useNotifications} from '@/hooks/useNotifications'
-import {useAuth} from "@/hooks/useAuth";
+import {useAuth} from "@/context/AuthContext";
 import api from "@/utils/api";
 
 
@@ -223,27 +223,12 @@ const validationSchema = Yup.object().shape({
 
 
 export default function ProfilePage() {
-    // const {
-    //     user,
-    //     isAuthenticated,
-    //     authLoading,
-    //     authError,
-    //     updateProfile,
-    //     refreshProfile,
-    //     uploadProfilePicture,
-    //     updateUserRole,
-    //     profileLoading,
-    //     profileError,
-    //     notificationPreferences,
-    //     notificationsLoading
-    // } = notificationService()
     const {user, authLoading, authError, refreshProfile} = useAuth()
     const {notifications, loading: notificationsLoading} = useNotifications(
         user?.role === "Advisor/Mentor" ? "mentor" :
             user?.role === "Innovator" ? "innovator" :
                 "mentee"
     )
-
 
     const [profileLoading, setProfileLoading] = useState(false)
     const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false)

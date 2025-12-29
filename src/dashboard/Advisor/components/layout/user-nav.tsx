@@ -11,8 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/dashboard/Innovator/components/ui/dropdown-menu"
 import { Button } from "@/dashboard/Innovator/components/ui/button"
-import notificationService from "@/hooks/notificationService";
-import {useAuth} from "@/hooks/useAuth";
+import {useAuth} from "@/context/AuthContext";
 
 
 export function UserNav() {
@@ -24,9 +23,19 @@ export function UserNav() {
 
     // Generate user initials from the first and last name
     const getUserInitials = () => {
-        if (!user?.firstName || !user?.lastName) return "U"
-        return `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase()
-    }
+        if (!user) return "U";
+
+        if (user.firstName && user.lastName) {
+            return `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();
+        }
+
+        if (user.email) {
+            return user.email[0].toUpperCase();
+        }
+
+        return "U";
+    };
+
 
     // function that handles logout and redirects back to the homepage
     const handleLogOut = async () => {
@@ -67,7 +76,7 @@ export function UserNav() {
         <DropdownMenuGroup>
           <DropdownMenuItem>
             <Settings className="mr-2 h-4 w-4" />
-            <Link to={'/dashboard/ps/profile'}>Settings</Link>
+            <Link to={'/dashboard/advisor/profile'}>Settings</Link>
           </DropdownMenuItem>
 
         </DropdownMenuGroup>
