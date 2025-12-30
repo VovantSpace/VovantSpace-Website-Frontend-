@@ -113,7 +113,7 @@ export default function HomePage() {
                                     <div className="mb-4 flex items-center gap-6 text-sm text-gray-400">
                                         <div className="flex items-center gap-2">
                                             <FileText className="h-4 w-4" />
-                                            {safeFormatNumber(challenge.submissions?.length || 0)} Submissions
+                                            {safeFormatNumber(typeof challenge.submissions !== "number" && challenge.submissions?.length || 0)} Submissions
                                         </div>
                                     </div>
                                     <Link to="/dashboard/innovator/my-challenges">
@@ -152,7 +152,7 @@ export default function HomePage() {
                                     <div className="mb-4 flex items-center gap-6 text-sm text-gray-400">
                                         <div className="flex items-center gap-2">
                                             <FileText className="h-4 w-4" />
-                                            {safeFormatNumber(challenge.submissions?.length || 0)} Submissions
+                                            {safeFormatNumber(typeof challenge.submissions !== "number" && challenge.submissions?.length || 0)} Submissions
                                         </div>
                                     </div>
                                     <Link to="/dashboard/innovator/my-challenges">

@@ -1,4 +1,4 @@
-import {LogOut, Settings, ChevronDown} from "lucide-react"
+import { LogOut, Settings, ChevronDown } from "lucide-react"
 import {Link, useNavigate} from "react-router-dom"
 
 import {
@@ -21,7 +21,6 @@ export function UserNav() {
 
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
-    // Generate user initials from the first and last name
     // Generate user initials from the first and last name
     const getUserInitials = () => {
         if (!user) return "U";
@@ -49,7 +48,7 @@ export function UserNav() {
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative rounded-full !bg-transparent">
+                <Button variant="ghost" className="group relative rounded-full !bg-transparent">
                     <div
                         className="flex h-8 w-8 -ml-3 items-center justify-center rounded-full uppercase dashbggreen text-white text-sm overflow-hidden">
                         {user?.profilePicture ? (

@@ -1,7 +1,7 @@
 import {useState, useEffect} from "react"
 import {Search, Menu, X, Loader2} from "lucide-react"
 import {cn} from "@/dashboard/Innovator/lib/utils"
-import axios from "axios"
+import api from '@/utils/api'
 import {useNavigate} from "react-router-dom"
 
 import {Input} from "@/dashboard/Innovator/components/ui/input"
@@ -35,7 +35,7 @@ export default function ChatsPage() {
                     return;
                 }
 
-                const res = await axios.get('/api/user/profile', {
+                const res = await api.get('/user/profile', {
                     headers: {Authorization: `Bearer ${localStorage.getItem('token')}`},
                 })
                 if (res.data?.success && res.data.user) {
@@ -69,8 +69,8 @@ export default function ChatsPage() {
 
             const markMessageAsRead = async () => {
                 try {
-                    await axios.put(
-                        `/api/chat/${selectedChannel.id}/mark-read`,
+                    await api.put(
+                        `/chat/${selectedChannel.id}/mark-read`,
                         {},
                         {headers: {Authorization: `Bearer ${localStorage.getItem('token')}`}}
                     )
@@ -96,7 +96,7 @@ export default function ChatsPage() {
     useEffect(() => {
         async function fetchChannels() {
             try {
-                const res = await axios.get("/api/problem-solver/chats", {withCredentials: true})
+                const res = await api.get("/problem-solver/chats", {withCredentials: true})
                 if (res.data.success) {
                     setChannels(res.data.data)
                     setSelectedChannel(res.data.data[0] || null)
@@ -116,7 +116,7 @@ export default function ChatsPage() {
 
         async function fetchMessages() {
             try {
-                const res = await axios.get(`/api/chat/${selectedChannel?.id}`, {withCredentials: true})
+                const res = await api.get(`/chat/${selectedChannel?.id}`, {withCredentials: true})
                 if (res.data.success) setMessages(res.data.data)
             } catch (err) {
                 console.error("Error fetching chat messages:", err)
@@ -162,8 +162,8 @@ export default function ChatsPage() {
     const handleSendMessage = async (content: string, fileUrl?: string, fileType?: string) => {
         if (!selectedChannel) return
         try {
-            const res = await axios.post(
-                "/api/chat/send",
+            const res = await api.post(
+                "/chat/send",
                 {channelId: selectedChannel.id, content, fileUrl, fileType},
                 {withCredentials: true}
             )
@@ -300,7 +300,7 @@ export default function ChatsPage() {
                             </div>
                         ) : selectedChannel ? (
                             //  User + channel loaded
-                            <ChatInterface channelId={selectedChannel.id} currentUser={chatUser}/>
+                            <ChatInterface channelId={selectedChannel.id} currentUser={chatUser} onSendMessage={handleSendMessage}/>
                         ) : (
                             // 🚫 Case 4: No active chats
                             <div className="h-full flex items-center justify-center text-gray-500 text-sm">

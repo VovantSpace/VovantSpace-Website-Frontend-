@@ -32,7 +32,7 @@ export function NotificationsDropdown({ role, onNotificationClick }: Props) {
         error,
         markAsRead,
         refetch,
-    } = useNotifications(role);
+    } = useNotifications("innovator");
 
     const handleSelect = async (notification: Notification) => {
         try {
