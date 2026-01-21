@@ -1,5 +1,17 @@
 import {useState, useEffect, useCallback} from 'react'
 import {challengeApi, dashboardApi, Challenge, DashboardStats, CreateChallengeData} from "@/services/challengeService";
+import api from '@/utils/api'
+
+ export type payableChallenge = {
+    _id: string;
+    title: string;
+    solver: {
+        _id: string;
+        name: string;
+        email?: string;
+    }
+    maxPayableAmount: number;
+}
 
 export const useChallenges = () => {
     const [challenges, setChallenges] = useState<Challenge[]>([]);
@@ -28,80 +40,80 @@ export const useChallenges = () => {
     }, [fetchChallenges])
 
 
-const createChallenge = async (data: CreateChallengeData) => {
-    try {
-        const response = await challengeApi.createChallenge(data);
-        if (response.success) {
-            await fetchChallenges(); // Refresh the list
-            return response.data;
-        } else {
-            console.error("API error", response.message)
-            return null
+    const createChallenge = async (data: CreateChallengeData) => {
+        try {
+            const response = await challengeApi.createChallenge(data);
+            if (response.success) {
+                await fetchChallenges(); // Refresh the list
+                return response.data;
+            } else {
+                console.error("API error", response.message)
+                return null
+            }
+        } catch (error: any) {
+            throw new Error(error.response?.data?.message || 'Failed to create challenge')
         }
-    } catch (error: any) {
-        throw new Error(error.response?.data?.message || 'Failed to create challenge')
     }
-}
 
-const updateChallengeStatus = async (id: string, status: string) => {
-    try {
-        const response = await challengeApi.updateChallengeStatus(id, status)
-        if (response.success) {
-            await fetchChallenges();
-            return true;
-        } else {
-            console.error("API error", response.message)
-            return null
+    const updateChallengeStatus = async (id: string, status: string) => {
+        try {
+            const response = await challengeApi.updateChallengeStatus(id, status)
+            if (response.success) {
+                await fetchChallenges();
+                return true;
+            } else {
+                console.error("API error", response.message)
+                return null
+            }
+        } catch (error: any) {
+            throw new Error(error.response?.data?.message || "Failed to update challenge status")
         }
-    } catch (error: any) {
-        throw new Error(error.response?.data?.message || "Failed to update challenge status")
     }
-}
 
-const duplicateChallenge = async (id: string) => {
-    try {
-        const response = await challengeApi.duplicateChallenge(id);
-        if (response.success) {
-            await fetchChallenges()
-            return response.data;
-        } else {
-            console.error("API error", response.message)
-            return null
+    const duplicateChallenge = async (id: string) => {
+        try {
+            const response = await challengeApi.duplicateChallenge(id);
+            if (response.success) {
+                await fetchChallenges()
+                return response.data;
+            } else {
+                console.error("API error", response.message)
+                return null
+            }
+        } catch (error: any) {
+            throw new Error(error.response?.data?.message || "failed to duplicate challenge")
         }
-    } catch (error: any) {
-        throw new Error(error.response?.data?.message || "failed to duplicate challenge")
     }
-}
 
-const promoteChallenge = async (id: string, promotionType: string, duration: number = 7) => {
-    try {
-        const response = await challengeApi.promoteChallenge(id, promotionType, duration)
-        if (response.success) {
-            await fetchChallenges()
-            return true;
-        } else {
-            console.error("API error", response.message)
-            return null
+    const promoteChallenge = async (id: string, promotionType: string, duration: number = 7) => {
+        try {
+            const response = await challengeApi.promoteChallenge(id, promotionType, duration)
+            if (response.success) {
+                await fetchChallenges()
+                return true;
+            } else {
+                console.error("API error", response.message)
+                return null
+            }
+        } catch (error: any) {
+            throw new Error(error.response?.data?.message || "Failed to promote challenge")
         }
-    } catch (error: any) {
-        throw new Error(error.response?.data?.message || "Failed to promote challenge")
     }
-}
 
-const pauseChallenge = async (id: string) => {
-    try {
-        const response = await dashboardApi.toggleChallengePause(id)
-        if (response.success) {
-            await fetchChallenges()
-            return true
-        } else {
-            console.error("API error", response.message)
-            return null
+    const pauseChallenge = async (id: string) => {
+        try {
+            const response = await dashboardApi.toggleChallengePause(id)
+            if (response.success) {
+                await fetchChallenges()
+                return true
+            } else {
+                console.error("API error", response.message)
+                return null
+            }
+        } catch (error: any) {
+            throw new Error(error.response?.data?.message || "Failed to pause/resume challenge")
         }
-    } catch (error: any) {
-        throw new Error(error.response?.data?.message || "Failed to pause/resume challenge")
     }
-}
 
     const normalizeChallenge = (challenge: any) => ({
         ...challenge,
@@ -115,19 +127,49 @@ const pauseChallenge = async (id: string) => {
     })
 
 
-return {
-    challenges,
-    loading,
-    error,
-    refetch: fetchChallenges,
-    createChallenge,
-    updateChallengeStatus,
-    duplicateChallenge,
-    promoteChallenge,
-    pauseChallenge,
-    normalizeChallenge,
-    setChallenges
+    return {
+        challenges,
+        loading,
+        error,
+        refetch: fetchChallenges,
+        createChallenge,
+        updateChallengeStatus,
+        duplicateChallenge,
+        promoteChallenge,
+        pauseChallenge,
+        normalizeChallenge,
+        setChallenges
+    }
 }
+
+export const usePayableChallenges = () => {
+    const [data, setData] = useState<any[]>([])
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
+    useEffect(() => {
+        let mounted = true;
+
+        (async () => {
+            try {
+                const res = await api.get('/challenges/payable')
+
+                if (!mounted) return;
+
+                setData(res.data.challenges ?? [])
+            } catch (err: any) {
+                if (!mounted) return;
+                setError(err?.response?.data?.message || "Failed to load payable challenges")
+            } finally {
+                if (mounted) setLoading(false)
+            }
+        })();
+
+        return () => {
+            mounted = false
+        }
+    }, [])
+
+    return {data, loading, error}
 }
 
 export const useDashboardStats = () => {

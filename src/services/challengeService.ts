@@ -48,6 +48,17 @@ export interface ApiResponse<T = any> {
     error?: string;
 }
 
+export type ApprovedSubmission = {
+    _id: string;
+    problemSolver: {
+        _id: string;
+        firstName?: string;
+        lastName?: string;
+        email?: string;
+    };
+    skill?: string;
+}
+
 export interface Challenge {
     _id: string;
     title: string;
@@ -66,9 +77,9 @@ export interface Challenge {
         profilePicture?: string;
     };
 
-    // Keep both array and counts
-    submissions: any[] | number;
-    approvedSubmissions: any[] | number;
+    // Keep both array
+    submissions: any[];
+    approvedSubmissions: ApprovedSubmission[];
 
     // Numeric summaries from backend
     submissionCount?: number;
@@ -154,9 +165,10 @@ export const challengeApi = {
     },
 
     // Complete challenge
-    completeChallenge: async (id: string, winners: Array<{
+    completeChallenge: async (
+        id: string,
+        winners: Array<{
         problemSolver: string,
-        reward: number
     }>): Promise<ApiResponse> => {
         const response: AxiosResponse<ApiResponse> = await api.put(`/challenges/${id}/complete`, {winners});
         return response.data;

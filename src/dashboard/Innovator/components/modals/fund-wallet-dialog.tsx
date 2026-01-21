@@ -1,197 +1,191 @@
-import type React from "react"
-import { useState } from "react"
-import axios from "axios"
-import { CreditCard, DollarSign } from "lucide-react"
-import {stripePromise} from "@/lib/stripe";
-import { Button } from "../../components/ui/button"
+import type React from "react";
+import { useEffect, useState } from "react";
+import api from "@/utils/api";
+import { DollarSign } from "lucide-react";
+import { stripePromise } from "@/lib/stripe";
+import { Button } from "../../components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "../ui/dialog"
-import { Input } from "../../components/ui/input"
-import { Label } from "../../components/ui/label"
-import { RadioGroup, RadioGroupItem } from "../../components/ui/radio-group"
+    Dialog,
+    DialogContent,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "../ui/dialog";
+import { Input } from "../../components/ui/input";
+import { Label } from "../../components/ui/label";
+
+import {
+    Elements,
+    PaymentElement,
+    useStripe,
+    useElements,
+} from "@stripe/react-stripe-js";
+
+/* ---------------- Inner Form ---------------- */
+
+function FundWalletForm({
+                            clientSecret,
+                            onClose,
+                        }: {
+    clientSecret: string;
+    onClose: () => void;
+}) {
+    const stripe = useStripe();
+    const elements = useElements();
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!stripe || !elements) return;
+
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            // Ensure PaymentElement is mounted & validates inputs
+            const submitRes = await elements.submit()
+            if (submitRes?.error) {
+                setError(submitRes.error.message || "Please check your payment details")
+                setIsLoading(false);
+                return;
+            }
+
+            const result = await stripe.confirmPayment({
+                elements,
+                redirect: "if_required",
+            });
+
+            if (result.error) {
+                setError(result.error.message || "Payment failed");
+                setIsLoading(false);
+                return;
+            }
+
+            // ✅ Payment succeeded (webhook will credit wallet)
+            onClose();
+        } catch (err: any) {
+            setError(err?.message || "Payment failed");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    const ready = !!stripe && !!elements;
+
+    return (
+        <form onSubmit={handleSubmit} className="space-y-4">
+            <PaymentElement />
+
+            {error && (
+                <p className="text-sm text-red-500 font-medium">{error}</p>
+            )}
+
+            <Button type="submit" className="dashbutton w-full" disabled={!ready || isLoading}>
+                {isLoading ? "Processing..." : "Add Funds"}
+            </Button>
+        </form>
+    );
+}
+
+/* ---------------- Dialog Wrapper ---------------- */
 
 export function FundWalletDialog({
-  isOpen,
-  onClose,
-}: {
-  isOpen: boolean
-  onClose: () => void
+                                     isOpen,
+                                     onClose,
+                                 }: {
+    isOpen: boolean;
+    onClose: () => void;
 }) {
-  const [isLoading, setIsLoading] = useState(false)
-  const [amount, setAmount] = useState("")
-  const [paymentMethod, setPaymentMethod] = useState<"saved" | "new">("saved")
-  const [cardNumber, setCardNumber] = useState("")
-  const [expiry, setExpiry] = useState("")
-  const [cvv, setCvv] = useState("")
-  const [cardholder, setCardholder] = useState("")
+    const [amount, setAmount] = useState("");
+    const [clientSecret, setClientSecret] = useState<string | null>(null);
+    const [isInitializing, setIsInitializing] = useState(false);
+    const numericAmount = Number(amount);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    const initializePayment = async () => {
+        if (numericAmount < 5) return;
 
-      const numericAmount = Number(amount)
-      if(numericAmount < 5) return;
+        setIsInitializing(true);
+        try {
+            const res = await api.post("/wallet/topup", {
+                amount: numericAmount,
+                currency: "usd",
+            });
 
-      setIsLoading(true)
+            setClientSecret(res.data.clientSecret);
+        } catch (err) {
+            console.error("Failed to initialize wallet topup:", err);
+        } finally {
+            setIsInitializing(false);
+        }
+    };
 
-      try {
-          const res = await axios.post('/apirequest/wallet/topup', {
-              amount: numericAmount,
-              currency: "usd"
-          })
+    // Reset when dialog closes
+    useEffect(() => {
+        if (!isOpen) {
+            setClientSecret(null);
+            setAmount("");
+        }
+    }, [isOpen]);
 
-          const {clientSecret} = res.data
+    return (
+        <Dialog open={isOpen} onOpenChange={onClose}>
+            <DialogContent
+                onPointerDownOutside={(e) => e.preventDefault()}
+                onEscapeKeyDown={(e) => e.preventDefault()}
+                className="secondbg dashtext sm:max-w-[425px]">
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                        <DollarSign className="h-5 w-5" />
+                        Fund Wallet
+                    </DialogTitle>
+                </DialogHeader>
 
-          // Confirm payment with stripe
-          const stripe = await stripePromise
-          if(!stripe) throw new Error("Stripe not loaded")
+                {/* Step 1: Amount */}
+                {!clientSecret && (
+                    <div className="space-y-4">
+                        <div>
+                            <Label htmlFor="amount">Amount ($)</Label>
+                            <Input
+                                id="amount"
+                                type="number"
+                                min={5}
+                                placeholder="Enter amount"
+                                className="secondbg mt-2"
+                                value={amount}
+                                onChange={(e) => setAmount(e.target.value)}
+                            />
+                            {amount && numericAmount < 5 && (
+                                <p className="text-sm text-red-500 mt-1">
+                                    Minimum amount is $5
+                                </p>
+                            )}
+                        </div>
 
-          const result = await stripe.confirmCardPayment(clientSecret, {
-              payment_method: {
-                  card: {
-                      // Temp: using stripe's default card for testing
-                  } as any,
-              }
-          })
+                        <DialogFooter>
+                            <Button
+                                onClick={initializePayment}
+                                className="dashbutton w-full"
+                                disabled={numericAmount < 5 || isInitializing}
+                            >
+                                {isInitializing ? "Initializing..." : "Continue"}
+                            </Button>
+                        </DialogFooter>
+                    </div>
+                )}
 
-          if (result.error) {
-              throw result.error
-          }
-
-          onClose()
-      }catch (err) {
-          console.error("Wallet funding failed:", err)
-      } finally {
-          setIsLoading(false)
-      }
-  }
-
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="secondbg dashtext sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5" />
-            Fund Wallet
-          </DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit}>
-          <div className="grid gap-2 pb-4">
-            {/* Amount Input */}
-            <div>
-              <Label htmlFor="amount">Amount($)</Label>
-              <div className="relative mt-2">
-                <DollarSign className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                <Input
-                  id="amount"
-                  type="number"
-                  min={5}
-                  placeholder="Enter Amount"
-                  className="secondbg pl-10"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  required
-                />
-              </div>
-            </div>
-            {amount && Number(amount) < 5 && (
-              <span className="text-sm font-medium text-red-500">
-                Enter a value equal to or greater than 5
-              </span>
-            )}
-
-            {/* Payment Method Radios */}
-            <div>
-              <Label>Payment Method</Label>
-              <RadioGroup
-                value={paymentMethod}
-                onValueChange={(val) => setPaymentMethod(val as "saved" | "new")}
-                className="flex gap-4 mt-2"
-              >
-                <div className="flex items-center space-x-2 ">
-                  <RadioGroupItem value="saved" id="saved" className="dark:bg-white" />
-                  <Label htmlFor="saved">Saved Card</Label>
-                </div>
-                <div className="flex items-center space-x-2 ">
-                  <RadioGroupItem value="new" id="new" className="dark:bg-white" />
-                  <Label htmlFor="new">New Card</Label>
-                </div>
-              </RadioGroup>
-            </div>
-
-            {/* Conditionally render content based on paymentMethod */}
-            {paymentMethod === "saved" ? (
-              <div className="space-y-2">
-                <Label>Choose your saved card:</Label>
-                <select className="secondbg w-full p-2 text-sm border rounded-md">
-                  <option>**** **** **** 4242</option>
-                  <option>**** **** **** 1234</option>
-                </select>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <div>
-                  <Label htmlFor="card-number">Card Number</Label>
-                  <div className="relative">
-                    <CreditCard className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                    <Input
-                      id="card-number"
-                      placeholder="1234 5678 9012 3456"
-                      className="secondbg pl-10"
-                      value={cardNumber}
-                      onChange={(e) => setCardNumber(e.target.value)}
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="expiry">Expiry Date</Label>
-                    <Input
-                      id="expiry"
-                      placeholder="MM/YY"
-                      className="mt-2 secondbg"
-                      value={expiry}
-                      onChange={(e) => setExpiry(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="cvv">CVV</Label>
-                    <Input
-                      id="cvv"
-                      placeholder="123"
-                      type="password"
-                      maxLength={3}
-                      className="mt-2 secondbg"
-                      value={cvv}
-                      onChange={(e) => setCvv(e.target.value)}
-                    />
-                  </div>
-                </div>
-                <div className="w-full">
-                  <Label htmlFor="cardholder">Card Holder Name</Label>
-                  <Input
-                    id="cardholder"
-                    placeholder="Card Holder"
-                    type="text"
-                    className="mt-2 secondbg w-full"
-                    value={cardholder}
-                    onChange={(e) => setCardholder(e.target.value)}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button type="submit" className="dashbutton w-full" disabled={isLoading || Number(amount) < 5}>
-              {isLoading ? "Processing..." : "Add Funds"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  )
+                {/* Step 2: Stripe Payment */}
+                {clientSecret && (
+                    <Elements
+                        stripe={stripePromise}
+                        options={{ clientSecret }}
+                    >
+                        <FundWalletForm
+                            clientSecret={clientSecret}
+                            onClose={onClose}
+                        />
+                    </Elements>
+                )}
+            </DialogContent>
+        </Dialog>
+    );
 }
