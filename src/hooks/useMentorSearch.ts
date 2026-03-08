@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import axios from "axios";
+import api from '@/utils/api'
 
 interface MentorSearchFilters {
     expertise?: string;
@@ -31,8 +31,8 @@ export function useMentorSearch(filters: MentorSearchFilters = {}) {
                 }
             });
 
-            const response = await axios.get(
-                `/api/mentees/mentors/search?${params.toString()}`,
+            const response = await api.get(
+                `/mentees/mentors/search?${params.toString()}`,
                 { withCredentials: true }
             );
 

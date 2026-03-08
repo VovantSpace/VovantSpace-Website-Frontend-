@@ -7,7 +7,7 @@ import {
 import { useState, useEffect } from "react";
 import { VideoCallDialog } from "./video-call-dialog";
 import { ScheduleReviewDialog } from "../modals/schedule-review-dialog";
-import type { Channel, ChatMessage, User, CallData, } from "@/dashboard/Innovator/components/chat/types";
+import type { Channel, CallData } from "@/dashboard/Innovator/components/chat/types";
 import { format } from "date-fns";
 import type {ChatChannel} from "@/dashboard/Innovator/types"
 
@@ -62,7 +62,7 @@ export function ChatHeader({
         }, 60_000); // update every 1 min
 
         return () => clearInterval(interval);
-    }, [channel]);
+    }, [channel?.nextActiveDate, channel?.status]);
 
     if (!channel) {
         return (

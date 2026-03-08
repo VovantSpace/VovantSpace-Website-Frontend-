@@ -152,10 +152,10 @@ export const usePayableChallenges = () => {
         (async () => {
             try {
                 const res = await api.get('/challenges/payable')
-
+                console.log("Payable API response:", res.data)
                 if (!mounted) return;
 
-                setData(res.data.challenges ?? [])
+                setData(res.data.data ?? [])
             } catch (err: any) {
                 if (!mounted) return;
                 setError(err?.response?.data?.message || "Failed to load payable challenges")

@@ -43,21 +43,37 @@ const Login = () => {
     }, [navigate]);
 
     const getDashboardRoute = (role) => {
-        switch (role?.toLowerCase()) {
-            case 'innovator':
-                return '/dashboard/innovator';
-            case 'problem solver':
-            case 'problemsolver':
-            case 'ps':
-                return '/dashboard/ps';
-            case 'advisor/mentor':
-                return '/dashboard/advisor';
-            case 'client/mentee':
-                return '/dashboard/client';
-            default:
-                console.warn('Unknown user role:', role);
-                return '/dashboard';
+        if (!role) return "/dashboard";
+
+        const normalizedRole = role.toLowerCase().trim();
+
+        if (normalizedRole.includes("innovator")) {
+            return "/dashboard/innovator";
         }
+
+        if (
+            normalizedRole.includes("problem") ||
+            normalizedRole === "ps"
+        ) {
+            return "/dashboard/ps";
+        }
+
+        if (
+            normalizedRole.includes("advisor") ||
+            normalizedRole.includes("mentor")
+        ) {
+            return "/dashboard/advisor";
+        }
+
+        if (
+            normalizedRole.includes("client") ||
+            normalizedRole.includes("mentee")
+        ) {
+            return "/dashboard/client";
+        }
+
+        console.warn("Unknown user role:", role);
+        return "/dashboard/client"; // safe fallback
     };
 
     const formik = useFormik({

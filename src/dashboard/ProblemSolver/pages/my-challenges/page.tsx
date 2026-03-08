@@ -9,13 +9,14 @@ import {MainLayout} from "@/dashboard/ProblemSolver/components/layout/main-layou
 import {ChallengeDetailsDialog} from "../../components/modals/ChallengeDetailsDialogue"
 import {useExploreChallenges} from "@/hooks/useProblemSolver";
 import type {ChallengeSummary} from '../../components/modals/ChallengeDetailsDialogue'
+import {formatMoneyFromCents} from '@/utils/money';
 
 const mapToChallengeSummary = (c: any): ChallengeSummary => ({
     id: c._id || c.id,
     title: c.title ?? "No title",
     description: c.description ?? "",
     industry: c.industry ?? "Unknown",
-    totalBudget: c.totalBudget ?? 0,
+    totalBudget: (c.totalBudget ?? 0),
     dueDate: c.dueDate,
     requiredSkills: c.requiredSkills ?? [],
     skillBudgets: c.skillBudgets ?? [],
@@ -180,7 +181,7 @@ export default function ExploreChallenges() {
                 <div className={'flex flex-col mb-2'}>
                     <span
                         className={'text-lg font-extrabold bg-gradient-to-r from-emerald-400 to-emerald-600 bg-clip-text text-transparent'}>
-                        ${challenge.totalBudget}
+                        ${formatMoneyFromCents(challenge.totalBudget)}
                     </span>
                 </div>
 

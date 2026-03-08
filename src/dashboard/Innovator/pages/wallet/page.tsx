@@ -1,15 +1,16 @@
-import { useState, useMemo } from "react";
-import { ArrowDownRight, ArrowUpRight, RefreshCw } from "lucide-react";
+import {useState, useMemo} from "react";
+import {ArrowDownRight, ArrowUpRight, RefreshCw} from "lucide-react";
 
-import { MainLayout } from "@/dashboard/Innovator/components/layout/main-layout";
-import { Button } from "@/dashboard/Innovator/components/ui/button";
-import { Card } from "@/dashboard/Innovator/components/ui/card";
+import {MainLayout} from "@/dashboard/Innovator/components/layout/main-layout";
+import {Button} from "@/dashboard/Innovator/components/ui/button";
+import {Card} from "@/dashboard/Innovator/components/ui/card";
 
-import { FundWalletDialog } from "@/dashboard/Innovator/components/modals/fund-wallet-dialog";
-import { SendFundsDialog } from "@/dashboard/Innovator/components/modals/send-funds-dialog";
-import { SendFundSettingsDialog } from "../../components/modals/SendFundSettingsDialog";
+import {FundWalletDialog} from "@/dashboard/Innovator/components/modals/fund-wallet-dialog";
+import {SendFundsDialog} from "@/dashboard/Innovator/components/modals/send-funds-dialog";
+import {SendFundSettingsDialog} from "../../components/modals/SendFundSettingsDialog";
 
-import { useWallet } from "@/hooks/useWallet";
+import {useWallet} from "@/hooks/useWallet";
+import {ReleaseFundsDialog} from "@/dashboard/Innovator/components/modals/release-funds-dialog";
 
 function formatMoneyMinor(amountMinor: number) {
     return `$${(amountMinor / 100).toLocaleString(undefined, {
@@ -36,7 +37,7 @@ export default function WalletPage() {
     const [isFundWalletOpen, setIsFundWalletOpen] = useState(false);
     const [isSendFundsOpen, setIsSendFundsOpen] = useState(false);
     const [isSendFundsSettingsOpen, setIsSendFundsSettingsOpen] = useState(false);
-
+    const [isReleasedFundsOpen, setIsReleaseFundsOpen] = useState(false);
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const [selectedPeriod, setSelectedPeriod] = useState("All Time");
 
@@ -62,7 +63,7 @@ export default function WalletPage() {
         const total = history.length;
         const credits = history.filter((h) => h.type === "credit").length;
         const debits = history.filter((h) => h.type === "debit").length;
-        return { total, credits, debits };
+        return {total, credits, debits};
     }, [history]);
 
     return (
@@ -101,7 +102,7 @@ export default function WalletPage() {
                                 className="rounded-full text-[#00bf8f]"
                                 title="Available balance"
                             >
-                                <ArrowUpRight className="h-6 w-6" />
+                                <ArrowUpRight className="h-6 w-6"/>
                             </Button>
                         </div>
                     </Card>
@@ -118,7 +119,7 @@ export default function WalletPage() {
                                 className="rounded-full text-[#00bf8f]"
                                 title="Locked balance"
                             >
-                                <ArrowUpRight className="h-6 w-6" />
+                                <ArrowUpRight className="h-6 w-6"/>
                             </Button>
                         </div>
                     </Card>
@@ -135,7 +136,7 @@ export default function WalletPage() {
                                 className="rounded-full text-[#00bf8f]"
                                 title="Total ledger entries loaded"
                             >
-                                <ArrowUpRight className="h-6 w-6" />
+                                <ArrowUpRight className="h-6 w-6"/>
                             </Button>
                         </div>
                     </Card>
@@ -152,7 +153,7 @@ export default function WalletPage() {
                                 className="rounded-full text-[#00bf8f]"
                                 title="Credits vs Debits (loaded)"
                             >
-                                <ArrowUpRight className="h-6 w-6" />
+                                <ArrowUpRight className="h-6 w-6"/>
                             </Button>
                         </div>
                     </Card>
@@ -166,7 +167,7 @@ export default function WalletPage() {
                     >
                         <div className="flex items-center gap-4">
                             <div className="rounded-full secondbg p-3">
-                                <ArrowDownRight className="h-6 w-6 text-[#00bf8f]" />
+                                <ArrowDownRight className="h-6 w-6 text-[#00bf8f]"/>
                             </div>
                             <div>
                                 <h3 className="font-semibold text-white">Fund Wallet</h3>
@@ -181,12 +182,28 @@ export default function WalletPage() {
                     >
                         <div className="flex items-center gap-4">
                             <div className="rounded-full secondbg p-3">
-                                <ArrowUpRight className="h-6 w-6 text-[#00bf8f]" />
+                                <ArrowUpRight className="h-6 w-6 text-[#00bf8f]"/>
                             </div>
                             <div>
                                 <h3 className="font-semibold text-white">Send Funds</h3>
                                 <p className="text-sm text-gray-300">
                                     Transfer funds to others
+                                </p>
+                            </div>
+                        </div>
+                    </Card>
+                    <Card
+                        className={'dashbutton p-6 transition-colors hover:secondbg cursor-pointer'}
+                        onClick={() => setIsReleaseFundsOpen(true)}
+                    >
+                        <div className={'flex items-center gap-4'}>
+                            <div className={'rounded-full secondbg p-3'}>
+                                <ArrowUpRight className={'h-6 w-6 text-green-400'}/>
+                            </div>
+                            <div>
+                                <h3 className={'font-semibold text-white'}>Release Funds</h3>
+                                <p className={'text-sm text-gray-300'}>
+                                    Pay problems solvers for completed work
                                 </p>
                             </div>
                         </div>
@@ -226,7 +243,8 @@ export default function WalletPage() {
                                 </button>
 
                                 {dropdownOpen && (
-                                    <div className="origin-top-right absolute right-0 mt-2 w-36 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
+                                    <div
+                                        className="origin-top-right absolute right-0 mt-2 w-36 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
                                         <div className="py-1">
                                             <button
                                                 className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -300,13 +318,14 @@ export default function WalletPage() {
                             return (
                                 <Card key={entry._id} className="secondbg rounded-none">
                                     <div className="p-2">
-                                        <div className="flex items-center justify-between border-b border-gray-300 dark:border-gray-700 py-2 px-3">
+                                        <div
+                                            className="flex items-center justify-between border-b border-gray-300 dark:border-gray-700 py-2 px-3">
                                             <div className="flex items-center gap-4">
                                                 <div className="secondbg p-2">
                                                     {isCredit ? (
-                                                        <ArrowDownRight className="h-4 w-4 text-[#00bf8f]" />
+                                                        <ArrowDownRight className="h-4 w-4 text-[#00bf8f]"/>
                                                     ) : (
-                                                        <ArrowUpRight className="h-4 w-4 text-red-500" />
+                                                        <ArrowUpRight className="h-4 w-4 text-red-500"/>
                                                     )}
                                                 </div>
 
@@ -344,6 +363,17 @@ export default function WalletPage() {
                 <SendFundsDialog
                     isOpen={isSendFundsOpen}
                     onClose={() => setIsSendFundsOpen(false)}
+                    onSuccess={async () => {
+                        await Promise.all([refetch(), refetchHistory(1, 10)]);
+                    }}
+                />
+
+                <ReleaseFundsDialog
+                    isOpen={isReleasedFundsOpen}
+                    onClose={() => setIsReleaseFundsOpen(false)}
+                    onSuccess={async () => {
+                        await Promise.all([refetch(), refetchHistory(1, 10)]);
+                    }}
                 />
 
                 <SendFundSettingsDialog

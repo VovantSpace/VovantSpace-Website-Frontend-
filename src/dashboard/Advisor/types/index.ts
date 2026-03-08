@@ -1,52 +1,49 @@
-export interface User {
-  id: string
-  name: string
-  email: string
-  avatar?: string
-  role: string
-  timeZone: string
-  phone?: string
-  bio?: string
-  skills: string[]
-}
-
-export interface Challenge {
-  id: string
-  name: string
-  status: "active" | "in-review" | "completed"
-  reward: number
-  submissions: number
-  problemSolvers: number
-  views: number
-  daysLeft: number
-}
-
-export interface Transaction {
-  id: string
-  type: "credit" | "debit"
-  amount: number
-  description: string
-  date: string
-}
-
 export interface ChatMessage {
-  id: string
-  userId: string
-  content: string
-  timestamp: string
-  channelId: string
+    id: string;
+    channelId: string;
+    senderId: string;
+    senderName: string;
+    senderAvatar?: string;
+    content?: string;
+    fileUrl?: string;
+    fileType?: string;
+    createdAt: string;
+    pending?: boolean;
+}
+
+export interface User {
+    id: string;
+    name: string;
+    email: string;
+    avatar?: string;
+    role?: string;
+    timeZone?: string;
+    phone?: string;
+    bio?: string;
+    skills?: string[];
+}
+
+export interface ReplyReference {
+    id: string;
+    content: string;
+    userName: string;
 }
 
 export interface Channel {
-  id: string
-  name: string
-  unreadCount: number
+    id: string;
+    name: string;
+    description?: string;
+    status?: "upcoming" | "active" | "closed";
+    unreadCount: number;
+    nextActiveDate?: string | null;
+    closedAt?: string | null;
+    mentorId?: string;
+    menteeId?: string;
+    sessionRequestId?: string;
 }
 
-export interface NotificationPreferences {
-  emailNotifications: boolean
-  challengeUpdates: boolean
-  newMessages: boolean
-  marketingEmails: boolean
+export interface ReplyReference {
+    id: string;
+    content: string;
+    userName: string;
 }
-

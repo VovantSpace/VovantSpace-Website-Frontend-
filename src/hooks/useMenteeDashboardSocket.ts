@@ -8,7 +8,7 @@ type SessionEvent = {
     data?: any;
 }
 
-export function useMenteeDashboardSocket(menteeId: string) {
+export function useMenteeDashboardSocket(menteeId: string | undefined) {
     const [events, setEvents] = useState<any[]>([])
 
     useEffect(() => {
@@ -39,7 +39,7 @@ export function useMenteeDashboardSocket(menteeId: string) {
 }
 
 
-export function useSessionSocket(menteeId: string, onUpdate: (data: SessionEvent) => void) {
+export function useSessionSocket(menteeId: string | undefined, onUpdate: (data: SessionEvent) => void) {
     useEffect(() => {
         if (!menteeId) return;
 

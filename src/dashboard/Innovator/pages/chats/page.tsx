@@ -10,7 +10,7 @@ import {ChatInterface} from "@/dashboard/Innovator/components/chat/chat-interfac
 import {ChatHeader} from "@/dashboard/Innovator/components/chat/chat-header";
 import {useAuth} from "@/context/AuthContext"
 import {getSocket} from "@/lib/socket";
-import type {Channel, ChatMessage} from "@/dashboard/Innovator/types";
+import type { ChatMessage, Channel } from "@/dashboard/Innovator/components/chat/types";
 import {mapToChatUser} from "@/lib/mapToChatUser";
 
 export default function ChatsPage() {
@@ -19,6 +19,8 @@ export default function ChatsPage() {
     const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null)
     const [loading, setLoading] = useState(false)
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+    const [messages, setMessages] = useState<ChatMessage[]>([])
+    const [isSending, setIsSending] = useState(false)
     const [isVideoCallOpen, setIsVideoCallOpen] = useState(false)
 
     // Fetch chat rooms (Session Chats)
@@ -27,12 +29,16 @@ export default function ChatsPage() {
         try {
             setLoading(true)
             // Use the session-chats endpoint to get timing info
-            const res = await api.get(`/session-chats/my`)
+            const res = await api.get(`/chat/rooms`)
             if (res.data?.success) {
-                const fetchedRooms = res.data.data
+                const fetchedRooms = res.data.data.map((room: any) => ({
+                    id: room._id,
+                    name: room.name,
+                    unreadCount: 0
+                }))
+
                 setRooms(fetchedRooms)
 
-                // Auto-select first room if none selected
                 if (!selectedChannel && fetchedRooms.length > 0) {
                     setSelectedChannel(fetchedRooms[0])
                 }
@@ -53,29 +59,51 @@ export default function ChatsPage() {
     useEffect(() => {
         const socket = getSocket()
 
-        // Listen for session activation
-        socket.on("session-chat:activated", ({room}) => {
-            setRooms(prev =>
-                prev.map(ch =>
-                    ch.id === room._id ? {...ch, status: 'active'} : ch
-                )
-            )
-            if (selectedChannel?.id === room._id) {
-                setSelectedChannel(prev => prev ? {...prev, status: 'active'} : null)
-            }
-        })
+        socket.on("chat:room-created", (room: any) => {
+            setRooms(prev => {
+                const roomId = room.id || room._id;
+                const exists = prev.some(r => r.id === roomId);
+                if (exists) return prev;
 
-        // Listen for session closing
-        socket.on("session-chat:closed", ({room}) => {
-            setRooms(prev =>
-                prev.map(ch =>
-                    ch.id === room._id ? {...ch, status: 'closed'} : ch
-                )
-            )
-            if (selectedChannel?.id === room._id) {
-                setSelectedChannel(prev => prev ? {...prev, status: 'closed'} : null)
+                const newRoom: Channel = {
+                    id: roomId,
+                    name: room.name ?? "Untitled session",
+                    description: room.description ?? "",
+                    mentorId: room.mentorId ?? "",
+                    menteeId: room.menteeId ?? "",
+                    sessionRequestId: room.sessionRequestId ?? "",
+                    status: room.status ?? "upcoming",
+                    nextActiveDate: room.nextActiveDate ?? null,
+                    closedAt: room.closedAt ?? null,
+                    unreadCount: room.unreadCount ?? 0,
+                };
+
+                return [newRoom, ...prev];
+            });
+        });
+
+        useEffect(() => {
+            const fetchMessages = async () => {
+                if (!selectedChannel?.id) return
+
+                try {
+                    const res = await api.get(`/chat/${selectedChannel.id}/messages`)
+
+                    if (res.data?.success) {
+                        setMessages(res.data.data)
+                    }
+                } catch (err) {
+                    console.error("Error fetching messages:", err)
+                }
             }
-        })
+
+            fetchMessages()
+        }, [selectedChannel])
+
+        // Join Channel room when selected
+        if (selectedChannel?.id) {
+            socket.emit("chat:join-room", selectedChannel.id)
+        }
 
         // Listen for unread updates
         socket.on("chat:unread-update", ({channelId, unreadCount}) => {
@@ -86,31 +114,69 @@ export default function ChatsPage() {
             )
         })
 
+        socket.on("chat:new-message", (message: ChatMessage) => {
+            if (message.channelId === selectedChannel?.id) {
+                setMessages(prev => {
+                    const exists = prev.some(m => m.id === message.id)
+                    return exists ? prev : [...prev, message]
+                })
+            }
+        })
+
         return () => {
-            socket.off("session-chat:activated")
-            socket.off("session-chat:closed")
             socket.off("chat:unread-update")
+
+            if (selectedChannel?.id) {
+                socket.emit("chat:leave-room", selectedChannel.id)
+            }
         }
     }, [selectedChannel])
 
 
     // Handle sending message
     const handleSendMessage = async (content: string, fileUrl?: string, fileType?: string) => {
-        if (!selectedChannel?.id || !content.trim()) return
-        try {
-            const res = await api.post('/api/session-chat/send', {
-                    channelId: selectedChannel.id,
-                    content,
-                    fileUrl,
-                    fileType,
-                },
-            )
+        if (!selectedChannel?.id || isSending) return
 
-            if (res.data?.success) {
-                // Message will arrive via socket
+        const trimmedContent = content.trim()
+        if (!trimmedContent && !fileUrl) return
+
+        setIsSending(true)
+
+        const tempMessage: ChatMessage = {
+            id: `temp-${Date.now()}`,
+            channelId: selectedChannel.id,
+            senderId: chatUser.id,
+            senderName: chatUser.name,
+            senderAvatar: chatUser.avatar,
+            content: trimmedContent,
+            fileUrl,
+            fileType,
+            createdAt: new Date().toISOString(),
+            pending: true,
+        }
+
+        setMessages(prev => [...prev, tempMessage])
+
+        try {
+            const res = await api.post("/chat/send", {
+                channelId: selectedChannel.id,
+                content: trimmedContent,
+                fileUrl,
+                fileType,
+            })
+
+            if (res.data?.success && res.data.data) {
+                const saved = res.data.data
+
+                setMessages(prev =>
+                    prev.map(msg => (msg.id === tempMessage.id ? saved : msg))
+                )
             }
         } catch (err) {
-            console.error('Error sending message:', err)
+            setMessages(prev => prev.filter(msg => msg.id !== tempMessage.id))
+            console.error("Error sending message:", err)
+        } finally {
+            setIsSending(false)
         }
     }
 
@@ -236,12 +302,13 @@ export default function ChatsPage() {
                         {selectedChannel ? (
                             <ChatInterface
                                 channelId={selectedChannel.id}
-                                currentUser={chatUser}
-                                onSendMessage={handleSendMessage}
+                                messages={messages}
+                                isSending={isSending}
                                 status={selectedChannel.status}
                                 nextActiveDate={selectedChannel.nextActiveDate}
-                                closedAt={selectedChannel.closedAt}
-                            />
+                                currentUser={chatUser}
+                                closedAt={selectedChannel.nextActiveDate}
+                                onSendMessage={handleSendMessage}                       />
                         ) : (
                             <div className="h-full flex items-center justify-center text-gray-500 text-sm">
                                 Select a session to start messaging

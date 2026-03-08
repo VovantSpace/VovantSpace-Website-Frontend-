@@ -34,7 +34,7 @@ export interface Channel {
     id: string;
     name: string;
     unreadCount: number;
-    company: string;
+    //company: string;
     description?: string;
     messages?: ChatMessage[];
 
@@ -83,7 +83,7 @@ export interface ChatMessage {
     id: string;
     _id?: string;
     userId: string;
-    content: string;
+    content?: string;
     timestamp: string;
     channelId: string;
     status: "pending" | "sent" | "delivered" | "seen" | "failed";
@@ -105,6 +105,19 @@ export interface ChatMessage {
 export interface MessageReaction {
     emoji: string;
     users: string[];
+}
+
+export interface Channel {
+    id: string;
+    name: string;
+    description?: string;
+    status?: "upcoming" | "active" | "closed";
+    unreadCount: number;
+    nextActiveDate?: string | null;
+    closedAt?: string | null;
+    mentorId?: string;
+    menteeId?: string;
+    sessionRequestId?: string;
 }
 
 export interface ReplyReference {

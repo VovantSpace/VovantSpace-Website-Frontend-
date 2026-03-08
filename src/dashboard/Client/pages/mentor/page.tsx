@@ -10,7 +10,6 @@ import {Button} from "@/dashboard/Innovator/components/ui/button";
 import {useMentorSearch} from "@/hooks/useMentorSearch";
 import {useMentorDetails} from "@/hooks/useMentor";
 import {toast} from 'react-hot-toast'
-import {io} from "socket.io-client";
 
 /* ---------------------------------------
    ✅ Mentor Type (matches backend shape)
@@ -97,11 +96,6 @@ export default function Mentors() {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isBookingOpen, setIsBookingOpen] = useState(false);
     const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-
-    const socket = io(import.meta.env.VITE_API_URL, {
-        transports: ['websocket'],
-        withCredentials: true,
-    })
 
     const [bookingDetails, setBookingDetails] = useState<{
         date: string;
@@ -376,7 +370,7 @@ export default function Mentors() {
                         onOpenChange={setIsBookingOpen}
                         mentorId={selectedMentor._id}
                         mentorName={`${selectedMentor.firstName} ${selectedMentor.lastName}`}
-                        mentorHourlyRate={roundAmount(selectedMentor?.sessionRate ?? selectedMentor?.averageHourlyRate ?? 0)}
+                       mentorHourlyRate={Number((((selectedMentor?.sessionRate ?? selectedMentor?.averageHourlyRate ?? 0))).toFixed(2))}
                         //menteeId="currentUserIdHere" // TODO: replace with logged-in user ID
                         onConfirm={handleConfirmBooking}
                     />

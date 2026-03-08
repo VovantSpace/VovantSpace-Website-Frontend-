@@ -19,7 +19,6 @@ export function useSocket() {
         }
 
         console.log("Joining room:", roomName)
-        socket.emit("chat:join-room", roomName)
 
         socket.on("connect", () => {
                 console.log(`✅ Socket connected: ${socket.id}`)
@@ -36,7 +35,7 @@ export function useSocket() {
         );
 
 
-        socket.on("new_notification", (notification) => {
+        socket.on("notification:new", (notification) => {
             console.log(`[${normalizedRole}] notification received:`, notification);
 
             toast.info(
@@ -57,16 +56,9 @@ export function useSocket() {
             console.log("Session request update:", data);
         });
 
-        socket.on("availability_updated", (payload) => {
-            toast.success(payload.message || 'Your availability has been updated!')
-        })
-
-        socket.on('availability_created', (payload) => {
-            toast.success(payload.message || "New availability created!")
-        })
 
         return () => {
-            socket.off("new_notification");
+            socket.off("notification:new");
             socket.off("session_updated");
             socket.off("session_request:update");
             socket.off("availability_updated");

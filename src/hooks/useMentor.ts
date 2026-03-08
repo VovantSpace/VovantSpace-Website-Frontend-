@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "@/utils/api";
+import {formatMoneyFromCents} from "@/utils/money";
 
 /**
  * TYPES
@@ -16,8 +17,8 @@ export interface SessionRequest {
     };
     requestedDate: string;
     duration: number;
-    amount: string;
-    status: "pending" | "accepted" | "declined" | "counter_proposed";
+    amount: number;
+    status: "pending" | "accepted" | "declined" | "counter_proposed" | "payment_in_escrow" | "pending_payment";
     declineReason: string;
     counterProposal?: {
         proposedDate: string;

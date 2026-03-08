@@ -1,5 +1,5 @@
-import type React from "react"
-import {useState} from "react"
+import React from "react"
+import {useState, useEffect} from "react"
 import {Dialog, DialogContent} from "@/dashboard/Innovator/components/ui/dialog"
 import {Input} from "@/dashboard/Innovator/components/ui/input"
 import {Button} from "@/dashboard/Innovator/components/ui/button"
@@ -9,6 +9,7 @@ import {useDropzone} from "react-dropzone"
 import RichTextEditor from "@/dashboard/Innovator/components/modals/RichTextEditor"
 import {useProblemSolverProfile, useSubmitPitch} from "@/hooks/useProblemSolver"
 import {useFileUpload} from "@/hooks/useFileUpload"
+import {formatMoneyFromCents} from "@/utils/money";
 
 interface SubmitPitchDialogProps {
     isOpen: boolean
@@ -100,14 +101,20 @@ export function SubmitPitchDialog({
 
         // ✅ Always submit with challenge.id
         await submitPitch(challenge.id, payload)
-
-        if (success) {
-            setAttachments([])
-            setSolutionSummary("")
-            setSelectedSkill("")
-            onClose()
-        }
     }
+
+    useEffect(() => {
+        if (success) {
+            setAttachments([]);
+            setSolutionSummary("");
+            setSelectedSkill("");
+
+            const timer = setTimeout(() => {
+                onClose()
+            }, 600);
+            return () => clearTimeout(timer)
+        }
+    }, [success, onClose]);
 
     const handleSkillSelection = (skill: string) => {
         setSelectedSkill((prev) => (prev === skill ? "" : skill))
@@ -190,7 +197,7 @@ export function SubmitPitchDialog({
                                 >
                                     {skill.name}
                                     {skill.budget > 0 && (
-                                        <span className={'ml-1 text-xs text-gray-300'}>${skill.budget}</span>
+                                        <span className={'ml-1 text-xs text-gray-300'}>${formatMoneyFromCents(skill.budget)}</span>
                                     )}
                                 </Badge>
                             ))}

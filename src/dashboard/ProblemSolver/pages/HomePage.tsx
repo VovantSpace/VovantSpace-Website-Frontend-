@@ -22,13 +22,20 @@ import {
 } from "@/dashboard/Innovator/components/ui/select";
 import {MainLayout} from "@/dashboard/ProblemSolver/components/layout/main-layout";
 import {CreateChallengeDialog} from "@/dashboard/Innovator/components/modals/create-challenge-dialog";
-import {ApplyChallengeDialog} from "@/dashboard/ProblemSolver/components/modals/ApplyChallengeDialog";
+import {SubmitPitchDialog} from "@/dashboard/ProblemSolver/components/modals/SubmitYourPitchDialog";
+
+interface SubmitChallenge {
+    id: string;
+    title: string;
+    skills: {name: string; budget: number}[];
+}
 
 // ✅ Hooks for Problem Solver dashboard
 import {
     useProblemSolverStats,
     useExploreChallenges,
 } from "@/hooks/useProblemSolver";
+import {formatMoneyFromCents} from "@/utils/money";
 
 // Reusable loading skeleton
 const LoadingStats = (): JSX.Element => (
@@ -65,8 +72,8 @@ const ErrorMessage = ({
 
 export default function HomePage() {
     const [isCreateChallengeOpen, setIsCreateChallengeOpen] = useState(false);
-    const [selectedChallenge, setSelectedChallenge] = useState(null);
-    const [isApplyDialogOpen, setIsApplyDialogOpen] = useState(false);
+    const [selectedChallenge, setSelectedChallenge] = useState<SubmitChallenge | null>(null);
+    const [isSubmitPitchOpen, setIsSubmitPitchOpen] = useState(false);
     const [industryFilter, setIndustryFilter] = useState("all");
     const [expandedDescriptions, setExpandedDescriptions] = useState<string[]>(
         []
@@ -96,9 +103,16 @@ export default function HomePage() {
     );
 
     // handle pitch applies
-    const handleApplyNow = (challenge: SetStateAction<null>) => {
-        setSelectedChallenge(challenge);
-        setIsApplyDialogOpen(true);
+    const handleApplyNow = (challenge: any) => {
+        setSelectedChallenge({
+            id: challenge._id,
+            title: challenge.title,
+            skills: (challenge.skillBudgets || []).map((sb: any) => ({
+                name: sb.skill,
+                budget: sb.budget
+            }))
+        });
+        setIsSubmitPitchOpen(true);
     };
 
     const toggleDescription = (id: string) => {
@@ -147,7 +161,7 @@ export default function HomePage() {
                                         Rewards Earned
                                     </p>
                                     <h2 className="text-3xl font-bold dark:text-white">
-                                        ${stats?.totalEarnings || 0}
+                                        ${formatMoneyFromCents(stats?.totalEarnings || 0)}
                                     </h2>
                                 </div>
                                 <div className="h-10 w-10 rounded-full bg-emerald-500 flex items-center justify-center">
@@ -224,7 +238,7 @@ export default function HomePage() {
                                         <h3 className="text-xl font-bold">{challenge.title}</h3>
                                     </div>
                                     <span className="text-lg font-extrabold text-emerald-600">
-                    ${challenge.totalBudget}
+                    ${formatMoneyFromCents(challenge.totalBudget)}
                   </span>
                                 </div>
 
@@ -291,13 +305,20 @@ export default function HomePage() {
                   <span className="text-xs text-gray-500 dark:text-gray-400">
                     Solutions Submitted: {challenge.submissions?.length || 0}
                   </span>
-                                    <Button
-                                        onClick={() => handleApplyNow(challenge)}
-                                        className="dashbutton text-white"
-                                    >
-                                        Pitch Now
-                                        <ArrowUpRight className="ml-2 h-4 w-4"/>
-                                    </Button>
+                                    {challenge.hasSubmitted ? (
+                                        <Badge className="bg-emerald-600 text-white">
+                                            ✔ Already Submitted
+                                        </Badge>
+                                    ) : (
+                                        <Button
+                                            className="dashbutton text-white"
+                                            onClick={() => handleApplyNow(challenge)}
+                                        >
+                                            Pitch Now
+                                            <ArrowUpRight className="ml-2 h-4 w-4"/>
+                                        </Button>
+                                    )}
+
                                 </div>
                             </Card>
                         ))}
@@ -310,11 +331,11 @@ export default function HomePage() {
                 isOpen={isCreateChallengeOpen}
                 onClose={() => setIsCreateChallengeOpen(false)}
             />
-            {isApplyDialogOpen && (
-                <ApplyChallengeDialog
-                    isOpen={isApplyDialogOpen}
+            {isSubmitPitchOpen && selectedChallenge && (
+                <SubmitPitchDialog
+                    isOpen={isSubmitPitchOpen}
                     onClose={() => {
-                        setIsApplyDialogOpen(false);
+                        setIsSubmitPitchOpen(false);
                         setSelectedChallenge(null);
                     }}
                     challenge={selectedChallenge}

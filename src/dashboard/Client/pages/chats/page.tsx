@@ -7,24 +7,22 @@ import { Separator } from "@/dashboard/Innovator/components/ui/separator"
 import { MainLayout } from "@/dashboard/Client/components/layout/main-layout"
 import { ChatInterface } from "@/dashboard/Innovator/components/chat/chat-interface"
 import { ChatHeader } from "@/dashboard/Innovator/components/chat/chat-header"
-import type { Channel, User } from "@/dashboard/Innovator/components/chat/types"
+import type { Channel, User, ChatMessage } from "@/dashboard/Innovator/components/chat/types"
 import { getSocket } from "@/lib/socket"
-import api from "@/utils/api";
+import api from "@/utils/api"
 
 export default function ChatsPage() {
     const [channels, setChannels] = useState<Channel[]>([])
     const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null)
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
     const [currentUser, setCurrentUser] = useState<User | null>(null)
+    const [messages, setMessages] = useState<ChatMessage[]>([])
+    const [isSending, setIsSending] = useState(false)
 
-    // ------------------------------------------------------
-    // Load current user (client)
-    // ------------------------------------------------------
     useEffect(() => {
         const fetchUser = async () => {
             try {
                 const res = await api.get("/user/profile")
-
                 const u = res.data?.user || res.data?.data
                 if (!u) return
 
@@ -46,9 +44,7 @@ export default function ChatsPage() {
 
         fetchUser()
     }, [])
-    // ------------------------------------------------------
-    // Load existing chat rooms
-    // ------------------------------------------------------
+
     useEffect(() => {
         const fetchChats = async () => {
             try {
@@ -67,7 +63,7 @@ export default function ChatsPage() {
                         closedAt: ch.closedAt || null,
                         mentorId: ch.mentorId,
                         menteeId: ch.menteeId,
-                        sessionRequestId: ch.sessionRequestId
+                        sessionRequestId: ch.sessionRequestId,
                     }))
 
                     setChannels(normalized)
@@ -84,42 +80,74 @@ export default function ChatsPage() {
         fetchChats()
     }, [])
 
-    // ------------------------------------------------------
-    // Mark messages as read when opening a channel
-    // ------------------------------------------------------
     useEffect(() => {
-        if (!selectedChannel) return;
+        const fetchMessages = async () => {
+            if (!selectedChannel?.id) return
+
+            try {
+                const res = await api.get(`/chat/${selectedChannel.id}/messages`)
+
+                console.log("raw messages response:", res.data.data)
+                console.log("first raw message:", res.data.data?.[0])
+
+                if (res.data?.success) {
+                    const normalizedMessages: ChatMessage[] = (res.data.data || []).map((msg: any) => ({
+                        id: msg.id || msg._id,
+                        channelId: msg.channelId,
+                        senderId: msg.senderId || msg.userId || msg.user?.id || msg.user?._id || "",
+                        senderName:
+                            msg.senderName ||
+                            msg.user?.name ||
+                            `${msg.user?.firstName || ""} ${msg.user?.lastName || ""}`.trim() ||
+                            "Unknown User",
+                        senderAvatar:
+                            msg.senderAvatar ||
+                            msg.user?.avatar ||
+                            msg.user?.profilePicture ||
+                            "",
+                        content: msg.content,
+                        fileUrl: msg.fileUrl,
+                        fileType: msg.fileType,
+                        createdAt: msg.createdAt || msg.timestamp || msg.updatedAt,
+                        pending: msg.status === "pending",
+                    }))
+
+                    setMessages(normalizedMessages)
+                }
+            } catch (err) {
+                console.error("Failed to load messages:", err)
+            }
+        }
+
+        fetchMessages()
+    }, [selectedChannel])
+
+    useEffect(() => {
+        if (!selectedChannel) return
 
         const markAsRead = async () => {
             try {
-                await api.patch(
-                    `/chat/${selectedChannel.id}/read`,);
+                await api.patch(`/chat/${selectedChannel.id}/read`)
 
-                // Update UI immediately
                 setChannels((prev) =>
                     prev.map((c) =>
-                        c.id === selectedChannel.id
-                            ? { ...c, unreadCount: 0 }
-                            : c
+                        c.id === selectedChannel.id ? { ...c, unreadCount: 0 } : c
                     )
-                );
+                )
             } catch (err) {
-                console.error("Failed to mark messages as read:", err);
+                console.error("Failed to mark messages as read:", err)
             }
-        };
+        }
 
-        markAsRead();
-    }, [selectedChannel]);
+        markAsRead()
+    }, [selectedChannel])
 
-    // ------------------------------------------------------
-    // Socket listeners
-    // ------------------------------------------------------
     useEffect(() => {
         const socket = getSocket()
 
         socket.on("session-chat:created", (room) => {
             const normalized: Channel = {
-                id: room.id,
+                id: room.id || room._id,
                 name: room.name,
                 description: room.description,
                 status: room.status ?? "upcoming",
@@ -128,12 +156,13 @@ export default function ChatsPage() {
                 closedAt: room.closedAt ?? null,
                 mentorId: room.mentorId,
                 menteeId: room.menteeId,
-                sessionRequestId: room.sessionRequestId
+                sessionRequestId: room.sessionRequestId,
             }
 
             setChannels((prev) => {
                 const exists = prev.some((c) => c.id === normalized.id)
                 if (exists) return prev
+
                 const next = [...prev, normalized]
 
                 if (!selectedChannel) setSelectedChannel(normalized)
@@ -167,12 +196,43 @@ export default function ChatsPage() {
             )
         })
 
-        socket.on("chat:messages-read", ({channelId}) => {
+        socket.on("chat:messages-read", ({ channelId }) => {
             setChannels((prev) =>
                 prev.map((c) =>
-                    c.id === channelId ? {...c, unreadCount: 0 } : c
+                    c.id === channelId ? { ...c, unreadCount: 0 } : c
                 )
             )
+        })
+
+        // Socket to check for new messages
+        socket.on("chat:new-message", (message: any) => {
+            const normalizedMessage: ChatMessage = {
+                id: message.id || message._id,
+                channelId: message.channelId,
+                senderId: message.senderId || message.userId || message.user?.id || message.user?._id || "",
+                senderName:
+                    message.senderName ||
+                    message.user?.name ||
+                    `${message.user?.firstName || ""} ${message.user?.lastName || ""}`.trim() ||
+                    "Unknown User",
+                senderAvatar:
+                    message.senderAvatar ||
+                    message.user?.avatar ||
+                    message.user?.profilePicture ||
+                    "",
+                content: message.content,
+                fileUrl: message.fileUrl,
+                fileType: message.fileType,
+                createdAt: message.createdAt || message.timestamp || message.updatedAt,
+                pending: message.status === "pending",
+            }
+
+            if (normalizedMessage.channelId === selectedChannel?.id) {
+                setMessages((prev) => {
+                    const exists = prev.some((m) => m.id === normalizedMessage.id)
+                    return exists ? prev : [...prev, normalizedMessage]
+                })
+            }
         })
 
         return () => {
@@ -181,45 +241,81 @@ export default function ChatsPage() {
             socket.off("session-chat:activated")
             socket.off("session-chat:closed")
             socket.off("chat:messages-read")
+            socket.off("chat:new-message")
         }
     }, [selectedChannel])
 
-    // ------------------------------------------------------
-    // Send message
-    // ------------------------------------------------------
     const handleSendMessage = async (content: string, fileUrl?: string, fileType?: string) => {
-        if (!selectedChannel) return
+        if (!selectedChannel || !currentUser || isSending) return
+
+        const trimmedContent = content.trim()
+        if (!trimmedContent && !fileUrl) return
+
+        setIsSending(true)
+
+        const tempMessage: ChatMessage = {
+            id: `temp-${Date.now()}`,
+            channelId: selectedChannel.id,
+            senderId: currentUser.id,
+            senderName: currentUser.name,
+            senderAvatar: currentUser.avatar,
+            content: trimmedContent,
+            fileUrl,
+            fileType,
+            createdAt: new Date().toISOString(),
+            pending: true,
+        }
+
+        setMessages((prev) => [...prev, tempMessage])
 
         try {
-            await api.post(
-                "/api/chat/send",
-                {
-                    channelId: selectedChannel.id,
-                    content,
-                    fileUrl,
-                    fileType,
-                },
-            )
+            const res = await api.post("/chat/send", {
+                channelId: selectedChannel.id,
+                content: trimmedContent,
+                fileUrl,
+                fileType,
+            })
+
+            if (res.data?.success && res.data.data) {
+                const saved: ChatMessage = {
+                    id: res.data.data.id || res.data.data._id,
+                    channelId: res.data.data.channelId,
+                    senderId: res.data.data.senderId,
+                    senderName: res.data.data.senderName,
+                    senderAvatar: res.data.data.senderAvatar,
+                    content: res.data.data.content,
+                    fileUrl: res.data.data.fileUrl,
+                    fileType: res.data.data.fileType,
+                    createdAt: res.data.data.createdAt,
+                    pending: false,
+                }
+
+                setMessages((prev) =>
+                    prev.map((m) => (m.id === tempMessage.id ? saved : m))
+                )
+            }
         } catch (err) {
+            setMessages((prev) => prev.filter((m) => m.id !== tempMessage.id))
             console.error("Failed to send message:", err)
+        } finally {
+            setIsSending(false)
         }
     }
 
-    // Helper function to shorten the chat title
     const shortenTitle = (title: string, limit = 25) => {
         if (!title) return "untitled"
-        return title.length > limit ? title.substring(0, limit) + "..." : title;
+        return title.length > limit ? title.substring(0, limit) + "..." : title
     }
 
-    // ------------------------------------------------------
-    // Sidebar component
-    // ------------------------------------------------------
     const SidebarContent = () => (
         <div className="fixed">
             <div className="p-4">
                 <div className="relative w-[206px]">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 dashtext" />
-                    <Input placeholder="Search Session" className="secondbg pl-9 border dashborder dashtext text-sm" />
+                    <Input
+                        placeholder="Search Session"
+                        className="secondbg pl-9 border dashborder dashtext text-sm"
+                    />
                 </div>
             </div>
 
@@ -257,12 +353,10 @@ export default function ChatsPage() {
     return (
         <MainLayout>
             <div className="flex min-h-[93vh] dashbg rounded-xl">
-                {/* Desktop sidebar */}
                 <div className="hidden md:block w-[245px] pr-3 border-r dashborder secondbg rounded-l-xl">
                     <SidebarContent />
                 </div>
 
-                {/* Mobile sidebar */}
                 {isSidebarOpen && (
                     <div className="fixed inset-0 z-50 md:hidden">
                         <div className="absolute inset-0 bg-black opacity-50" onClick={() => setIsSidebarOpen(false)} />
@@ -275,9 +369,7 @@ export default function ChatsPage() {
                     </div>
                 )}
 
-                {/* Main content */}
                 <div className="flex-1 flex flex-col">
-                    {/* header */}
                     <div className="fixed w-full z-10 md:relative">
                         <ChatHeader
                             channel={selectedChannel}
@@ -287,12 +379,13 @@ export default function ChatsPage() {
                         />
                     </div>
 
-                    {/* Chat interface */}
                     <div className="mt-24 md:mt-10 h-[calc(100vh-140px)]">
                         {selectedChannel && currentUser && (
                             <ChatInterface
                                 channelId={selectedChannel.id}
                                 currentUser={currentUser}
+                                messages={messages}
+                                isSending={isSending}
                                 onSendMessage={handleSendMessage}
                                 status={selectedChannel.status}
                                 nextActiveDate={selectedChannel.nextActiveDate}

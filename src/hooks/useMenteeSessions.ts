@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "@/utils/api";
 
-export function useMenteeSessions(menteeId: string) {
+export function useMenteeSessions(menteeId: string | undefined) {
     const [sessions, setSessions] = useState({
         upcoming: [] as any[],
         completed: [] as any[],
@@ -46,6 +46,13 @@ export function useMenteeSessions(menteeId: string) {
             );
         } finally {
             setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (!menteeId) {
+            setLoading(false);
+            return;
         }
     }, []);
 

@@ -8,6 +8,7 @@ import {useSessionSocket} from "@/hooks/useMenteeDashboardSocket";
 import {Button} from "@/components/ui/button";
 import {AlertCircle} from "lucide-react";
 import {toast} from "react-hot-toast";
+import {useAuth} from '@/context/AuthContext'
 
 // 🔹 Loading skeleton
 const LoadingStats = (): JSX.Element => (
@@ -62,12 +63,17 @@ export default function MySessions() {
     const [activeTab, setActiveTab] = useState("upcoming");
     const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
 
+
     // ✅ get menteeId from local storage
-    const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
-    const menteeId = storedUser?._id;
+    const {user} = useAuth();
+    const menteeId = user?._id;
+
+    console.log("menteeId:", menteeId);
 
     // fetch both upcoming and completed sessions
     const {sessions, loading, error, refresh} = useMenteeSessions(menteeId);
+
+    console.log("sessions:", sessions);
 
     // Extract arrays safely to apply
     const upcomingSessions = sessions.upcoming || [];

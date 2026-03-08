@@ -1,16 +1,16 @@
 import { useState } from "react"
 import { Send } from "lucide-react"
 
-import { Button } from "@innovator/components/ui/button"
+import { Button } from "@/dashboard/Innovator/components/ui/button"
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@innovator/components/ui/dialog"
-import { Input } from "@innovator/components/ui/input"
-import { Label } from "@innovator/components/ui/label"
+} from "@/dashboard/Innovator/components/ui/dialog"
+import { Input } from "@/dashboard/Innovator/components/ui/input"
+import { Label } from "@/dashboard/Innovator/components/ui/label"
 
 const solvers = [
   { id: "1", label: "Alex Johnson", expertise: "Smart Contracts" },

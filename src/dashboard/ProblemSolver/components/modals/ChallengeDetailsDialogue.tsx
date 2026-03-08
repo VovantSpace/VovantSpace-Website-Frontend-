@@ -7,6 +7,7 @@ import {ArrowLeft, CheckCircle2, MapPin, Clock, Star, ChevronRight} from "lucide
 import {useState} from "react"
 import {SubmitPitchDialog} from "./SubmitYourPitchDialog"
 import {normalizeSkillBudgets} from "@/utils/normalizeSkillBudget";
+import {formatMoneyFromCents} from "@/utils/money";
 
 // ✅ Slim, dialog-only type
 export interface ChallengeSummary {
@@ -126,7 +127,7 @@ export function ChallengeDetailsDialog({
                         </div>
                         <div className="text-right mt-4 sm:mt-0">
                             <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                                ${challenge?.totalBudget?.toLocaleString()}
+                                ${formatMoneyFromCents(challenge.totalBudget)}
                             </div>
                             {challenge?.dueDate && (
                                 <div className="flex items-center gap-1 text-sm dark:text-white mt-1">
@@ -187,7 +188,7 @@ export function ChallengeDetailsDialog({
                                                 className={'flex items-center gap-2 py-1.5 px-3'}
                                             >
                                                 {s.name}
-                                                <span className={'text-xs font-normal opacity-75'}>${s.budget}</span>
+                                                <span className={'text-xs font-normal opacity-75'}>${formatMoneyFromCents(s.budget)}</span>
                                             </Badge>
                                         ))
                                     ) : (
@@ -239,7 +240,7 @@ export function ChallengeDetailsDialog({
                                     rate)
                                 </div>
                                 <div className="text-sm dark:text-white">
-                                    Total spent: ${innovatorData.totalSpent?.toLocaleString()}
+                                    Total spent: ${formatMoneyFromCents(innovatorData.totalSpent)}
                                 </div>
                                 <div className="text-sm dark:text-white">
                                     Avg. budget: ${innovatorData.avgBudget?.toLocaleString()}

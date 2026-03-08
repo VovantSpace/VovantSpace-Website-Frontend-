@@ -17,11 +17,17 @@ import {useSessionRequests, SessionRequest, useMentorSessions} from "@/hooks/use
 import {Textarea} from "@/dashboard/Innovator/components/ui/textarea";
 import {toast} from 'react-hot-toast'
 import {getSocket} from "@/lib/socket";
+import {formatMoneyFromCents} from "@/utils/money"
 
 interface CounterProposalData {
     proposedDate: string;
     proposedTime: string;
     message?: string;
+}
+
+interface RequestCardProps {
+    request: SessionRequest,
+    onRequestUpdated: (requestId: string, updates: Partial<SessionRequest>) => void;
 }
 
 // Loading skeleton component
@@ -46,7 +52,7 @@ const RequestSkeleton = () => (
 )
 
 // Component for individual request card
-const RequestCard = ({request}: { request: SessionRequest }) => {
+const RequestCard = ({request, onRequestUpdated}: RequestCardProps) => {
     const [showAcceptDialog, setShowAcceptDialog] = useState(false);
     const [showDeclineDialog, setShowDeclineDialog] = useState(false);
     const [showCounterDialog, setShowCounterDialog] = useState(false);
@@ -89,27 +95,34 @@ const RequestCard = ({request}: { request: SessionRequest }) => {
     const handleAccept = async () => {
         try {
             setLoading(true);
-            const response = await respondToRequest(request._id, 'accept');
+
+            const response = await respondToRequest(request._id, "accept");
 
             if (!response) {
-                toast.error('No response from server. Please try again')
+                toast.error("No response from server. Please try again");
+                return;
             }
 
             const updatedRequest = response.sessionRequest;
             const newSession = response.newSession;
 
+            onRequestUpdated(request._id, {
+                status: updatedRequest?.status || "accepted",
+            });
+
             toast.success(
                 newSession
-                ? `Session accepted! Scheduled for ${new Date(newSession.scheduledDate).toLocaleString()}`
+                    ? `Session accepted! Scheduled for ${new Date(newSession.scheduledDate).toLocaleString()}`
                     : "Session accepted successfully!"
-            )
+            );
+
             setShowAcceptDialog(false);
 
             if (newSession) {
                 addSession(newSession);
             }
         } catch (error: any) {
-            console.error('Error accepting request', error);
+            console.error("Error accepting request", error);
             toast.error(error.message || "Failed to accept session request");
         } finally {
             setLoading(false);
@@ -119,14 +132,20 @@ const RequestCard = ({request}: { request: SessionRequest }) => {
     const handleDecline = async () => {
         try {
             setLoading(true);
-            await respondToRequest(request._id, 'decline', {
+
+            await respondToRequest(request._id, "decline", {
                 declineReason: declineReason
             });
+
+            onRequestUpdated(request._id, {
+                status: "declined",
+                declineReason,
+            });
+
             setShowDeclineDialog(false);
             setDeclineReason("");
         } catch (error: any) {
-            console.error('Error decline request:', error)
-            // reminder: add toast notification here
+            console.error("Error decline request:", error);
             toast.error(error.message);
         } finally {
             setLoading(false);
@@ -136,27 +155,39 @@ const RequestCard = ({request}: { request: SessionRequest }) => {
     const handleCounterPropose = async () => {
         try {
             setLoading(true);
-            await respondToRequest(request._id, 'counter_propose', {
+
+            await respondToRequest(request._id, "counter_propose", {
                 counterProposal: {
                     proposedDate: counterProposal.proposedDate,
                     proposedEndTime: counterProposal.proposedTime,
                     message: counterProposal.message,
                 }
-            })
+            });
+
+            onRequestUpdated(request._id, {
+                status: "counter_proposed",
+                counterProposal: {
+                    proposedDate: counterProposal.proposedDate,
+                    proposedEndTime: counterProposal.proposedTime,
+                    message: counterProposal.message,
+                }
+            });
+
             setShowCounterDialog(false);
-            setCounterProposal({proposedDate: "", proposedTime: "", message: ""})
+            setCounterProposal({proposedDate: "", proposedTime: "", message: ""});
         } catch (error: any) {
-            console.error('Error sending counter proposal request:', error);
-            // reminder: add toast notification here
+            console.error("Error sending counter proposal request:", error);
             toast.error(error.message);
         } finally {
             setLoading(false);
         }
-    }
+    };
 
     const getInitials = (firstName: string, lastName: string) => {
         return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
     }
+
+    console.log("request.amount raw:", request.amount);
 
     return (
         <div
@@ -184,7 +215,7 @@ const RequestCard = ({request}: { request: SessionRequest }) => {
 
                 <div className={'flex items-center space-x-2'}>
                     {getStatusBadge(request.status)}
-                    {request.status === 'pending' && (
+                    {request.status === 'payment_in_escrow' && (
                         <div className={'flex space-x-2'}>
                             {/*  Accept Dialog  */}
                             <Dialog open={showAcceptDialog} onOpenChange={setShowAcceptDialog}>
@@ -387,7 +418,7 @@ const RequestCard = ({request}: { request: SessionRequest }) => {
                 <div className={'flex items-center space-x-2'}>
                     <DollarSign className={'h-5 w-5 text-muted-foreground'}/>
                     <span className={'text-black dark:text-white'}>
-                        Amount: ${request.amount}
+                        Amount: ${formatMoneyFromCents(request.amount)}
                     </span>
                 </div>
 
@@ -439,13 +470,21 @@ export default function RequestsPage() {
         limit
     )
 
+    const handleRequestUpdated = (requestId: string, updates: Partial<SessionRequest>) => {
+        setRequests((prev) =>
+            prev.map((req) =>
+                req._id === requestId ? {...req, ...updates} : req
+            )
+        )
+    }
+
     useEffect(() => {
         if (!requestIdFromState || !requests.length) return;
 
         // Find the specific card element for that request
         const el = document.getElementById(`session-request-${requestIdFromState}`);
         if (el) {
-            el.scrollIntoView({ behavior: 'smooth', block: "center" });
+            el.scrollIntoView({behavior: 'smooth', block: "center"});
             el.classList.add("ring-2", "ring-emerald-500", "animate-pulse-once")
 
             setTimeout(() => el.classList.remove("ring-2", "ring-emerald-500", "animate-pulse-once"), 2500);
@@ -554,7 +593,8 @@ export default function RequestsPage() {
                         ) : (
                             <div className={'space-y-4'}>
                                 {requests.map((request) => (
-                                    <RequestCard key={request._id} request={request}/>
+                                    <RequestCard key={request._id} request={request}
+                                                 onRequestUpdated={handleRequestUpdated}/>
                                 ))}
                             </div>
                         )}

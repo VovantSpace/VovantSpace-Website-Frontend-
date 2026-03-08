@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { getSocket } from "@/lib/socket";
 import { encryptMessage } from "@/dashboard/Innovator/lib/encryption";
-import type { ChatMessage, User, ReplyReference } from "@/dashboard/Innovator/types";
+import type { ChatMessage, User, ReplyReference } from "@/dashboard/Innovator/components/chat/types";
 import { ChatMessageItem } from "./chat-message-item";
 import { Button } from "@/dashboard/Innovator/components/ui/button";
 import { Input } from "@/dashboard/Innovator/components/ui/input";
@@ -12,20 +12,24 @@ import { cn } from "@/dashboard/Innovator/lib/utils";
 export interface ChatInterfaceProps {
     currentUser: User;
     channelId: string;
+    messages: ChatMessage[];
+    isSending?: boolean;
     onSendMessage: (
         content: string,
         fileUrl?: string,
         fileType?: string
     ) => Promise<void> | void;
 
-    status?: 'upcoming' | 'active' | 'closed'
+    status?: 'upcoming' | 'active' | 'closed';
     nextActiveDate?: string | null;
     closedAt?: string | null;
 }
 
 export function ChatInterface({
-    currentUser,
+   currentUser,
     channelId,
+    messages,
+    isSending = false,
     onSendMessage,
     status,
     nextActiveDate,
@@ -36,7 +40,6 @@ export function ChatInterface({
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const [isTyping, setIsTyping] = useState(false);
     const [typingUser, setTypingUser] = useState<string | null>(null);
-    const [messages, setMessages] = useState<ChatMessage[]>([]);
 
     // Session status state
     const [sessionStatus, setSessionStatus] = useState<'upcoming' | 'active' | 'closed'>('active');
@@ -74,28 +77,7 @@ export function ChatInterface({
         return () => clearInterval(interval);
     }, [sessionStatus, localNextActiveDate]);
 
-    // Auto-scroll when new messages arrive
-    useEffect(() => {
-        const fetchMessages = async () => {
-            try {
-                const response = await api.get(`/chat/${channelId}/messages`);
 
-                console.log('Chat response', response.data)
-
-                if (response.data?.success) {
-                    setMessages(response.data.data);
-                    if (response.data.meta) {
-                        setSessionStatus(response.data.meta.status);
-                        setLocalNextActiveDate(response.data.meta.nextActiveDate);
-                    }
-                }
-            } catch (error) {
-                console.error("Error fetching messages:", error);
-            }
-        }
-
-        if (channelId) fetchMessages();
-    }, [channelId]);
 
     // Scroll to bottom when new messages arrive
     useEffect(() => {
@@ -105,38 +87,31 @@ export function ChatInterface({
     // 🔥 Real-time socket events (typing, edits, deletions)
     useEffect(() => {
         const socket = getSocket();
-        socket.emit("chat:join-room", channelId);
 
-        socket.on("chat:typing", (userName: string) => {
+        const handleTypingEvent = (userName: string) => {
             setTypingUser(userName);
             setIsTyping(true);
             setTimeout(() => setIsTyping(false), 2000);
-        });
+        };
 
-        socket.on('chat:new-message', (incoming: ChatMessage) => {
-            setMessages(prev => {
-                const exists = prev.some(m => m.id === incoming.id);
-                return exists ? prev : [...prev, incoming];
-            })
-        })
+        socket.on("chat:typing", handleTypingEvent);
 
         return () => {
-            socket.emit("chat:leave-room", channelId);
-            socket.off("chat:typing");
-            socket.off("chat:new-message");
+            socket.off("chat:typing", handleTypingEvent);
         };
     }, [channelId]);
 
     // 📨 Send message
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!newMessage.trim()) return;
 
-        // const encrypted = await encryptMessage(newMessage);
-        // await onSendMessage(encrypted, undefined, undefined);
-        await onSendMessage(newMessage, undefined, undefined);
+        const messageToSend = newMessage.trim();
+        if (!messageToSend || isSending) return;
+
         setNewMessage("");
         setActiveReply(null);
+
+        await onSendMessage(messageToSend, undefined, undefined);
     };
 
     // 🧠 Typing indicator
@@ -163,7 +138,7 @@ export function ChatInterface({
     // 📎 File upload handler
     const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (!file) return;
+        if (!file || isSending) return;
         const fileType = file.type.startsWith("image/")
             ? "image"
             : file.type.startsWith("audio/")
@@ -265,7 +240,7 @@ export function ChatInterface({
                 {/* 📨 Send */}
                 <Button
                     type="submit"
-                    disabled={sessionStatus !== 'active' || !newMessage.trim()}
+                    disabled={sessionStatus !== 'active' || !newMessage.trim() || isSending}
                     className="rounded-full bg-green-700 hover:bg-green-800 text-white p-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     <Send className="h-5 w-5" />

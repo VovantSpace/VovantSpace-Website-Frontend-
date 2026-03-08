@@ -1,7 +1,7 @@
 import {useEffect, useState, useCallback} from "react";
 import api from '@/utils/api'
 
-export function useMenteeDashboardData(menteeId: string) {
+export function useMenteeDashboardData(menteeId: string | undefined) {
     const [stats, setStats] = useState<any>(null)
     const [sessions, setSessions] = useState<any[]>([])
     const [notifications, setNotifications] = useState<any[]>([])

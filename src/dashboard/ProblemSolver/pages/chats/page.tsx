@@ -69,8 +69,8 @@ export default function ChatsPage() {
 
             const markMessageAsRead = async () => {
                 try {
-                    await api.put(
-                        `/chat/${selectedChannel.id}/mark-read`,
+                    await api.patch(
+                        `/chat/${selectedChannel.id}/read`,
                         {},
                         {headers: {Authorization: `Bearer ${localStorage.getItem('token')}`}}
                     )
@@ -189,7 +189,7 @@ export default function ChatsPage() {
     }
 
     const SidebarContent = () => (
-        <div className="fixed">
+        <div className="">
             <div className="p-4">
                 <div className="relative w-[206px]">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 dashtext"/>
@@ -209,7 +209,7 @@ export default function ChatsPage() {
                         <button
                             key={channel.id}
                             className={cn(
-                                "mb-1 flex w-full items-center justify-between rounded-lg px-2 py-2.5 text-sm",
+                                "mb-1 flex w-full items-center justify-between overflow-hidden rounded-lg px-2 py-2.5 text-sm",
                                 selectedChannel?.id === channel.id
                                     ? "dashbutton text-white"
                                     : "text-black dark:text-white hover:secondbg hover:dashtext"
@@ -219,7 +219,7 @@ export default function ChatsPage() {
                                 setIsSidebarOpen(false)
                             }}
                         >
-                            <span>{channel.name}</span>
+                            <span className={'flex-1 truncare text-left'}>{channel.name}</span>
                             {channel.unreadCount > 0 && (
                                 <span className="rounded-full bg-red-500 text-white px-1.5 py-0.5 text-xs">
                   {channel.unreadCount}

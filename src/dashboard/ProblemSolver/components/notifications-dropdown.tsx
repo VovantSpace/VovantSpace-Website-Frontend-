@@ -22,7 +22,10 @@ const getNotificationTypeColor = (type: string) => {
         message: 'bg-green-100 text-green-800 border-green-200',
         challenge: 'bg-purple-100 text-purple-800 border-purple-200',
         system: 'bg-gray-100 text-gray-800 border-gray-200',
+        payment: 'bg-green-100 text-green-800 border-green-200',
+        withdrawal: 'bg-yellow-100 text-yellow-800 border-yellow-200',
     }
+
     return colors[type as keyof typeof colors] || colors.system
 }
 
@@ -34,6 +37,8 @@ const getNotificationIcon = (type: string) => {
         message: "💬",
         challenge: "🎯",
         system: "🔔",
+        payment: "💰",
+        withdrawal: "🏦",
     }
     return icons[type as keyof typeof icons] || icons.system
 }
@@ -42,13 +47,13 @@ export function NotificationsDropdown() {
     const {
         notifications,
         unreadCount,
-        loading,
         error,
+        loading,
         markAsRead,
         markAllAsRead,
         refetch,
         deleteNotification,
-    } = useNotifications('problemSolver')
+    } = useNotifications()
 
     const handleNotificationClick = async (notificationId: string, isRead: boolean) => {
         if (!isRead) {
@@ -144,7 +149,7 @@ export function NotificationsDropdown() {
                     </div>
                 )}
 
-                {!error && notifications.length > 0 && (
+                {!error && Array.isArray(notifications) && notifications.length > 0 && (
                     <ScrollArea className="h-[400px]">
                         {notifications.map((notification) => (
                             <DropdownMenuItem

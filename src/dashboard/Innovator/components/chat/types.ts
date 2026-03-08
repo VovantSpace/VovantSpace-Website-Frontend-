@@ -3,19 +3,15 @@ import {PollOption} from "@/dashboard/Innovator/types";
 export type SessionStatus = "upcoming" | "active" | "closed";
 
 export interface Channel {
-    description?: string;
     id: string;
     name: string;
-    mentorId: string;
-    menteeId: string;
-    sessionRequestId: string;
-
-    // meta
-    status: SessionStatus;
-    nextActiveDate: string | null;
-    closedAt: string | null;
-    messages?: ChatMessage[];
-
+    description?: string;
+    mentorId?: string;
+    menteeId?: string;
+    sessionRequestId?: string;
+    status?: SessionStatus;
+    nextActiveDate?: string | null;
+    closedAt?: string | null;
     unreadCount: number;
 }
 
@@ -25,12 +21,11 @@ export interface ChatMessage {
     senderId: string;
     senderName: string;
     senderAvatar?: string;
-
     content?: string;
     fileUrl?: string;
     fileType?: string;
-
     createdAt: string;
+    pending?: boolean;
 }
 
 export interface User {
@@ -59,4 +54,10 @@ export interface PollData {
     options: PollOption[];
     allowMultiple: boolean;
     audioUrl?: string;
+}
+
+export interface ReplyReference {
+    id: string;
+    content: string;
+    userName: string;
 }

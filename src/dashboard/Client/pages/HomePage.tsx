@@ -12,6 +12,8 @@ import {MainLayout} from "@/dashboard/Client/components/layout/main-layout"
 import {useMenteeDashboardSocket} from "@/hooks/useMenteeDashboardSocket"
 import {useMenteeDashboardData} from "@/hooks/useMenteeDashboardData";
 import {toast} from 'react-hot-toast'
+import {useAuth} from "@/context/AuthContext"
+
 
 const LoadingStats = (): JSX.Element => (
     <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-3">
@@ -46,8 +48,8 @@ const ErrorMessage = ({
 );
 
 export default function HomePage() {
-    const storedUser = JSON.parse(localStorage.getItem('user') || '{}')
-    const menteeId = storedUser?._id
+    const { user } = useAuth()
+    const menteeId = user?._id
 
     const {events} = useMenteeDashboardSocket(menteeId)
     const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false)
@@ -170,7 +172,9 @@ export default function HomePage() {
                                             </div>
 
                                             <div className={'flex-1'}>
-                                                <p className={'text-sm'}>{n.message}</p>
+                                                <p className={'text-sm'}>{n.title}</p>
+                                                <p className={'text-xs text-gray-400'}>{n.description}</p>
+
                                                 <p className={'mt-1 text-xs text-muted-foreground dark:!text-gray-300'}>
                                                     {new Date(n.createdAt).toLocaleDateString()}
                                                 </p>

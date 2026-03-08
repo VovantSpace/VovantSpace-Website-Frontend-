@@ -7,10 +7,13 @@ import api from "@/utils/api";
 
 export interface Notification {
     _id: string;
+    userId: string;
     title: string;
     description?: string;
     type: string;
     isRead: boolean;
+    role: string;
+
     createdAt: string;
     metaData?: Record<string, any>;
 }
@@ -79,16 +82,15 @@ export interface User {
    Notifications
 ========================= */
 
-export async function getNotifications(role: string): Promise<{
+export async function getNotifications(): Promise<{
     notifications: Notification[];
     unreadCount: number;
     total: number;
 }> {
-    const res = await api.get("/notifications", {
-        params: { role },
-    });
+    const res = await api.get("/notifications");
 
-    const notifications: Notification[] = res.data?.notification ?? [];
+
+    const notifications: Notification[] = res.data?.notifications ?? [];
 
     return {
         notifications,

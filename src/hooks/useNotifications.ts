@@ -1,56 +1,66 @@
-// src/hooks/useNotifications.ts
 import { useCallback, useEffect, useState } from "react";
 import notificationService, { Notification } from "@/hooks/notificationService";
 import { getSocket } from "@/lib/socket";
+import { toast } from "react-hot-toast";
+import {useAuth} from "@/context/AuthContext";
 
-type Role = "innovator" | "problemSolver" | "mentor" | "mentee";
-
-export function useNotifications(role: Role | null) {
+export function useNotifications() {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    const {user} = useAuth();
+
     const fetchNotifications = useCallback(async () => {
-        if (!role) return;
 
         try {
             setLoading(true);
             setError(null);
-
-            const res = await notificationService.getNotifications(role);
-
+            const res = await notificationService.getNotifications();
+            console.log("NOTIFICATION RESPONSE", res);
             setNotifications(res.notifications);
             setUnreadCount(res.unreadCount);
         } catch (err) {
-            console.error(err);
-            setError("Failed to load notifications");
+            console.error("Failed to load notifications:", err);
         } finally {
             setLoading(false);
         }
-    }, [role]);
+    }, []);
 
     useEffect(() => {
         fetchNotifications();
     }, [fetchNotifications]);
 
-    // 🔔 Socket live updates
+    // 🔔 REAL-TIME LISTENER
     useEffect(() => {
-        if (!role) return;
-
         const socket = getSocket();
 
         const handler = (notification: Notification) => {
+            if (!user) return;
+
+            console.log("incoming notification:", notification);
+            console.log("Current user:", user);
+
+            if (
+                notification.userId !== user._id || notification.role !== user.role
+            ) {
+                console.warn("Blocked cross-role notification:", notification)
+                return;
+            }
             setNotifications((prev) => [notification, ...prev]);
             setUnreadCount((c) => c + 1);
+
+            // 🔥 Live Toast
+            toast.success(notification.title);
         };
 
-        socket.on("new_notification", handler);
+        socket.on("notification:new", handler);
 
         return () => {
-            socket.off("new_notification", handler);
+            socket.off("notification:new", handler);
         };
-    }, [role]);
+    }, []);
 
     const markAsRead = async (id: string) => {
         await notificationService.markNotificationAsRead(id);
@@ -60,6 +70,7 @@ export function useNotifications(role: Role | null) {
                 n._id === id ? { ...n, isRead: true } : n
             )
         );
+
         setUnreadCount((c) => Math.max(c - 1, 0));
     };
 
@@ -69,13 +80,14 @@ export function useNotifications(role: Role | null) {
         setNotifications((prev) =>
             prev.map((n) => ({ ...n, isRead: true }))
         );
+
         setUnreadCount(0);
     };
 
     const deleteNotification = async (id: string) => {
-        await notificationService.handleDeleteNotification(id)
-        setNotifications((prev) => prev.filter((n) => n._id !== id))
-    }
+        await notificationService.handleDeleteNotification(id);
+        setNotifications((prev) => prev.filter((n) => n._id !== id));
+    };
 
     return {
         notifications,

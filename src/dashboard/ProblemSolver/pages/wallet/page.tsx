@@ -1,225 +1,287 @@
-
-
-import { useState } from "react"
-import { Button } from "@innovator/components/ui/button"
-import { Card } from "@innovator/components/ui/card"
-import { MainLayout } from "@problemsolver/components/layout/main-layout"
-import { WithdrawFundDialog } from "../../components/modals/WithdrawFundsDialog"
-import {SolverSendDialog} from "@problemsolver/components/modals/SolverSendDialog"
-import { SendFundSettingsDialog } from "@innovator/components/modals/SendFundSettingsDialog"
-import { ArrowDownRight, ArrowUpRight, RefreshCw } from "lucide-react"
-
+import { useState, useEffect } from "react";
+import { Button } from "@/dashboard/ProblemSolver/components/ui/button";
+import { Card } from "@/dashboard/Innovator/components/ui/card";
+import { MainLayout } from "@/dashboard/ProblemSolver/components/layout/main-layout";
+import { WithdrawFundDialog } from "../../components/modals/WithdrawFundsDialog";
+import { SolverSendDialog } from "@/dashboard/ProblemSolver/components/modals/SolverSendDialog";
+import { SendFundSettingsDialog } from "@/dashboard/Innovator/components/modals/SendFundSettingsDialog";
+import { ArrowDownRight, ArrowUpRight, RefreshCw } from "lucide-react";
+import { useWallet } from "@/hooks/useWallet";
+import { getSocket } from "@/lib/socket";
+import api from "@/utils/api";
+import { toast } from "react-hot-toast";
 
 export default function WalletPage() {
-  const [WithdrawFundOpen, setIsWithdrawFundOpen] = useState(false)
-  const [isSendFundsOpen, setIsSendFundsOpen] = useState(false)
-  const [isSendFundsSettingsOpen, setIsSendFundsSettingsOpen] = useState(false)
-  const [dropdownOpen, setDropdownOpen] = useState(false)
-  const [selectedPeriod, setSelectedPeriod] = useState("All Time")
+    const [WithdrawFundOpen, setIsWithdrawFundOpen] = useState(false);
+    const [isSendFundsOpen, setIsSendFundsOpen] = useState(false);
+    const [isSendFundsSettingsOpen, setIsSendFundsSettingsOpen] = useState(false);
+    const [dropdownOpen, setDropdownOpen] = useState(false);
+    const [selectedPeriod, setSelectedPeriod] = useState("All Time");
+    const [refreshing, setRefreshing] = useState(false);
 
+    const {
+        wallet,
+        setWallet,
+        history,
+        refetch,
+        refetchHistory,
+        stats,
+        stripeStatus,
+    } = useWallet();
 
-  const RecentTransactions = [
-    {
-      id: "1",
-      name: "Wallet funding",
-      date: "20/02/2025",
-      amount: "+$500",
-    },
-    {
-      id: "2",
-      name: "Funding",
-      date: "2/02/2025",
-      amount: "-$100",
-    },
-  ];
+    /* ----------------------------
+       Stripe onboarding redirect
+    ----------------------------- */
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
 
+        if (params.get("onboarding") === "success") {
+            toast.success("Stripe account connected successfully 🎉");
+            refetch();
+        }
 
-  return (
-    <MainLayout>
-      <div className=" space-y-6 md:p-6 md:pr-3 md:pl-1 md:pt-1 px-3 pt-2 ">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold dashtext">Wallet</h1>
-            <p className="text-sm text-gray-400">Manage your wallet and transactions</p>
-          </div>
-          <Button className=" dashbutton" onClick={() => setIsSendFundsSettingsOpen(true)}>Wallet Settings</Button>
-        </div>
+        if (params.get("refresh") === "true") {
+            toast("Please complete Stripe onboarding to enable payouts.");
+        }
+    }, []);
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Card className="secondbg p-6">
-            <div className="mb-2 text-sm text-gray-400">Available Balance</div>
-            <div className="flex items-center">
-              <div className="text-2xl font-bold dashtext">$1,000</div>
-              <Button variant="ghost" size="icon" className=" rounded-full text-[#00bf8f]">
-                <ArrowUpRight className="h-6 w-6" />
-              </Button>
-            </div>
-          </Card>
-          <Card className="secondbg p-6">
-            <div className="mb-2 text-sm text-gray-400">Total Withdrawals</div>
-            <div className="flex items-center">
-              <div className="text-2xl font-bold dashtext">10</div>
-              <Button variant="ghost" size="icon" className=" rounded-full text-[#00bf8f]">
-                <ArrowUpRight className="h-6 w-6" />
-              </Button>
-            </div>
-          </Card>
-          <Card className="secondbg p-6">
-            <div className="mb-2 text-sm text-gray-400">Pending Withdrawals</div>
-            <div className="flex items-center">
-              <div className="text-2xl font-bold dashtext">2</div>
-              <Button variant="ghost" size="icon" className=" rounded-full text-[#00bf8f]">
-                <ArrowUpRight className="h-6 w-6" />
-              </Button>
-            </div>
-          </Card>
-          <Card className="secondbg p-6">
-            <div className="mb-2 text-sm text-gray-400">Successful Withdrawals</div>
-            <div className="flex items-center">
-              <div className="text-2xl font-bold dashtext">8</div>
-              <Button variant="ghost" size="icon" className=" rounded-full text-[#00bf8f]">
-                <ArrowUpRight className="h-6 w-6" />
-              </Button>
-            </div>
-          </Card>
+    /* ----------------------------
+       Socket live wallet update
+    ----------------------------- */
+    useEffect(() => {
+        const socket = getSocket();
 
-        </div>
+        const handleWalletUpdate = async () => {
+            await refetch();
+            await refetchHistory?.();
+        }
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        socket.on("wallet:updated", handleWalletUpdate);
 
-          <Card
-            className="dashbutton  p-6 transition-colors hover:secondbg cursor-pointer"
+        return () => {
+            socket.off("wallet:updated", handleWalletUpdate);
+        }
 
-            onClick={() => setIsWithdrawFundOpen(true)}
-          >
-            <div className="flex items-center gap-4">
-              <div className="rounded-full secondbg p-3">
-                <ArrowUpRight className="h-6 w-6 text-[#00bf8f]" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-white">Withdraw Funds</h3>
-                <p className="text-sm text-gray-300">Withdraw funds to your bank</p>
-              </div>
-            </div>
-          </Card>
-          <Card
-            className="dashbutton  p-6 transition-colors hover:secondbg cursor-pointer"
-            onClick={() => setIsSendFundsOpen(true)}
-          >
-            <div className="flex items-center gap-4">
-              <div className="rounded-full secondbg p-3">
-              <ArrowUpRight className="h-6 w-6 text-[#00bf8f]" />
-              </div>
-              <div className="">
-                <h3 className="font-semibold  text-white">Send Funds</h3>
-                <p className="text-sm text-gray-300">Send funds to others</p>
-              </div>
-            </div>
-          </Card>
-        </div>
+    }, [refetch, refetchHistory]);
 
-        <div className="rounded-xl">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-xl font-bold dashtext">Transactions History</h2>
-            <div className="flex items-center gap-2">
-              {/* Dropdown Menu */}
-         
-              <div className="relative inline-block text-left">
-                <button
-                  type="button"
-                  onClick={() => setDropdownOpen(!dropdownOpen)}
-                  className="inline-flex items-center justify-center rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700"
-                  id="options-menu"
-                  aria-haspopup="true"
-                  aria-expanded={dropdownOpen ? "true" : "false"}
-                >
-                  {selectedPeriod}
-                  <svg
-                    className={`-mr-1 ml-2 h-5 w-5 transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""}`}
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                    aria-hidden="true"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.23 8.27a.75.75 0 01.02-1.06z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </button>
-                {dropdownOpen && (
-                  <div className="origin-top-right absolute right-0 mt-2 w-36 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
-                    <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
-                      <button
-                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                        role="menuitem"
-                        onClick={() => { setSelectedPeriod("All Time"); setDropdownOpen(false) }}
-                      >
-                        All Time
-                      </button>
-                      <button
-                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                        role="menuitem"
-                        onClick={() => { setSelectedPeriod("This Month"); setDropdownOpen(false) }}
-                      >
-                        This Month
-                      </button>
-                      <button
-                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                        role="menuitem"
-                        onClick={() => { setSelectedPeriod("This Week"); setDropdownOpen(false) }}
-                      >
-                        This Week
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
+    console.log("History state:", history);
 
-              {/* Refresh Button */}
-              <button
-                type="button"
-                className="p-2 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
-              >
-                <RefreshCw className="h-4 w-4" />
-              </button>
-            </div>
+    /* ----------------------------
+       Stripe onboarding handler
+    ----------------------------- */
+    const handleStripeOnboarding = async () => {
+        try {
+            await api.post("/connect/create");
 
-          </div>
+            const res = await api.get("/connect/onboard");
 
-          {RecentTransactions?.length > 0 &&
-            RecentTransactions.map((transaction) => (
-              <Card key={transaction?.id} className="secondbg rounded-none">
-                <div className="p-2">
-                  <div className="flex items-center justify-between border-b border-gray-300 dark:border-gray-700 py-2 px-3">
-                    <div className="flex items-center gap-4">
-                      <div className="secondbg p-2">
-                        <ArrowDownRight className="h-4 w-4 text-[#00bf8f]" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold dashtext">{transaction?.name}</h3>
-                        <p className="text-sm text-gray-400">{transaction?.date}</p>
-                      </div>
-                    </div>
-                    <div className={`text-lg font-semibold ${transaction?.amount[0] === '+' ? 'text-[#00bf8f]' : 'text-red-600'}`}>
-                      {transaction?.amount}
-                    </div>
-                  </div>
+            if (res.data?.url) {
+                window.location.href = res.data.url;
+            }
+
+        } catch (err: any) {
+            toast.error(err?.response?.data?.message || "Failed to start onboarding");
+        }
+    };
+
+    /* ----------------------------
+       Manual refresh
+    ----------------------------- */
+    const handleRefresh = async () => {
+        if (refreshing) return;
+
+        try {
+            setRefreshing(true);
+
+            await Promise.all([
+                refetch?.(),
+                refetchHistory?.(),
+            ]);
+
+        } catch (err) {
+            console.error("Refresh failed:", err);
+        } finally {
+            setRefreshing(false);
+        }
+    };
+
+    /* ----------------------------
+       Stripe not ready UI
+    ----------------------------- */
+    if (!stripeStatus) return null;
+
+    if (!stripeStatus.payoutsEnabled) {
+        return (
+            <MainLayout>
+                <div className="p-6">
+                    <Card className="secondbg p-6 text-center space-y-4">
+                        <h3 className="text-xl font-semibold text-white">
+                            Connect Stripe to Withdraw Funds
+                        </h3>
+                        <p className="text-gray-400">
+                            You must connect your Stripe account before withdrawing.
+                        </p>
+                        <Button onClick={handleStripeOnboarding} className="dashbutton">
+                            Connect Stripe Account
+                        </Button>
+                    </Card>
                 </div>
-              </Card>
-            ))
-          }
-        </div>
+            </MainLayout>
+        );
+    }
 
-        <WithdrawFundDialog isOpen={WithdrawFundOpen} onClose={() => setIsWithdrawFundOpen(false)} />
+    return (
+        <MainLayout>
+            <div className="space-y-6 md:p-6 px-3 pt-2">
+                {/* Header */}
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h1 className="text-2xl font-bold dashtext">Wallet</h1>
+                        <p className="text-sm text-gray-400">
+                            Manage your wallet and transactions
+                        </p>
+                    </div>
+                    <Button
+                        className="dashbutton"
+                        onClick={() => setIsSendFundsSettingsOpen(true)}
+                    >
+                        Wallet Settings
+                    </Button>
+                </div>
 
-        <SolverSendDialog isOpen={isSendFundsOpen} onClose={() => setIsSendFundsOpen(false)} />
-        <SendFundSettingsDialog
-          isOpen={isSendFundsSettingsOpen}
-          onClose={() => setIsSendFundsSettingsOpen(false)}
-        />
-      </div>
-    </MainLayout>
-  )
+                {/* Wallet Stats */}
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <Card className="secondbg p-6">
+                        <div className="mb-2 text-sm text-gray-400">
+                            Available Balance
+                        </div>
+                        <div className="text-2xl font-bold dashtext">
+                            ${((wallet?.availableBalance ?? 0) / 100).toFixed(2)}
+                        </div>
+                    </Card>
+
+                    <Card className="secondbg p-6">
+                        <div className="mb-2 text-sm text-gray-400">
+                            Total Withdrawals
+                        </div>
+                        <div className="text-2xl font-bold dashtext">
+                            {stats?.totalWithdrawals ?? 0}
+                        </div>
+                    </Card>
+
+                    <Card className="secondbg p-6">
+                        <div className="mb-2 text-sm text-gray-400">
+                            Pending Withdrawals
+                        </div>
+                        <div className="text-2xl font-bold dashtext">
+                            {stats?.pendingWithdrawals ?? 0}
+                        </div>
+                    </Card>
+
+                    <Card className="secondbg p-6">
+                        <div className="mb-2 text-sm text-gray-400">
+                            Successful Withdrawals
+                        </div>
+                        <div className="text-2xl font-bold dashtext">
+                            {stats?.successfulWithdrawals ?? 0}
+                        </div>
+                    </Card>
+                </div>
+
+                {/* Withdraw Button */}
+                <Card
+                    className={`dashbutton p-6 transition-colors ${
+                        stripeStatus.payoutsEnabled
+                            ? "cursor-pointer hover:secondbg"
+                            : "opacity-50 cursor-not-allowed"
+                    }`}
+                    onClick={() =>
+                        stripeStatus.payoutsEnabled && setIsWithdrawFundOpen(true)
+                    }
+                >
+                    <div className="flex items-center gap-4">
+                        <div className="rounded-full secondbg p-3">
+                            <ArrowUpRight className="h-6 w-6 text-[#00bf8f]" />
+                        </div>
+                        <div>
+                            <h3 className="font-semibold text-white">Withdraw Funds</h3>
+                            {!stripeStatus.payoutsEnabled && (
+                                <p className="text-sm text-red-400">
+                                    Stripe verification still in progress
+                                </p>
+                            )}
+                        </div>
+                    </div>
+                </Card>
+
+                {/* Transactions */}
+                <div className="rounded-xl">
+                    <div className="flex items-center justify-between mb-2">
+                        <h2 className="text-xl font-bold dashtext">
+                            Transactions History
+                        </h2>
+                        <button
+                            type="button"
+                            onClick={handleRefresh}
+                            className="p-2 rounded-md border bg-white dark:bg-gray-800"
+                        >
+                            <RefreshCw
+                                className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
+                            />
+                        </button>
+                    </div>
+
+                    {history && history.length > 0 ? (
+                        history.map((tx) => {
+                            const isCredit = tx.type === "credit";
+
+                            return (
+                                <Card key={tx._id} className="secondbg rounded-none">
+                                    <div className="p-2 flex justify-between">
+                                        <div>
+                                            <h3 className="font-semibold dashtext capitalize">
+                                                {tx.source.replace(/_/g, " ")}
+                                            </h3>
+                                            <p className="text-sm text-gray-400">
+                                                {new Date(tx.createdAt).toLocaleDateString()}
+                                            </p>
+                                        </div>
+                                        <div
+                                            className={`text-lg font-semibold ${
+                                                isCredit ? "text-[#00bf8f]" : "text-red-600"
+                                            }`}
+                                        >
+                                            {isCredit ? "+" : "-"}$
+                                            {(tx.amount / 100).toFixed(2)}
+                                        </div>
+                                    </div>
+                                </Card>
+                            );
+                        })
+                    ) : (
+                        <p className="text-gray-400 text-sm">No transactions found.</p>
+                    )}
+                </div>
+
+                <WithdrawFundDialog
+                    isOpen={WithdrawFundOpen}
+                    onSuccess={async () => {
+                        await refetch();
+                        await refetchHistory?.();
+                    }}
+                    onClose={() => setIsWithdrawFundOpen(false)}
+                />
+
+                <SolverSendDialog
+                    isOpen={isSendFundsOpen}
+                    onClose={() => setIsSendFundsOpen(false)}
+                />
+
+                <SendFundSettingsDialog
+                    isOpen={isSendFundsSettingsOpen}
+                    onClose={() => setIsSendFundsSettingsOpen(false)}
+                />
+            </div>
+        </MainLayout>
+    );
 }
-
