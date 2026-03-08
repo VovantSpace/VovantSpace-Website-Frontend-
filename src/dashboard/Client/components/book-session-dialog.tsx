@@ -10,11 +10,6 @@ import {Button} from "@/dashboard/Innovator/components/ui/button";
 import {Input} from "@/dashboard/Innovator/components/ui/input";
 import {toast} from "react-toastify";
 import {format, addDays} from "date-fns";
-import {
-    Elements,
-} from "@stripe/react-stripe-js";
-import {stripePromise} from "@/lib/stripe";
-import {SessionPaymentForm} from "@/utils/SessionPaymentForm";
 
 interface TimeSlot {
     id: string;
@@ -60,8 +55,7 @@ export function BookSessionDialog({
     const [selectedTimeSlot, setSelectedTimeSlot] = useState<TimeSlot | null>(null);
     const [topic, setTopic] = useState("");
     const [loading, setLoading] = useState(false);
-    const [clientSecret, setClientSecret] = useState<string | null>(null);
-    const [step, setStep] = useState<"form" | "payment">("form");
+    const [isFundWalletDialogOpen, setIsFundWalletDialogOpen] = useState(false);
 
 
     console.log("mentorId:", mentorId);
@@ -165,17 +159,14 @@ export function BookSessionDialog({
             return;
         }
 
-        // Build proper Date objects
         const start = new Date(`${selectedDate}T${selectedTimeSlot.startTime}:00`);
         const end = new Date(`${selectedDate}T${selectedTimeSlot.endTime}:00`);
 
-        // Validate dates
         if (isNaN(start.getTime()) || isNaN(end.getTime())) {
             toast.error("Invalid time selected");
             return;
         }
 
-        // Calculate duration safely (in minutes)
         const duration = Math.round((end.getTime() - start.getTime()) / 60000);
 
         if (duration <= 0) {
@@ -183,45 +174,7 @@ export function BookSessionDialog({
             return;
         }
 
-        setLoading(true);
-
-        try {
-            const payload = {
-                mentorId,
-                requestedDate: start.toISOString(),
-                requestedEndTime: end.toISOString(),
-                duration,
-                topic,
-                description: `Session on ${topic}`,
-            };
-
-            console.log("Payload being sent:", payload);
-
-            const res = await api.post(
-                "/mentees/sessions/book",
-                payload,
-                {withCredentials: true}
-            );
-
-            setClientSecret(res.data.data.clientSecret);
-            setStep("payment");
-
-        } catch (err: any) {
-            console.log("FULL ERROR:", err);
-            console.log("RESPONSE:", err?.response);
-            console.log("DATA:", err?.response?.data);
-            toast.error(err?.response?.data?.message || "Booking failed");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    /* ================= PAYMENT SUCCESS ================= */
-    const handlePaymentSuccess = () => {
-        toast.success("Session booked successfully 🎉");
-
-        resetState();
-        onOpenChange(false);
+        onConfirm(start.toISOString(), selectedTimeSlot, topic);
     };
 
     /* ================= RESET ================= */
@@ -229,8 +182,6 @@ export function BookSessionDialog({
         setSelectedDate(null);
         setSelectedTimeSlot(null);
         setTopic("");
-        setClientSecret(null);
-        setStep("form");
     };
 
     /* ================= RENDER ================= */
@@ -345,34 +296,7 @@ export function BookSessionDialog({
                             >
                                 {loading
                                     ? "Processing..."
-                                    : "Continue to Payment"}
-                            </Button>
-                        </div>
-                    </>
-                )}
-
-                {/* ================= PAYMENT STEP ================= */}
-                {step === "payment" && clientSecret && (
-                    <>
-                        <DialogTitle className="text-lg font-semibold">
-                            Complete Payment
-                        </DialogTitle>
-
-                        <Elements
-                            stripe={stripePromise}
-                            options={{clientSecret}}
-                        >
-                            <SessionPaymentForm
-                                onSuccess={handlePaymentSuccess}
-                            />
-                        </Elements>
-
-                        <div className="mt-4">
-                            <Button
-                                variant="outline"
-                                onClick={() => setStep("form")}
-                            >
-                                Back
+                                    : "Continue"}
                             </Button>
                         </div>
                     </>

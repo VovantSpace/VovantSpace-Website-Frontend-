@@ -24,18 +24,17 @@ type TimeSlot = {
     id: string;
     startTime: string;
     endTime: string;
-    rate: number;
+    rate: number; // dollars in UI
 };
 
 type DaySchedule = {
     day: string;
-    dayOfWeek: number; // 0–6 (Sun–Sat)
+    dayOfWeek: number;
     timeSlots: TimeSlot[];
     excludedSessions: string[];
-    hourlyRate: number;
+    hourlyRate: number; // dollars in UI
 };
 
-// Helpers to convert between FE numeric dayOfWeek and BE enum strings
 const DAY_INDEX_TO_ENUM: Record<number, string> = {
     0: "SUNDAY",
     1: "MONDAY",
@@ -67,32 +66,52 @@ const DAY_LABELS = [
 ];
 
 const getDayName = (dayOfWeek: any): string => {
-    if (typeof dayOfWeek === "number") {
-        return DAY_LABELS[dayOfWeek] ?? "Unknown";
-    }
+    if (typeof dayOfWeek === "number") return DAY_LABELS[dayOfWeek] ?? "Unknown";
     if (typeof dayOfWeek === "string") {
-        const upper = dayOfWeek.toUpperCase();
-        const idx = DAY_ENUM_TO_INDEX[upper];
-        return idx !== undefined ? DAY_LABELS[idx] : upper;
+        const idx = DAY_ENUM_TO_INDEX[dayOfWeek.toUpperCase()];
+        return idx !== undefined ? DAY_LABELS[idx] : dayOfWeek;
     }
     return "Unknown";
 };
 
-// Loading Skeleton component
+const centsToDollars = (value: number | string): number => {
+    const num = Number(value) || 0;
+    return Number((num / 100).toFixed(2));
+};
+
+const dollarsToCents = (value: number | string): number => {
+    const num = Number(value) || 0;
+    return Math.round(num * 100);
+};
+
+const roundDollarInput = (value: number | string): number => {
+    const num = Number(value) || 0;
+    return Number(num.toFixed(2));
+};
+
 const AvailabilitySkeleton = () => (
-    <div className={"space-y-8"}>
+    <div className="space-y-8">
         {[1, 2, 3].map((i) => (
-            <div key={i} className={"rounded.xl p-6 shadow-lg secondbg animate-pulse"}>
-                <div className={"h-6 w-48 bg-gray-300 dark:bg-gray-700 rounded mb-4"}>
-                    <div className={"space-y-4"}>
-                        <div className={"h-4 w-full bg-gray-300 dark:bg-gray-700 rounded"}></div>
-                        <div className={"h-4 w-3/4 bg-gray-300 dark:bg-gray-700 rounded"}></div>
-                    </div>
+            <div key={i} className="rounded-xl p-6 shadow-lg secondbg animate-pulse">
+                <div className="h-6 w-48 bg-gray-300 dark:bg-gray-700 rounded mb-4"></div>
+                <div className="space-y-4">
+                    <div className="h-4 w-full bg-gray-300 dark:bg-gray-700 rounded"></div>
+                    <div className="h-4 w-3/4 bg-gray-300 dark:bg-gray-700 rounded"></div>
                 </div>
             </div>
         ))}
     </div>
 );
+
+function createDaySchedules(days: { day: string; dayOfWeek: number }[]): DaySchedule[] {
+    return days.map(({ day, dayOfWeek }) => ({
+        day,
+        dayOfWeek,
+        timeSlots: [],
+        excludedSessions: [],
+        hourlyRate: 50, // dollars in UI
+    }));
+}
 
 export default function AvailabilityPage() {
     const [isAvailable, setIsAvailable] = useState(true);
@@ -106,7 +125,7 @@ export default function AvailabilityPage() {
     const [oneTimeAvailabilities, setOneTimeAvailabilities] = useState<{
         date: string;
         timeSlots: TimeSlot[];
-        hourlyRate: number;
+        hourlyRate: number; // dollars in UI
     }[]>([]);
 
     const {
@@ -115,7 +134,6 @@ export default function AvailabilityPage() {
         error,
         refetch,
         createAvailability,
-        updateAvailability,
         deleteAvailability,
     } = useAvailability();
 
@@ -129,36 +147,13 @@ export default function AvailabilityPage() {
         ]),
         ...createDaySchedules([
             { day: "Saturday", dayOfWeek: 6 },
-            { day: "Sunday", dayOfWeek: 0 }, // Sunday is 0
+            { day: "Sunday", dayOfWeek: 0 },
         ]),
     ]);
 
-    function createDaySchedules(days: { day: string; dayOfWeek: number }[]): DaySchedule[] {
-        return days.map(({ day, dayOfWeek }) => ({
-            day,
-            dayOfWeek,
-            timeSlots: [],
-            excludedSessions: [],
-            hourlyRate: 50,
-        }));
-    }
-
-    // Helper to round up numbers
-    const roundRate = (value: number | string): number => {
-        return Math.round(Number(value) || 0);
-    };
-
-    // ---- LOAD EXISTING AVAILABILITY ----
     useEffect(() => {
         if (!availability || availability.length === 0) return;
 
-        console.log("📥 RAW AVAILABILITY FROM API (normalized in hook):", availability);
-
-        // We assume `availability` already has:
-        // - dayOfWeek as number (0–6) for recurring
-        // - specificTimeSlots: Array
-        // - specificTimeDate: Array (fallback, may be [])
-        // - specificDate: ISO string
         const normalizedAvailability = availability.map((a: any) => ({
             ...a,
             dayOfWeek:
@@ -169,11 +164,6 @@ export default function AvailabilityPage() {
             specificTimeDate: a.specificTimeDate || [],
         }));
 
-        console.log("📤 NORMALIZED AVAILABILITY (local):", normalizedAvailability);
-
-        // ----------------------------------------------------
-        // ⭐ LOAD RECURRING AVAILABILITY INTO schedule[]
-        // ----------------------------------------------------
         const updatedSchedule = schedule.map((daySchedule) => {
             const existing = normalizedAvailability.find((a: any) => {
                 if (a.type !== "recurring") return false;
@@ -181,20 +171,15 @@ export default function AvailabilityPage() {
             });
 
             if (existing) {
-                console.log(
-                    `✅ Recurring match for ${daySchedule.day}:`,
-                    existing
-                );
-
                 return {
                     ...daySchedule,
                     timeSlots: (existing.timeSlots ?? []).map((slot: any) => ({
                         id: slot.id || crypto.randomUUID(),
                         startTime: slot.startTime,
                         endTime: slot.endTime,
-                        rate: roundRate(slot.rate ?? existing.hourlyRate ?? 0),
+                        rate: centsToDollars(slot.rate ?? existing.hourlyRate ?? 0),
                     })),
-                    hourlyRate: roundRate(existing.hourlyRate ?? 0),
+                    hourlyRate: centsToDollars(existing.hourlyRate ?? 0),
                 };
             }
 
@@ -202,19 +187,11 @@ export default function AvailabilityPage() {
         });
 
         setSchedule(updatedSchedule);
-        console.log("📌 Updated recurring schedule:", updatedSchedule);
 
-        // ----------------------------------------------------
-        // ⭐ LOAD ONE-TIME (specific_date) AVAILABILITY
-        // ----------------------------------------------------
         const oneTime = normalizedAvailability
             .filter((a: any) => a.type === "specific_date")
             .filter((a: any) => {
-                const slots =
-                    a.specificTimeSlots?.length
-                        ? a.specificTimeSlots
-                        : a.specificTimeDate;
-
+                const slots = a.specificTimeSlots?.length ? a.specificTimeSlots : a.specificTimeDate;
                 return Array.isArray(slots) && slots.length > 0;
             })
             .map((a: any) => {
@@ -222,67 +199,38 @@ export default function AvailabilityPage() {
                     ? new Date(a.specificDate).toISOString().substring(0, 10)
                     : "";
 
-                const slots =
-                    a.specificTimeSlots?.length
-                        ? a.specificTimeSlots
-                        : a.specificTimeDate;
+                const slots = a.specificTimeSlots?.length ? a.specificTimeSlots : a.specificTimeDate;
 
-                const entry = {
+                return {
                     date: formattedDate,
-                    hourlyRate: a.hourlyRate ?? 0,
+                    hourlyRate: centsToDollars(a.hourlyRate ?? 0),
                     timeSlots: slots.map((slot: any) => ({
                         id: crypto.randomUUID(),
                         startTime: slot.startTime,
                         endTime: slot.endTime,
-                        rate: roundRate(slot.rate ?? a.hourlyRate ?? 0),
+                        rate: centsToDollars(slot.rate ?? a.hourlyRate ?? 0),
                     })),
                 };
-
-                console.log("📌 Loaded one-time entry:", entry);
-                return entry;
             });
 
         setOneTimeAvailabilities(oneTime);
-        console.log("📌 One-time availability:", oneTime);
 
-        // ----------------------------------------------------
-        // ⭐ LOAD BLACKOUT DATES (specific_date with NO slots)
-        // ----------------------------------------------------
         const blackouts = normalizedAvailability
             .filter((a: any) => a.type === "specific_date")
             .filter((a: any) => {
-                const slots =
-                    a.specificTimeSlots?.length
-                        ? a.specificTimeSlots
-                        : a.specificTimeDate;
-
+                const slots = a.specificTimeSlots?.length ? a.specificTimeSlots : a.specificTimeDate;
                 return !Array.isArray(slots) || slots.length === 0;
             })
-            .map((a: any) => {
-                const formattedDate = a.specificDate
-                    ? new Date(a.specificDate).toISOString().substring(0, 10)
-                    : "";
-                return formattedDate;
-            })
+            .map((a: any) =>
+                a.specificDate ? new Date(a.specificDate).toISOString().substring(0, 10) : ""
+            )
             .filter((date: string) => date !== "");
 
         setBlackoutDates(blackouts);
-        console.log("📌 Blackout dates:", blackouts);
 
-        // ----------------------------------------------------
-        // ⭐ GLOBAL AVAILABILITY TOGGLE
-        // ----------------------------------------------------
         const anyActive = normalizedAvailability.some((a: any) => a.isActive);
         setIsAvailable(anyActive);
-
-        console.log("🏁 AVAILABILITY LOADING COMPLETE");
-        console.log("📊 Summary:", {
-            recurringDays: updatedSchedule.filter((d) => d.timeSlots.length > 0).length,
-            oneTimeCount: oneTime.length,
-            blackoutCount: blackouts.length,
-            isAvailable: anyActive,
-        });
-    }, [availability]); // ← keep dependency ONLY on availability
+    }, [availability]);
 
     const parseTime = (time: string) => {
         if (!time) return NaN;
@@ -305,13 +253,9 @@ export default function AvailabilityPage() {
         const duration = parseInt(sessionDuration, 10);
         const buffer = parseInt(bufferTime, 10);
 
-        if (
-            Number.isNaN(slotStart) ||
-            Number.isNaN(slotEnd) ||
-            slotStart >= slotEnd ||
-            duration <= 0
-        )
+        if (Number.isNaN(slotStart) || Number.isNaN(slotEnd) || slotStart >= slotEnd || duration <= 0) {
             return [];
+        }
 
         const sessions: Session[] = [];
         let currentStart = slotStart;
@@ -339,22 +283,14 @@ export default function AvailabilityPage() {
                     id: crypto.randomUUID(),
                     startTime: "09:00",
                     endTime: "17:00",
-                    rate: d.hourlyRate || 0,
+                    rate: d.hourlyRate || 50,
                 };
-                return {
-                    ...d,
-                    timeSlots: [...d.timeSlots, newSlot],
-                };
+                return { ...d, timeSlots: [...d.timeSlots, newSlot] };
             })
         );
     };
 
-    const handleTimeChange = (
-        day: string,
-        slotId: string,
-        type: string,
-        value: string | number
-    ) => {
+    const handleTimeChange = (day: string, slotId: string, type: string, value: string | number) => {
         setSchedule((prev) =>
             prev.map((d) => {
                 if (d.day !== day) return d;
@@ -372,35 +308,24 @@ export default function AvailabilityPage() {
         setSchedule((prev) =>
             prev.map((d) => {
                 if (d.day !== day) return d;
-                return {
-                    ...d,
-                    timeSlots: d.timeSlots.filter((slot) => slot.id !== slotId),
-                };
+                return { ...d, timeSlots: d.timeSlots.filter((slot) => slot.id !== slotId) };
             })
         );
     };
 
     const handleHourlyRateChange = (day: string, rate: number) => {
         setSchedule((prev) =>
-            prev.map((d) => (d.day !== day ? d : { ...d, hourlyRate: roundRate(rate) }))
-        );
-    };
-
-    const handleRemoveSession = (day: string, sessionId: string) => {
-        setSchedule((prev) =>
-            prev.map((d) => {
-                if (d.day !== day) return d;
-                return { ...d, excludedSessions: [...d.excludedSessions, sessionId] };
-            })
+            prev.map((d) =>
+                d.day !== day ? d : { ...d, hourlyRate: roundDollarInput(rate) }
+            )
         );
     };
 
     const handleAddBlackoutDate = () => {
-        if (newDateInput) {
-            setBlackoutDates((prev) => [...prev, newDateInput]);
-            setNewDateInput("");
-            setShowDateInput(false);
-        }
+        if (!newDateInput) return;
+        setBlackoutDates((prev) => [...prev, newDateInput]);
+        setNewDateInput("");
+        setShowDateInput(false);
     };
 
     const saveAvailability = async () => {
@@ -409,50 +334,37 @@ export default function AvailabilityPage() {
 
             const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-            // --------------------------
-            // Recurring availability
-            // --------------------------
             const recurring = schedule
-                .filter(d => d.timeSlots.length > 0)
-                .map(day => ({
+                .filter((d) => d.timeSlots.length > 0)
+                .map((day) => ({
                     dayOfWeek: DAY_INDEX_TO_ENUM[day.dayOfWeek],
-                    timeSlots: day.timeSlots.map(slot => ({
+                    timeSlots: day.timeSlots.map((slot) => ({
                         startTime: slot.startTime,
                         endTime: slot.endTime,
-                        rate: slot.rate
+                        rate: dollarsToCents(day.hourlyRate),
                     })),
-                    hourlyRate: day.hourlyRate
+                    hourlyRate: dollarsToCents(day.hourlyRate),
                 }));
 
-            // --------------------------
-            // One-time specific dates
-            // --------------------------
             const specific = oneTimeAvailabilities
-                .filter(item => item.date && item.timeSlots.length > 0)
-                .map(item => ({
+                .filter((item) => item.date && item.timeSlots.length > 0)
+                .map((item) => ({
                     specificDate: item.date,
-                    timeSlots: item.timeSlots.map(s => ({
+                    timeSlots: item.timeSlots.map((s) => ({
                         startTime: s.startTime,
                         endTime: s.endTime,
-                        rate: s.rate
+                        rate: dollarsToCents(s.rate),
                     })),
-                    hourlyRate: item.hourlyRate
+                    hourlyRate: dollarsToCents(item.hourlyRate),
                 }));
-
-            // --------------------------
-            // Blackouts
-            // --------------------------
-            const blackouts = blackoutDates;
 
             const payload = {
                 type: "full_update",
                 recurring,
                 specific,
-                blackouts,
-                timezone: timeZone
+                blackouts: blackoutDates,
+                timezone: timeZone,
             };
-
-            console.log("FINAL PAYLOAD:", payload);
 
             const result = await createAvailability(payload);
 
@@ -462,7 +374,6 @@ export default function AvailabilityPage() {
             } else {
                 toast.error(result.error || "Failed to save availability");
             }
-
         } catch (e: any) {
             console.error("Save availability error", e);
             toast.error(e.message || "Unknown error");
@@ -471,7 +382,6 @@ export default function AvailabilityPage() {
         }
     };
 
-
     const handleDeleteDay = async (dayOfWeek: number) => {
         try {
             const dayEnum = DAY_INDEX_TO_ENUM[dayOfWeek];
@@ -479,12 +389,8 @@ export default function AvailabilityPage() {
             const existingAvailability = availability?.find((avail: any) => {
                 if (avail.type !== "recurring") return false;
                 const dayField = avail.dayOfWeek;
-                if (typeof dayField === "string") {
-                    return dayField.toUpperCase() === dayEnum;
-                }
-                if (typeof dayField === "number") {
-                    return dayField === dayOfWeek;
-                }
+                if (typeof dayField === "string") return dayField.toUpperCase() === dayEnum;
+                if (typeof dayField === "number") return dayField === dayOfWeek;
                 return false;
             });
 
@@ -511,17 +417,14 @@ export default function AvailabilityPage() {
     if (error) {
         return (
             <MainLayout>
-                <div className={"p-4"}>
+                <div className="p-4">
                     <div className="rounded-lg bg-red-50 dark:bg-red-900/20 p-6 text-center">
-                        <AlertCircle className={"h-12 w-12 text-red-500 mx-auto mb-4"} />
-                        <h2 className={"text-xl font-semibold text-red-800 dark:text-red-300 mb-2"}>
+                        <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                        <h2 className="text-xl font-semibold text-red-800 dark:text-red-300 mb-2">
                             Error Loading Availability
                         </h2>
-                        <p className={"text-red-600 dark:text-red-400 mb-4"}>{error}</p>
-                        <Button
-                            onClick={refetch}
-                            className={"bg-red-600 text-white hover:bg-red-700"}
-                        >
+                        <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
+                        <Button onClick={refetch} className="bg-red-600 text-white hover:bg-red-700">
                             Try Again
                         </Button>
                     </div>
@@ -533,7 +436,7 @@ export default function AvailabilityPage() {
     if (loading && availability.length === 0) {
         return (
             <MainLayout>
-                <div className={"p-4"}>
+                <div className="p-4">
                     <AvailabilitySkeleton />
                 </div>
             </MainLayout>
@@ -543,35 +446,28 @@ export default function AvailabilityPage() {
     return (
         <MainLayout>
             <div className="p-4 space-y-8 dark:text-white">
-                {/* Header with Save button */}
-                <div className={"flex justify-between items-center"}>
-                    <h1 className={"text-2xl font-bold text-black dark:text-white"}>
+                <div className="flex justify-between items-center">
+                    <h1 className="text-2xl font-bold text-black dark:text-white">
                         Availability Management
                     </h1>
-                    <div className={"flex gap-2"}>
+                    <div className="flex gap-2">
                         <Button
                             onClick={refetch}
-                            variant={"outline"}
+                            variant="outline"
                             disabled={loading || saving}
-                            className={
-                                "dark:text-white text-white bg-green-500 hover:bg-green-700 hover:text-white dashbutton"
-                            }
+                            className="dark:text-white text-white bg-green-500 hover:bg-green-700 hover:text-white dashbutton"
                         >
-                            {loading && (
-                                <Loader2
-                                    className={"mr-2 h-4 w-4 animate-spin dark:text-white"}
-                                />
-                            )}
+                            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin dark:text-white" />}
                             Refresh
                         </Button>
                         <Button
                             onClick={saveAvailability}
                             disabled={saving}
-                            className={"dashbutton bg-green-600 text-white hover:bg-green-700"}
+                            className="dashbutton bg-green-600 text-white hover:bg-green-700"
                         >
                             {saving ? (
                                 <>
-                                    <Loader2 className={"mr-2 h-4 w-4 animate-spin"} />
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                     Saving...
                                 </>
                             ) : (
@@ -581,7 +477,6 @@ export default function AvailabilityPage() {
                     </div>
                 </div>
 
-                {/* Availability Toggle */}
                 <div className="rounded-xl p-6 shadow-lg secondbg dark:!text-white">
                     <div className="flex items-center justify-between">
                         <div>
@@ -589,9 +484,7 @@ export default function AvailabilityPage() {
                                 Availability Status
                             </h2>
                             <p className="text-sm text-muted-foreground mt-1 dark:text-white">
-                                {isAvailable
-                                    ? "Available for bookings"
-                                    : "Currently unavailable"}
+                                {isAvailable ? "Available for bookings" : "Currently unavailable"}
                             </p>
                         </div>
                         <Switch
@@ -602,14 +495,9 @@ export default function AvailabilityPage() {
                     </div>
                 </div>
 
-                {/* Session Settings */}
-                <div
-                    className={`rounded-xl p-6 shadow-lg secondbg dark:!text-white ${
-                        !isAvailable ? "opacity-50 pointer-events-none" : ""
-                    }`}
-                >
+                <div className={`rounded-xl p-6 shadow-lg secondbg dark:!text-white ${!isAvailable ? "opacity-50 pointer-events-none" : ""}`}>
                     <div className="flex items-center gap-2 mb-6">
-                        <Clock className={"h-5 w-5"} />
+                        <Clock className="h-5 w-5" />
                         <h2 className="text-xl font-semibold text-foreground dark:text-white">
                             Session Settings
                         </h2>
@@ -620,10 +508,7 @@ export default function AvailabilityPage() {
                             <label className="block text-sm font-medium text-foreground dark:text-white">
                                 Session Duration
                             </label>
-                            <Select
-                                value={sessionDuration}
-                                onValueChange={setSessionDuration}
-                            >
+                            <Select value={sessionDuration} onValueChange={setSessionDuration}>
                                 <SelectTrigger className="h-12 text-black">
                                     <SelectValue />
                                 </SelectTrigger>
@@ -657,27 +542,22 @@ export default function AvailabilityPage() {
                     </div>
                 </div>
 
-                {/* One-Time availability slot */}
                 <div className="rounded-xl p-6 shadow-lg secondbg dark:!text-white">
-                    <div className={"flex items-center justify-between mb-4"}>
-                        <div className={"flex items-center gap-2"}>
-                            <Calendar className={"h-5 w-5"} />
-                            <h2 className={"text-xl font-semibold text-foreground dark:text-white"}>
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                            <Calendar className="h-5 w-5" />
+                            <h2 className="text-xl font-semibold text-foreground dark:text-white">
                                 One-Time (Specific Date) Availability
                             </h2>
                         </div>
                         <Button
-                            variant={"outline"}
-                            size={"sm"}
-                            className={"dashbutton text-white"}
+                            variant="outline"
+                            size="sm"
+                            className="dashbutton text-white"
                             onClick={() =>
                                 setOneTimeAvailabilities((prev) => [
                                     ...prev,
-                                    {
-                                        date: "",
-                                        hourlyRate: 50,
-                                        timeSlots: [],
-                                    },
+                                    { date: "", timeSlots: [], hourlyRate: 50 },
                                 ])
                             }
                         >
@@ -685,20 +565,19 @@ export default function AvailabilityPage() {
                         </Button>
                     </div>
 
-                    <div className={"space-y-4"}>
+                    <div className="space-y-4">
                         {oneTimeAvailabilities.length === 0 ? (
                             <p className="text-sm text-center text-muted-foreground dark:text-white p-4">
                                 No one-time availabilities added
                             </p>
                         ) : (
                             oneTimeAvailabilities.map((entry, i) => (
-                                <div key={i} className={"p-4 border rounded-lg"}>
-                                    {/* Date + Rate */}
-                                    <div className={"flex items-center justify-between gap-3 mb-3"}>
+                                <div key={i} className="p-4 border rounded-lg">
+                                    <div className="flex items-center justify-between gap-3 mb-3">
                                         <div className="flex items-center gap-3 flex-1">
                                             <Input
                                                 type="date"
-                                                className={"w-48 secondbg"}
+                                                className="w-48 secondbg"
                                                 value={entry.date}
                                                 min={new Date().toISOString().split("T")[0]}
                                                 onChange={(e) => {
@@ -712,56 +591,43 @@ export default function AvailabilityPage() {
                                             />
 
                                             <div className="flex items-center gap-2">
-                                                <span className="text-sm text-foreground dark:text-white">
-                                                    Rate: $
-                                                </span>
+                                                <span className="text-sm text-foreground dark:text-white">Rate: $</span>
                                                 <Input
-                                                    type={"number"}
-                                                    placeholder={"Hourly rate"}
-                                                    className={"w-24 secondbg"}
+                                                    type="number"
+                                                    placeholder="Hourly rate"
+                                                    className="w-24 secondbg"
                                                     min={0}
-                                                    step={5}
+                                                    step={0.01}
                                                     value={entry.hourlyRate ?? 0}
                                                     onChange={(e) => {
-                                                        const rate =
-                                                            roundRate(e.target.value) || 0;
+                                                        const rate = roundDollarInput(e.target.value) || 0;
                                                         setOneTimeAvailabilities((prev) =>
                                                             prev.map((a, idx) =>
-                                                                idx === i
-                                                                    ? { ...a, hourlyRate: rate }
-                                                                    : a
+                                                                idx === i ? { ...a, hourlyRate: rate } : a
                                                             )
                                                         );
                                                     }}
                                                 />
-                                                <span className="text-sm text-muted-foreground dark:text-white">
-                                                    /hr
-                                                </span>
+                                                <span className="text-sm text-muted-foreground dark:text-white">/hr</span>
                                             </div>
                                         </div>
 
                                         <Button
-                                            variant={"ghost"}
-                                            size={"icon"}
+                                            variant="ghost"
+                                            size="icon"
                                             onClick={() =>
-                                                setOneTimeAvailabilities((prev) =>
-                                                    prev.filter((_, idx) => idx !== i)
-                                                )
+                                                setOneTimeAvailabilities((prev) => prev.filter((_, idx) => idx !== i))
                                             }
                                         >
-                                            <X className={"w-6 h-6 text-red-700"} />
+                                            <X className="w-6 h-6 text-red-700" />
                                         </Button>
                                     </div>
 
-                                    {/* Time Slots */}
                                     <div className="space-y-2">
                                         {entry.timeSlots.map((slot, j) => (
-                                            <div
-                                                key={slot.id}
-                                                className={"flex items-center gap-2"}
-                                            >
+                                            <div key={slot.id} className="flex items-center gap-2">
                                                 <Input
-                                                    type={"time"}
+                                                    type="time"
                                                     value={slot.startTime}
                                                     onChange={(e) => {
                                                         const value = e.target.value;
@@ -770,28 +636,21 @@ export default function AvailabilityPage() {
                                                                 idx === i
                                                                     ? {
                                                                         ...a,
-                                                                        timeSlots: a.timeSlots.map(
-                                                                            (t, sidx) =>
-                                                                                sidx === j
-                                                                                    ? {
-                                                                                        ...t,
-                                                                                        startTime:
-                                                                                        value,
-                                                                                    }
-                                                                                    : t
+                                                                        timeSlots: a.timeSlots.map((t, sidx) =>
+                                                                            sidx === j ? { ...t, startTime: value } : t
                                                                         ),
                                                                     }
                                                                     : a
                                                             )
                                                         );
                                                     }}
-                                                    className={"w-[110px] secondbg"}
+                                                    className="w-[110px] secondbg"
                                                 />
 
                                                 <span>to</span>
 
                                                 <Input
-                                                    type={"time"}
+                                                    type="time"
                                                     value={slot.endTime}
                                                     onChange={(e) => {
                                                         const value = e.target.value;
@@ -800,54 +659,43 @@ export default function AvailabilityPage() {
                                                                 idx === i
                                                                     ? {
                                                                         ...a,
-                                                                        timeSlots: a.timeSlots.map(
-                                                                            (t, sidx) =>
-                                                                                sidx === j
-                                                                                    ? {
-                                                                                        ...t,
-                                                                                        endTime:
-                                                                                        value,
-                                                                                    }
-                                                                                    : t
+                                                                        timeSlots: a.timeSlots.map((t, sidx) =>
+                                                                            sidx === j ? { ...t, endTime: value } : t
                                                                         ),
                                                                     }
                                                                     : a
                                                             )
                                                         );
                                                     }}
-                                                    className={"w-[110px] secondbg"}
+                                                    className="w-[110px] secondbg"
                                                 />
 
                                                 <Button
-                                                    variant={"ghost"}
-                                                    size={"icon"}
+                                                    variant="ghost"
+                                                    size="icon"
                                                     onClick={() =>
                                                         setOneTimeAvailabilities((prev) =>
                                                             prev.map((a, idx) =>
                                                                 idx === i
                                                                     ? {
                                                                         ...a,
-                                                                        timeSlots:
-                                                                            a.timeSlots.filter(
-                                                                                (_, sidx) =>
-                                                                                    sidx !== j
-                                                                            ),
+                                                                        timeSlots: a.timeSlots.filter((_, sidx) => sidx !== j),
                                                                     }
                                                                     : a
                                                             )
                                                         )
                                                     }
                                                 >
-                                                    <X className={"w-5 h-5 text-red-700"} />
+                                                    <X className="w-5 h-5 text-red-700" />
                                                 </Button>
                                             </div>
                                         ))}
                                     </div>
 
                                     <Button
-                                        variant={"outline"}
-                                        size={"sm"}
-                                        className={"dashbutton text-white mt-2"}
+                                        variant="outline"
+                                        size="sm"
+                                        className="dashbutton text-white mt-2"
                                         onClick={() =>
                                             setOneTimeAvailabilities((prev) =>
                                                 prev.map((a, idx) =>
@@ -860,8 +708,7 @@ export default function AvailabilityPage() {
                                                                     id: crypto.randomUUID(),
                                                                     startTime: "09:00",
                                                                     endTime: "10:00",
-                                                                    rate:
-                                                                        a.hourlyRate || 50,
+                                                                    rate: a.hourlyRate || 50,
                                                                 },
                                                             ],
                                                         }
@@ -878,15 +725,10 @@ export default function AvailabilityPage() {
                     </div>
                 </div>
 
-                {/* Weekly Schedule */}
-                <div
-                    className={`rounded-xl p-6 shadow-lg secondbg dark:!text-white space-y-4 ${
-                        !isAvailable ? "opacity-50 pointer-events-none" : ""
-                    }`}
-                >
+                <div className={`rounded-xl p-6 shadow-lg secondbg dark:!text-white space-y-4 ${!isAvailable ? "opacity-50 pointer-events-none" : ""}`}>
                     <div className="flex items-center justify-between">
-                        <div className={"flex items-center gap-2"}>
-                            <Calendar className={"h-5 w-5"} />
+                        <div className="flex items-center gap-2">
+                            <Calendar className="h-5 w-5" />
                             <h2 className="text-xl font-semibold text-foreground dark:text-white">
                                 Weekly Schedule
                             </h2>
@@ -900,24 +742,17 @@ export default function AvailabilityPage() {
                                     <h3 className="font-medium text-foreground dark:text-white">
                                         {daySchedule.day}
                                     </h3>
-                                    <div className={"flex items-center gap-2"}>
-                                        <span className={"text-sm text-foreground dark:text-white"}>
-                                            Hourly Rate: $
-                                        </span>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm text-foreground dark:text-white">Hourly Rate: $</span>
                                         <input
                                             type="number"
-                                            min={"0"}
-                                            step={"5"}
+                                            min="0"
+                                            step="0.01"
                                             value={daySchedule.hourlyRate}
                                             onChange={(e) =>
-                                                handleHourlyRateChange(
-                                                    daySchedule.day,
-                                                    parseInt(e.target.value) || 0
-                                                )
+                                                handleHourlyRateChange(daySchedule.day, roundDollarInput(e.target.value) || 0)
                                             }
-                                            className={
-                                                "w-20 h-8 text-center dark:text-black rounded"
-                                            }
+                                            className="w-20 h-8 text-center dark:text-black rounded"
                                         />
                                     </div>
                                     <Button
@@ -930,11 +765,9 @@ export default function AvailabilityPage() {
                                     </Button>
                                     {daySchedule.timeSlots.length > 0 && (
                                         <Button
-                                            variant={"destructive"}
+                                            variant="destructive"
                                             size="sm"
-                                            onClick={() =>
-                                                handleDeleteDay(daySchedule.dayOfWeek)
-                                            }
+                                            onClick={() => handleDeleteDay(daySchedule.dayOfWeek)}
                                         >
                                             Clear Day
                                         </Button>
@@ -944,29 +777,19 @@ export default function AvailabilityPage() {
                                 {daySchedule.timeSlots.map((timeSlot) => (
                                     <TimeSlotSelector
                                         key={timeSlot.id}
-                                        day={daySchedule.day}
                                         slot={timeSlot}
                                         sessions={generateSessions(timeSlot).filter(
-                                            (s) =>
-                                                !daySchedule.excludedSessions.includes(s.id)
+                                            (s) => !daySchedule.excludedSessions.includes(s.id)
                                         )}
                                         onTimeChange={(type, value) =>
-                                            handleTimeChange(
-                                                daySchedule.day,
-                                                timeSlot.id,
-                                                type,
-                                                value
-                                            )
+                                            handleTimeChange(daySchedule.day, timeSlot.id, type, value)
                                         }
-                                        onRemoveSlot={() =>
-                                            handleRemoveSlot(daySchedule.day, timeSlot.id)
-                                        }
-                                        onRemoveSession={handleRemoveSession}
+                                        onRemoveSlot={() => handleRemoveSlot(daySchedule.day, timeSlot.id)}
                                     />
                                 ))}
 
                                 {daySchedule.timeSlots.length === 0 && (
-                                    <div className="p-4 text-center rounded ">
+                                    <div className="p-4 text-center rounded">
                                         <p className="text-sm text-muted-foreground dark:text-white">
                                             No time slots added for {daySchedule.day}
                                         </p>
@@ -977,15 +800,10 @@ export default function AvailabilityPage() {
                     </div>
                 </div>
 
-                {/* Blackout Dates */}
-                <div
-                    className={`rounded-xl p-6 shadow-lg secondbg dark:!text-white ${
-                        !isAvailable ? "opacity-50 pointer-events-none" : ""
-                    }`}
-                >
+                <div className={`rounded-xl p-6 shadow-lg secondbg dark:!text-white ${!isAvailable ? "opacity-50 pointer-events-none" : ""}`}>
                     <div className="flex items-center justify-between mb-4">
-                        <div className={"flex items-center gap-2"}>
-                            <X className={"h-5 w-5"} />
+                        <div className="flex items-center gap-2">
+                            <X className="h-5 w-5" />
                             <h2 className="text-xl font-semibold text-foreground dark:text-white">
                                 Blackout Dates
                             </h2>
@@ -1005,11 +823,7 @@ export default function AvailabilityPage() {
                                 variant="outline"
                                 size="sm"
                                 className="dashbutton text-white"
-                                onClick={
-                                    showDateInput
-                                        ? handleAddBlackoutDate
-                                        : () => setShowDateInput(true)
-                                }
+                                onClick={showDateInput ? handleAddBlackoutDate : () => setShowDateInput(true)}
                                 disabled={showDateInput && !newDateInput}
                             >
                                 {showDateInput ? "Confirm" : "+ Add Date"}
@@ -1017,13 +831,10 @@ export default function AvailabilityPage() {
                         </div>
                     </div>
 
-                    <div className="rounded-lg p-1 space-y-2 ">
+                    <div className="rounded-lg p-1 space-y-2">
                         {blackoutDates.length > 0 ? (
                             blackoutDates.map((date) => (
-                                <div
-                                    key={date}
-                                    className="flex items-center border-gray-700 border justify-between p-2 rounded"
-                                >
+                                <div key={date} className="flex items-center border-gray-700 border justify-between p-2 rounded">
                                     <span className="text-sm text-foreground dark:text-white">
                                         {new Date(date).toLocaleDateString("en-US", {
                                             weekday: "long",
@@ -1035,11 +846,9 @@ export default function AvailabilityPage() {
                                     <Button
                                         variant="ghost"
                                         size="sm"
-                                        className=" text-white"
+                                        className="text-white"
                                         onClick={() =>
-                                            setBlackoutDates((prev) =>
-                                                prev.filter((d) => d !== date)
-                                            )
+                                            setBlackoutDates((prev) => prev.filter((d) => d !== date))
                                         }
                                     >
                                         <X className="w-6 h-6 text-red-700" />
@@ -1054,69 +863,58 @@ export default function AvailabilityPage() {
                     </div>
                 </div>
 
-                {/* Current Availability Summary */}
                 {availability && availability.length > 0 && (
-                    <div className={"rounded-xl p-6 shadow-lg secondbg dark:!text-white"}>
-                        <h2 className={"text-xl font-semibold text-foreground dark:text-white mb-4"}>
+                    <div className="rounded-xl p-6 shadow-lg secondbg dark:!text-white">
+                        <h2 className="text-xl font-semibold text-foreground dark:text-white mb-4">
                             Current Availability Summary
                         </h2>
-                        <div className={"grid gap-4 md:grid-cols-2 lg:grid-cols-3"}>
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                             {availability
                                 .filter((avail: any) => avail.type === "recurring")
                                 .map((avail: any) => (
-                                    <div key={avail._id} className={"p-3 border rounded-lg"}>
-                                        <h3 className={"font-medium text-foreground dark:text-white"}>
+                                    <div key={avail._id} className="p-3 border rounded-lg">
+                                        <h3 className="font-medium text-foreground dark:text-white">
                                             {getDayName(avail.dayOfWeek)}
                                         </h3>
-                                        <p className={"text-sm text-muted-foreground dark:text-white"}>
-                                            Rate: ${avail.hourlyRate}/hour
+                                        <p className="text-sm text-muted-foreground dark:text-white">
+                                            Rate: ${centsToDollars(avail.hourlyRate).toFixed(2)}/hour
                                         </p>
-                                        <p className={"text-sm text-muted-foreground dark:text-white"}>
+                                        <p className="text-sm text-muted-foreground dark:text-white">
                                             {(avail.timeSlots || []).length} time slot(s)
                                         </p>
-                                        <p className={"text-sm text-muted-foreground dark:text-white"}>
+                                        <p className="text-sm text-muted-foreground dark:text-white">
                                             Status: {avail.isActive ? "Active" : "Inactive"}
                                         </p>
                                     </div>
                                 ))}
                         </div>
 
-                        {/* Specific dates summary */}
                         {availability.some((a: any) => a.type === "specific_date") && (
                             <div className="mt-4">
-                                <h3 className={"font-medium text-foreground dark:text-white mb-2"}>
+                                <h3 className="font-medium text-foreground dark:text-white mb-2">
                                     Specific Dates & Blackouts
                                 </h3>
-                                <div className={"grid gap-2"}>
+                                <div className="grid gap-2">
                                     {availability
                                         .filter((avail: any) => avail.type === "specific_date")
                                         .map((avail: any) => {
                                             const slots =
-                                                (avail.specificTimeSlots &&
-                                                avail.specificTimeSlots.length > 0
+                                                (avail.specificTimeSlots && avail.specificTimeSlots.length > 0
                                                     ? avail.specificTimeSlots
                                                     : avail.specificTimeDate) || [];
 
-                                            const isBlackout =
-                                                !Array.isArray(slots) || slots.length === 0;
+                                            const isBlackout = !Array.isArray(slots) || slots.length === 0;
 
                                             return (
-                                                <div
-                                                    key={avail._id}
-                                                    className={"p-2 border rounded text-sm"}
-                                                >
-                                                    <span className={"text-foreground dark:text-white"}>
+                                                <div key={avail._id} className="p-2 border rounded text-sm">
+                                                    <span className="text-foreground dark:text-white">
                                                         {avail.specificDate
-                                                            ? new Date(
-                                                                avail.specificDate
-                                                            ).toLocaleDateString()
+                                                            ? new Date(avail.specificDate).toLocaleDateString()
                                                             : "N/A"}
                                                     </span>
                                                     {" - "}
-                                                    <span className={"text-muted-foreground dark:text-white"}>
-                                                        {isBlackout
-                                                            ? "Blackout"
-                                                            : `${slots.length} slot(s)`}
+                                                    <span className="text-muted-foreground dark:text-white">
+                                                        {isBlackout ? "Blackout" : `${slots.length} slot(s)`}
                                                     </span>
                                                 </div>
                                             );
@@ -1132,16 +930,13 @@ export default function AvailabilityPage() {
 }
 
 interface TimeSlotSelectorProps {
-    day: string;
     slot: TimeSlot;
     sessions: Session[];
     onTimeChange: (type: string, value: string | number) => void;
     onRemoveSlot: () => void;
-    onRemoveSession: (day: string, sessionId: string) => void;
 }
 
 function TimeSlotSelector({
-                              day,
                               slot,
                               sessions,
                               onTimeChange,
@@ -1164,26 +959,8 @@ function TimeSlotSelector({
                         onChange={(e) => onTimeChange("endTime", e.target.value)}
                         className="w-[120px] secondbg border border-gray-700 focus:border-transparent focus:ring-0"
                     />
-                    {/*<div className="flex items-center gap-2">*/}
-                    {/*    <span className="text-sm text-muted-foreground dark:text-white">*/}
-                    {/*        $*/}
-                    {/*    </span>*/}
-                    {/*    <Input*/}
-                    {/*        type="number"*/}
-                    {/*        value={slot.rate}*/}
-                    {/*        min={0}*/}
-                    {/*        step={1}*/}
-                    {/*        placeholder="Rate"*/}
-                    {/*        onChange={(e) =>*/}
-                    {/*            onTimeChange(*/}
-                    {/*                "rate",*/}
-                    {/*                Math.round(Number(e.target.value)) || 0*/}
-                    {/*            )*/}
-                    {/*        }*/}
-                    {/*        className="w-[80px] secondbg border border-gray-700 focus:border-transparent focus:ring-0"*/}
-                    {/*    />*/}
-                    {/*</div>*/}
                 </div>
+
                 <Button
                     variant="ghost"
                     size="icon"

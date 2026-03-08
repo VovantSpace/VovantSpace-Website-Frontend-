@@ -10,6 +10,8 @@ import {Button} from "@/dashboard/Innovator/components/ui/button";
 import {useMentorSearch} from "@/hooks/useMentorSearch";
 import {useMentorDetails} from "@/hooks/useMentor";
 import {toast} from 'react-hot-toast'
+import FundWalletDialog from "@/dashboard/Innovator/components/modals/fund-wallet-dialog";
+
 
 /* ---------------------------------------
    ✅ Mentor Type (matches backend shape)
@@ -76,10 +78,9 @@ const ErrorMessage = ({
 );
 
 // Helper function to format mentor session prices
-const roundAmount = (amount: number): number => {
-    return Math.round(Number(amount) || 0)
+const centsToDollars = (amount: number): number => {
+    return Number(((Number(amount) || 0) / 100).toFixed(2));
 }
-
 /* ---------------------------------------
    ✅ Main Mentors Component
 --------------------------------------- */
@@ -90,6 +91,7 @@ export default function Mentors() {
     const [experience, setExperience] = useState("");
     const [priceRange, setPriceRange] = useState("");
     const [language, setLanguage] = useState("");
+    const [isFundWalletDialogOpen, setIsFundWalletDialogOpen] = useState(false);
 
     /* ---- Dialog + Selection States ---- */
     const [selectedMentor, setSelectedMentor] = useState<Mentor | null>(null);
@@ -149,49 +151,53 @@ export default function Mentors() {
 
     const handleConfirmRequest = async () => {
         if (!selectedMentor || !bookingDetails) {
-            toast.error("Missing booking details. Please try again.")
+            toast.error("Missing booking details. Please try again.");
             return;
         }
 
-        const {date, time, topic} = bookingDetails
-
-        const sessionAmount = roundAmount(selectedMentor.averageHourlyRate || 0)
+        const {date, time, topic} = bookingDetails;
 
         try {
-            toast.loading("Booking session...")
+            toast.loading("Booking session...");
 
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/session/request`, {
-                method: 'POST',
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/mentees/sessions/book`, {
+                method: "POST",
                 headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${localStorage.getItem("token")}`,
                 },
                 body: JSON.stringify({
                     mentorId: selectedMentor._id,
                     requestedDate: date,
                     requestedEndTime: time.endTime,
                     topic,
+                    description: `Session on ${topic}`,
                     duration: 60,
-                    amount: sessionAmount,
-                })
-            })
+                }),
+            });
 
-            toast.dismiss()
-
-            if (!response.ok) {
-                const data = await response.json(); // Parse the response first
-                throw new Error(data.message || "failed to book session");
-            }
+            toast.dismiss();
 
             const data = await response.json();
 
-            toast.success(`Session request sent to ${selectedMentor?.firstName}`)
-            setIsConfirmOpen(false)
-            setBookingDetails(null)
-            setSelectedMentor(null)
+            if (!response.ok) {
+                if (data.code === "INSUFFICIENT_WALLET_BALANCE") {
+                    toast.error("Insufficient wallet balance. Please fund your wallet first.");
+                    setIsConfirmOpen(false);
+                    setIsFundWalletDialogOpen(true);
+                    return;
+                }
+
+                throw new Error(data.message || "Failed to book session");
+            }
+
+            toast.success(`Session request sent to ${selectedMentor.firstName}`);
+            setIsConfirmOpen(false);
+            setBookingDetails(null);
+            setSelectedMentor(null);
         } catch (err: any) {
             toast.dismiss();
-            toast.error(err.message || "Something went wrong while booking the session.")
+            toast.error(err.message || "Something went wrong while booking the session.");
         }
     };
 
@@ -292,7 +298,7 @@ export default function Mentors() {
                                             reviewCount: mentor.totalSessions || 0,
                                             bio: mentor.bio,
                                             tags: mentor.specialties || [],
-                                            price: roundAmount(mentor.averageHourlyRate || 0),
+                                            price: centsToDollars(mentor.averageHourlyRate || 0),
                                             location: mentor.country || "N/A",
                                             language:
                                                 (mentor.languages && mentor.languages.join(", ")) ||
@@ -300,7 +306,7 @@ export default function Mentors() {
                                             experience: mentor.experienceLevel || "N/A",
                                             sessionsCompleted: mentor.completedSessions || 0,
                                             about: mentor.bio,
-                                            sessionRate: roundAmount(mentor.averageHourlyRate || 0),
+                                            sessionRate: centsToDollars(mentor.averageHourlyRate || 0),
                                         }}
                                         onSeeProfile={() => handleSeeProfile(mentor)} // ✅ pass full object
                                         onBookNow={() => handleBookNow(mentor)} // ✅ pass full object
@@ -352,9 +358,9 @@ export default function Mentors() {
                             specializations:
                                 mentorDetails?.specialties || selectedMentor.specialties || [],
                             sessionRate:
-                                mentorDetails?.averageHourlyRate ||
-                                selectedMentor.averageHourlyRate ||
-                                0,
+                                centsToDollars(mentorDetails?.averageHourlyRate ||
+                                    selectedMentor.averageHourlyRate ||
+                                    0),
                             certifications: mentorDetails?.certifications || [],
                             workExperience: mentorDetails?.workExperience || [],
                             location: mentorDetails?.country || selectedMentor.country || "N/A",
@@ -370,7 +376,7 @@ export default function Mentors() {
                         onOpenChange={setIsBookingOpen}
                         mentorId={selectedMentor._id}
                         mentorName={`${selectedMentor.firstName} ${selectedMentor.lastName}`}
-                       mentorHourlyRate={Number((((selectedMentor?.sessionRate ?? selectedMentor?.averageHourlyRate ?? 0))).toFixed(2))}
+                        mentorHourlyRate={Number((((selectedMentor?.sessionRate ?? selectedMentor?.averageHourlyRate ?? 0)) / 100).toFixed(2))}
                         //menteeId="currentUserIdHere" // TODO: replace with logged-in user ID
                         onConfirm={handleConfirmBooking}
                     />
@@ -388,13 +394,18 @@ export default function Mentors() {
                             topic: bookingDetails.topic,
                         }}
                         paymentDetails={{
-                            sessionFee: roundAmount(selectedMentor.averageHourlyRate || 0),
-                            serviceFee: roundAmount((selectedMentor.averageHourlyRate || 0) * 0.05),
-                            totalAmount: roundAmount((selectedMentor.averageHourlyRate || 0) * 1.05),
+                            sessionFee: centsToDollars(selectedMentor.averageHourlyRate || 0),
+                            serviceFee: Number((((selectedMentor.averageHourlyRate || 0) * 0.05) / 100).toFixed(2)),
+                            totalAmount: Number((((selectedMentor.averageHourlyRate || 0) * 1.05) / 100).toFixed(2)),
                         }}
                         onConfirm={handleConfirmRequest}
                     />
                 )}
+
+                <FundWalletDialog
+                    isOpen={isFundWalletDialogOpen}
+                    onClose={() => setIsFundWalletDialogOpen(false)}
+                />
             </div>
         </MainLayout>
     );
