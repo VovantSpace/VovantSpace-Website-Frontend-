@@ -1,5 +1,6 @@
 import {JSX, useState, useMemo} from "react";
 import {AlertCircle, Search} from "lucide-react";
+import api from "@/utils/api";
 import {Input} from "@/dashboard/Innovator/components/ui/input";
 import {MentorCard} from "@/dashboard/Client/components/mentor-card";
 import {MentorProfileDialog} from "@/dashboard/Client/components/mentor-profile-dialog";
@@ -10,7 +11,7 @@ import {Button} from "@/dashboard/Innovator/components/ui/button";
 import {useMentorSearch} from "@/hooks/useMentorSearch";
 import {useMentorDetails} from "@/hooks/useMentor";
 import {toast} from 'react-hot-toast'
-import FundWalletDialog from "@/dashboard/Innovator/components/modals/fund-wallet-dialog";
+import {FundWalletDialog} from "@/dashboard/Innovator/components/modals/fund-wallet-dialog";
 
 
 /* ---------------------------------------
@@ -155,40 +156,88 @@ export default function Mentors() {
             return;
         }
 
-        const {date, time, topic} = bookingDetails;
+        const { date, time, topic } = bookingDetails;
+
+        const parseEndDateTime = (startIso: string, rawEndTime: string) => {
+            const startDate = new Date(startIso);
+            if (isNaN(startDate.getTime())) return null;
+
+            // Case 1: already a full date string / ISO
+            const direct = new Date(rawEndTime);
+            if (!isNaN(direct.getTime())) return direct;
+
+            const selectedDay = startDate.toISOString().split("T")[0];
+
+            // Case 2: 24-hour time e.g. "10:00"
+            const hhmm24 = /^(\d{2}):(\d{2})$/;
+            const m24 = rawEndTime.match(hhmm24);
+            if (m24) {
+                return new Date(`${selectedDay}T${rawEndTime}:00`);
+            }
+
+            // Case 3: 12-hour time e.g. "10:00 AM"
+            const hhmm12 = /^(\d{1,2}):(\d{2})\s*(AM|PM)$/i;
+            const m12 = rawEndTime.match(hhmm12);
+            if (m12) {
+                let hours = parseInt(m12[1], 10);
+                const minutes = m12[2];
+                const meridian = m12[3].toUpperCase();
+
+                if (meridian === "PM" && hours !== 12) hours += 12;
+                if (meridian === "AM" && hours === 12) hours = 0;
+
+                const normalized = `${String(hours).padStart(2, "0")}:${minutes}`;
+                return new Date(`${selectedDay}T${normalized}:00`);
+            }
+
+            return null;
+        };
 
         try {
+            const start = new Date(date);
+
+            if (isNaN(start.getTime())) {
+                toast.error("Invalid selected start date.");
+                return;
+            }
+
+            const end = parseEndDateTime(date, time.endTime);
+
+            if (!end || isNaN(end.getTime())) {
+                console.log("bookingDetails:", bookingDetails);
+                toast.error("Invalid selected end time.");
+                return;
+            }
+
+            const duration = Math.round((end.getTime() - start.getTime()) / 60000);
+
+            if (duration <= 0) {
+                console.log("start:", start.toISOString(), "end:", end.toISOString(), "rawEndTime:", time.endTime);
+                toast.error("Invalid session duration.");
+                return;
+            }
+
             toast.loading("Booking session...");
 
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/mentees/sessions/book`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${localStorage.getItem("token")}`,
-                },
-                body: JSON.stringify({
+            const response = await api.post(
+                "/mentees/sessions/book",
+                {
                     mentorId: selectedMentor._id,
-                    requestedDate: date,
-                    requestedEndTime: time.endTime,
+                    requestedDate: start.toISOString(),
+                    requestedEndTime: end.toISOString(),
                     topic,
                     description: `Session on ${topic}`,
-                    duration: 60,
-                }),
-            });
+                    duration,
+                },
+                { withCredentials: true }
+            );
 
             toast.dismiss();
 
-            const data = await response.json();
+            const data = response.data;
 
-            if (!response.ok) {
-                if (data.code === "INSUFFICIENT_WALLET_BALANCE") {
-                    toast.error("Insufficient wallet balance. Please fund your wallet first.");
-                    setIsConfirmOpen(false);
-                    setIsFundWalletDialogOpen(true);
-                    return;
-                }
-
-                throw new Error(data.message || "Failed to book session");
+            if (!data?.success) {
+                throw new Error(data?.message || "Failed to book session");
             }
 
             toast.success(`Session request sent to ${selectedMentor.firstName}`);
@@ -197,7 +246,19 @@ export default function Mentors() {
             setSelectedMentor(null);
         } catch (err: any) {
             toast.dismiss();
-            toast.error(err.message || "Something went wrong while booking the session.");
+
+            const responseData = err?.response?.data;
+
+            if (responseData?.code === "INSUFFICIENT_WALLET_BALANCE") {
+                toast.error("Insufficient wallet balance. Please fund your wallet first.");
+                setIsConfirmOpen(false);
+                setIsFundWalletDialogOpen(true);
+                return;
+            }
+
+            console.error("BOOKING ERROR:", responseData || err);
+            console.log("BOOKING ERROR:", err?.response?.data);
+            toast.error(responseData?.message || err.message || "Something went wrong while booking the session.");
         }
     };
 

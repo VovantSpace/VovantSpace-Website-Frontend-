@@ -7,6 +7,7 @@ import Loginimg from './assets/login.jpeg';
 import {Link, useNavigate} from 'react-router-dom';
 import {useAuth} from '@/context/AuthContext'
 import {useState, useEffect} from 'react';
+import {toast} from 'react-hot-toast'
 
 const Login = () => {
     const {login, isLoading} = useAuth();
@@ -23,8 +24,7 @@ const Login = () => {
         const userRole = urlParams.get('role');
 
         if (error) {
-            setErrorMessage(`OAuth authentication failed: ${decodeURIComponent(error)}`);
-            // Clean up URL
+            toast.error(`OAuth authentication failed: ${decodeURIComponent(error)}`);
             window.history.replaceState({}, document.title, window.location.pathname);
             return;
         }
@@ -93,14 +93,14 @@ const Login = () => {
                         console.log('Redirecting to:', dashboardRoute, 'for role:', userRole);
                         navigate(dashboardRoute, {replace: true});
                     } else {
-                        setErrorMessage('User role not found. Please contact support.');
+                        toast.error("User role not found. Please contact support")
                     }
                 } else {
-                    setErrorMessage(result.message || 'Login failed. Please try again.');
+                    toast.error(result.message || "Login failed. Please try again")
                 }
             } catch (error) {
-                setErrorMessage('An unexpected error occurred. Please try again.');
                 console.error('Login error:', error);
+                toast.error("An unexpected error occurred. Please try again.")
             }
         },
     });
@@ -164,7 +164,7 @@ const Login = () => {
             initiateOauthFlow(provider);
         } catch (error) {
             console.error(`${provider} OAuth login error:`, error);
-            setErrorMessage(
+            toast.error(
                 `Failed to initiate ${provider === 'google' ? 'Google' : 'GitHub'} login. Please try again.`,
             );
             setIsOauthLoading(false);

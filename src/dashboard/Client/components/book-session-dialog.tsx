@@ -55,7 +55,6 @@ export function BookSessionDialog({
     const [selectedTimeSlot, setSelectedTimeSlot] = useState<TimeSlot | null>(null);
     const [topic, setTopic] = useState("");
     const [loading, setLoading] = useState(false);
-    const [isFundWalletDialogOpen, setIsFundWalletDialogOpen] = useState(false);
 
 
     console.log("mentorId:", mentorId);
@@ -196,111 +195,110 @@ export function BookSessionDialog({
             <DialogContent className="sm:max-w-md secondbg">
 
                 {/* ================= FORM STEP ================= */}
-                {step === "form" && (
-                    <>
-                        <DialogTitle className="text-lg font-semibold">
-                            Book a session with {mentorName}
-                        </DialogTitle>
-                        <p className={'text-sm text-muted-foreground mt-1'}>
-                            Session rate: ${mentorHourlyRate.toFixed(2)}
-                        </p>
 
-                        <div className="mt-4 space-y-6">
+                <>
+                    <DialogTitle className="text-lg font-semibold">
+                        Book a session with {mentorName}
+                    </DialogTitle>
+                    <p className={'text-sm text-muted-foreground mt-1'}>
+                        Session rate: ${mentorHourlyRate.toFixed(2)}
+                    </p>
 
-                            {/* DATE */}
+                    <div className="mt-4 space-y-6">
+
+                        {/* DATE */}
+                        <div>
+                            <h3 className="mb-1 font-medium">Select Date</h3>
+                            <div className="flex flex-wrap gap-2">
+                                {availableDates.map((date) => (
+                                    <button
+                                        key={date}
+                                        onClick={() => {
+                                            setSelectedDate(date);
+                                            setSelectedTimeSlot(null);
+                                        }}
+                                        className={`border px-3 py-2 rounded ${
+                                            selectedDate === date
+                                                ? "bg-primary text-white"
+                                                : "opacity-80 hover:opacity-100"
+                                        }`}
+                                    >
+                                        {format(new Date(date), "EEE, MMM d")}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* TIME */}
+                        {selectedDate && (
                             <div>
-                                <h3 className="mb-1 font-medium">Select Date</h3>
-                                <div className="flex flex-wrap gap-2">
-                                    {availableDates.map((date) => (
+                                <h3 className="mb-1 font-medium flex items-center gap-2">
+                                    <Clock className="w-4 h-4"/>
+                                    Choose a Time Slot
+                                </h3>
+
+                                <div className="space-y-2">
+                                    {availableSlots.map((slot) => (
                                         <button
-                                            key={date}
-                                            onClick={() => {
-                                                setSelectedDate(date);
-                                                setSelectedTimeSlot(null);
-                                            }}
-                                            className={`border px-3 py-2 rounded ${
-                                                selectedDate === date
+                                            key={slot.id}
+                                            onClick={() =>
+                                                setSelectedTimeSlot(slot)
+                                            }
+                                            className={`border p-2 rounded w-full flex justify-between ${
+                                                selectedTimeSlot?.id ===
+                                                slot.id
                                                     ? "bg-primary text-white"
                                                     : "opacity-80 hover:opacity-100"
                                             }`}
                                         >
-                                            {format(new Date(date), "EEE, MMM d")}
+                                            {slot.startTime} –{" "}
+                                            {slot.endTime}
                                         </button>
                                     ))}
                                 </div>
                             </div>
+                        )}
 
-                            {/* TIME */}
-                            {selectedDate && (
-                                <div>
-                                    <h3 className="mb-1 font-medium flex items-center gap-2">
-                                        <Clock className="w-4 h-4"/>
-                                        Choose a Time Slot
-                                    </h3>
+                        {/* TOPIC */}
+                        {selectedTimeSlot && (
+                            <div>
+                                <h3 className="mb-1 font-medium flex items-center gap-2">
+                                    <MessageSquare className="w-4 h-4"/>
+                                    Topic
+                                </h3>
+                                <Input
+                                    value={topic}
+                                    onChange={(e) =>
+                                        setTopic(e.target.value)
+                                    }
+                                    placeholder="What would you like to discuss?"
+                                />
+                            </div>
+                        )}
+                    </div>
 
-                                    <div className="space-y-2">
-                                        {availableSlots.map((slot) => (
-                                            <button
-                                                key={slot.id}
-                                                onClick={() =>
-                                                    setSelectedTimeSlot(slot)
-                                                }
-                                                className={`border p-2 rounded w-full flex justify-between ${
-                                                    selectedTimeSlot?.id ===
-                                                    slot.id
-                                                        ? "bg-primary text-white"
-                                                        : "opacity-80 hover:opacity-100"
-                                                }`}
-                                            >
-                                                {slot.startTime} –{" "}
-                                                {slot.endTime}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
+                    <div className="mt-6 flex justify-end gap-3">
+                        <Button
+                            variant="outline"
+                            onClick={() => onOpenChange(false)}
+                        >
+                            Cancel
+                        </Button>
 
-                            {/* TOPIC */}
-                            {selectedTimeSlot && (
-                                <div>
-                                    <h3 className="mb-1 font-medium flex items-center gap-2">
-                                        <MessageSquare className="w-4 h-4"/>
-                                        Topic
-                                    </h3>
-                                    <Input
-                                        value={topic}
-                                        onChange={(e) =>
-                                            setTopic(e.target.value)
-                                        }
-                                        placeholder="What would you like to discuss?"
-                                    />
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="mt-6 flex justify-end gap-3">
-                            <Button
-                                variant="outline"
-                                onClick={() => onOpenChange(false)}
-                            >
-                                Cancel
-                            </Button>
-
-                            <Button
-                                onClick={handleCreateBooking}
-                                disabled={
-                                    !selectedTimeSlot ||
-                                    !topic.trim() ||
-                                    loading
-                                }
-                            >
-                                {loading
-                                    ? "Processing..."
-                                    : "Continue"}
-                            </Button>
-                        </div>
-                    </>
-                )}
+                        <Button
+                            onClick={handleCreateBooking}
+                            disabled={
+                                !selectedTimeSlot ||
+                                !topic.trim() ||
+                                loading
+                            }
+                        >
+                            {loading
+                                ? "Processing..."
+                                : "Continue"}
+                        </Button>
+                    </div>
+                </>
             </DialogContent>
         </Dialog>
     );
