@@ -116,14 +116,16 @@ export function LineChart({ data, index, categories, colors }) {
   }
   
 
-  return <Line data={chartData} options={options} />
+  // @ts-ignore
+    return <Line data={chartData} options={options} />
 }
 
+// @ts-ignore
 export function PieChart({ data, index, categories, colors }) {
   const chartData = {
-    labels: data.map((d) => d[index]),
-    datasets: categories.map((category) => ({
-      data: data.map((d) => d[category]),
+    labels: data.map((d: { [x: string]: any }) => d[index]),
+    datasets: categories.map((category: string | number) => ({
+      data: data.map((d: { [x: string]: any }) => d[category]),
       backgroundColor: colors,
       borderWidth: 0,
     })),

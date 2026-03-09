@@ -2,6 +2,7 @@ import './index.css'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { Toaster } from 'react-hot-toast'
 
 import App from './App.jsx'
 import About from './About.jsx'
@@ -16,8 +17,6 @@ import DashboardRouting from './dashboard/Innovator/DashboardRouting'
 import ProblemSolverRouting from './dashboard/ProblemSolver/ProblemSolverRouting'
 import AdvisorRouting from './dashboard/Advisor/AdvisorRouting'
 import ClientRouting from './dashboard/Client/ClientRouting'
-
-import { Toaster } from 'react-hot-toast'
 
 import { AuthProvider } from './context/AuthContext'
 import { ProtectedRoute } from '@/dashboard/component/ProtectedRoute'
@@ -36,7 +35,6 @@ root.render(
                     <Route path="/login" element={<Login />} />
                     <Route path="/forget" element={<Forget />} />
                     <Route path="/signup" element={<Signup />} />
-
                     <Route path="/auth/:provider/callback" element={<OAuthCallback />} />
 
                     <Route
@@ -75,9 +73,9 @@ root.render(
                         }
                     />
                 </Routes>
+
+                <Toaster position="top-right" />
             </AuthProvider>
         </BrowserRouter>
-
-        <Toaster position="top-right" />
     </StrictMode>
 )

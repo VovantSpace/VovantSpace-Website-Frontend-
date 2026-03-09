@@ -89,6 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [authError, setAuthError] = useState<string | null>(null)
     const token = localStorage.getItem("token");
     const isAuthenticated = !!user && !!token;
+    const [authLoading, setAuthLoading] = useState(false);
 
     useEffect(() => {
         const bootstrap = async () => {
@@ -118,23 +119,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: string,
         password: string
     ): Promise<LoginResponse> => {
-        const res = await api.post("/user/login", { email, password });
+        setAuthLoading(true);
 
-        const authToken: string | undefined =
-            res.data?.token ??
-            res.data?.accessToken ??
-            res.data?.access_token;
+        try {
+            const res = await api.post("/user/login", { email, password });
 
-        const userData: User | undefined = res.data?.user;
+            const authToken: string | undefined =
+                res.data?.token ??
+                res.data?.accessToken ??
+                res.data?.access_token;
 
-        if (!authToken || !userData) {
-            return { success: false, message: "Invalid response from server" };
+            const userData: User | undefined = res.data?.user;
+
+            if (!authToken || !userData) {
+                return { success: false, message: "Invalid response from server" };
+            }
+
+            localStorage.setItem("token", authToken);
+            setUser(userData);
+            setAuthError(null);
+
+            return { success: true, user: userData, message: "Login successful" };
+        } catch (error: any) {
+            const message =
+                error?.response?.data?.message ||
+                error?.response?.data?.error ||
+                "Invalid email or password";
+
+            setAuthError(message);
+
+            return { success: false, message };
+        } finally {
+            setAuthLoading(false);
         }
-
-        localStorage.setItem("token", authToken);
-        setUser(userData);
-
-        return { success: true, user: userData, message: "Login successful" };
     };
 
     const logout = async (): Promise<void> => {
@@ -168,7 +185,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         () => ({
             user,
             isAuthenticated,
-            authLoading: !bootstrapped,
+            authLoading,
             authError,
             loading: !bootstrapped,
             bootstrapped,
@@ -177,7 +194,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             logout,
             refreshProfile,
         }),
-        [user, isAuthenticated, bootstrapped]
+        [user, isAuthenticated, bootstrapped, authLoading, authError]
     );
 
     return (

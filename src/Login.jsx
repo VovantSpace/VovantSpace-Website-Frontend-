@@ -10,7 +10,7 @@ import {useState, useEffect} from 'react';
 import {toast} from 'react-hot-toast'
 
 const Login = () => {
-    const {login, isLoading} = useAuth();
+    const {login, authLoading} = useAuth();
     const navigate = useNavigate();
     const [isOauthLoading, setIsOauthLoading] = useState(false);
     const [oauthProvider, setOauthProvider] = useState(null);
@@ -82,24 +82,24 @@ const Login = () => {
             password: Yup.string().required('Password Required'),
         }),
         onSubmit: async (values) => {
-            setErrorMessage('');
             try {
                 const result = await login(values.email, values.password);
+                console.log("LOGIN RESULT:", result);
+
                 if (result.success && result.user) {
                     const userRole = result.user.role;
                     if (userRole) {
                         const dashboardRoute = getDashboardRoute(userRole);
-                        console.log('Redirecting to:', dashboardRoute, 'for role:', userRole);
-                        navigate(dashboardRoute, {replace: true});
+                        navigate(dashboardRoute, { replace: true });
                     } else {
-                        toast.error("User role not found. Please contact support")
+                        toast.error("User role not found. Please contact support");
                     }
                 } else {
-                    toast.error(result.message || "Login failed. Please try again")
+                    toast.error(result.message || "Login failed. Please try again");
                 }
             } catch (error) {
-                console.error('Login error:', error);
-                toast.error("An unexpected error occurred. Please try again.")
+                console.error("SUBMIT ERROR:", error);
+                toast.error("An unexpected error occurred. Please try again.");
             }
         },
     });
@@ -144,7 +144,6 @@ const Login = () => {
     };
 
     const handleOauthLogin = async (provider) => {
-        setErrorMessage('');
         setIsOauthLoading(true);
         setOauthProvider(provider);
 
@@ -199,7 +198,7 @@ const Login = () => {
                         <div className="space-y-4 w-full">
                             <button
                                 onClick={() => handleOauthLogin('google')}
-                                disabled={isLoading || isOauthLoading}
+                                disabled={authLoading || isOauthLoading}
                                 className="w-full flex items-center justify-center gap-2 p-3 border border-gray-300 rounded-lg hover:bg-gray-100 text-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {isOauthLoading && oauthProvider === 'google' ? (
@@ -216,7 +215,7 @@ const Login = () => {
                             </button>
                             <button
                                 onClick={() => handleOauthLogin('github')}
-                                disabled={isLoading || isOauthLoading}
+                                disabled={authLoading || isOauthLoading}
                                 className="w-full flex items-center justify-center gap-2 p-3 border border-gray-300 rounded-lg hover:bg-gray-100 text-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {isOauthLoading && oauthProvider === 'github' ? (
@@ -248,7 +247,7 @@ const Login = () => {
                                     <input
                                         name="email"
                                         type="email"
-                                        disabled={isLoading}
+                                        disabled={authLoading}
                                         className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00674F] ${
                                             formik.touched.email && formik.errors.email ? 'border-red-500' : 'border-gray-300'
                                         }`}
@@ -268,7 +267,7 @@ const Login = () => {
                                     <input
                                         type="password"
                                         name="password"
-                                        disabled={isLoading}
+                                        disabled={authLoading}
                                         className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00674F] ${
                                             formik.touched.password && formik.errors.password
                                                 ? 'border-red-500'
@@ -284,14 +283,14 @@ const Login = () => {
 
                             <button
                                 type="submit"
-                                disabled={isLoading || !formik.isValid || !formik.dirty}
+                                disabled={authLoading || !formik.isValid || !formik.dirty}
                                 className={`w-full py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors ${
-                                    isLoading || !formik.isValid || !formik.dirty
+                                    authLoading || !formik.isValid || !formik.dirty
                                         ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
                                         : 'themebg text-white hover:bg-[#005741]'
                                 }`}
                             >
-                                {isLoading ? (
+                                {authLoading ? (
                                     <>
                                         <div
                                             className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
