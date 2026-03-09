@@ -12,7 +12,6 @@ import {toast} from 'react-hot-toast'
 const Login = () => {
     const {login, isLoading} = useAuth();
     const navigate = useNavigate();
-    const [errorMessage, setErrorMessage] = useState('');
     const [isOauthLoading, setIsOauthLoading] = useState(false);
     const [oauthProvider, setOauthProvider] = useState(null);
 
@@ -196,12 +195,6 @@ const Login = () => {
                         className="flex flex-col items-center justify-center bg-white rounded-2xl shadow-xl p-8"
                     >
                         <h2 className="text-3xl font-bold themetext mb-8 text-center">Welcome Back!</h2>
-
-                        {errorMessage && (
-                            <div className="w-full mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
-                                {errorMessage}
-                            </div>
-                        )}
 
                         <div className="space-y-4 w-full">
                             <button

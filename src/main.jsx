@@ -17,10 +17,9 @@ import ProblemSolverRouting from './dashboard/ProblemSolver/ProblemSolverRouting
 import AdvisorRouting from './dashboard/Advisor/AdvisorRouting'
 import ClientRouting from './dashboard/Client/ClientRouting'
 
-import { ToastContainer } from 'react-toastify'
-import 'react-toastify/dist/ReactToastify.css'
+import { Toaster } from 'react-hot-toast'
 
-import { AuthProvider } from './context/AuthContext'   // ✅ NEW
+import { AuthProvider } from './context/AuthContext'
 import { ProtectedRoute } from '@/dashboard/component/ProtectedRoute'
 
 const root = createRoot(document.getElementById('root'))
@@ -28,7 +27,7 @@ const root = createRoot(document.getElementById('root'))
 root.render(
     <StrictMode>
         <BrowserRouter>
-            <AuthProvider>   {/* ✅ SINGLE AUTH SOURCE */}
+            <AuthProvider>
                 <Routes>
                     <Route path="/" element={<App />} />
                     <Route path="/about" element={<About />} />
@@ -38,10 +37,8 @@ root.render(
                     <Route path="/forget" element={<Forget />} />
                     <Route path="/signup" element={<Signup />} />
 
-                    {/* OAuth */}
                     <Route path="/auth/:provider/callback" element={<OAuthCallback />} />
 
-                    {/* PROTECTED DASHBOARDS */}
                     <Route
                         path="/dashboard/innovator/*"
                         element={
@@ -81,6 +78,6 @@ root.render(
             </AuthProvider>
         </BrowserRouter>
 
-        <ToastContainer position="top-right" autoClose={3000} />
+        <Toaster position="top-right" />
     </StrictMode>
 )
