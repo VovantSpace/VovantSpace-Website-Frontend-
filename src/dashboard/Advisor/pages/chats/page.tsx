@@ -139,10 +139,10 @@ export default function ChatsPage() {
     useEffect(() => {
         if (!selectedChannel?.id) return;
 
-        socket.emit("join-channel", selectedChannel.id);
+        socket.emit("chat:join-room", selectedChannel.id);
 
         return () => {
-            socket.emit("leave-channel", selectedChannel.id);
+            socket.emit("chat:leave-room", selectedChannel.id);
         };
     }, [selectedChannel, socket]);
 

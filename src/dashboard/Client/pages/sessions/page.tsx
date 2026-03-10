@@ -175,7 +175,7 @@ export default function MySessions() {
                                         minute: "2-digit",
                                     })}
                                     duration={`${session.duration} mins`}
-                                    status={session.status}
+                                    status={"completed"}
                                     review={
                                         session.rating
                                             ? {

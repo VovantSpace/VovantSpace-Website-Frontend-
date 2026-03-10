@@ -50,13 +50,6 @@ export function useMenteeSessions(menteeId: string | undefined) {
     }, []);
 
     useEffect(() => {
-        if (!menteeId) {
-            setLoading(false);
-            return;
-        }
-    }, []);
-
-    useEffect(() => {
         if (menteeId) {
             fetchSessions();
         }

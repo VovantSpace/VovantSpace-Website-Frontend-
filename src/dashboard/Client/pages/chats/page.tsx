@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react"
-import { Search, Menu, X } from "lucide-react"
+import { useEffect, useState, useCallback } from "react"
+import { Search, X } from "lucide-react"
 import { cn } from "@/dashboard/Innovator/lib/utils"
 
 import { Input } from "@/dashboard/Innovator/components/ui/input"
@@ -18,6 +18,52 @@ export default function ChatsPage() {
     const [currentUser, setCurrentUser] = useState<User | null>(null)
     const [messages, setMessages] = useState<ChatMessage[]>([])
     const [isSending, setIsSending] = useState(false)
+    const socket = getSocket()
+
+    const normalizeChannel = useCallback((ch: any): Channel => ({
+        id: ch.id || ch._id,
+        name: ch.name || "Untitled session",
+        description: ch.description,
+        status: ch.status || "upcoming",
+        unreadCount: ch.unreadCount ?? 0,
+        nextActiveDate: ch.nextActiveDate || null,
+        closedAt: ch.closedAt || null,
+        mentorId: ch.mentorId,
+        menteeId: ch.menteeId,
+        sessionRequestId: ch.sessionRequestId,
+    }), [])
+
+    const normalizeMessage = useCallback((msg: any): ChatMessage => ({
+        id: msg.id || msg._id,
+        channelId: msg.channelId,
+        senderId:
+            msg.senderId ||
+            msg.userId ||
+            msg.sender?._id ||
+            msg.sender?.id ||
+            msg.user?._id ||
+            msg.user?.id ||
+            "",
+        senderName:
+            msg.senderName ||
+            msg.sender?.name ||
+            `${msg.sender?.firstName || ""} ${msg.sender?.lastName || ""}`.trim() ||
+            msg.user?.name ||
+            `${msg.user?.firstName || ""} ${msg.user?.lastName || ""}`.trim() ||
+            "Unknown User",
+        senderAvatar:
+            msg.senderAvatar ||
+            msg.sender?.avatar ||
+            msg.sender?.profilePicture ||
+            msg.user?.avatar ||
+            msg.user?.profilePicture ||
+            "",
+        content: msg.content,
+        fileUrl: msg.fileUrl,
+        fileType: msg.fileType,
+        createdAt: msg.createdAt || msg.timestamp || msg.updatedAt || new Date().toISOString(),
+        pending: msg.pending ?? msg.status === "pending",
+    }), [])
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -46,30 +92,34 @@ export default function ChatsPage() {
     }, [])
 
     useEffect(() => {
+        if (!currentUser) return
+
+        const handleConnect = () => {
+            socket.emit("join_mentee_room", currentUser.id)
+        }
+
+        socket.on("connect", handleConnect)
+
+        if (socket.connected) {
+            handleConnect()
+        }
+
+        return () => {
+            socket.off("connect", handleConnect)
+        }
+    }, [currentUser, socket])
+
+    useEffect(() => {
         const fetchChats = async () => {
             try {
                 const res = await api.get("/chat/session-chats/my")
 
                 if (res.data?.success) {
-                    const chats: Channel[] = res.data.data || []
-
-                    const normalized = chats.map((ch) => ({
-                        id: ch.id,
-                        name: ch.name,
-                        description: ch.description,
-                        status: ch.status || "upcoming",
-                        unreadCount: ch.unreadCount ?? 0,
-                        nextActiveDate: ch.nextActiveDate || null,
-                        closedAt: ch.closedAt || null,
-                        mentorId: ch.mentorId,
-                        menteeId: ch.menteeId,
-                        sessionRequestId: ch.sessionRequestId,
-                    }))
-
+                    const normalized = (res.data.data || []).map((ch: any) => normalizeChannel(ch))
                     setChannels(normalized)
 
-                    if (!selectedChannel && normalized.length > 0) {
-                        setSelectedChannel(normalized[0])
+                    if (normalized.length > 0) {
+                        setSelectedChannel((prev) => prev ?? normalized[0])
                     }
                 }
             } catch (err) {
@@ -78,7 +128,17 @@ export default function ChatsPage() {
         }
 
         fetchChats()
-    }, [])
+    }, [normalizeChannel])
+
+    useEffect(() => {
+        if (!selectedChannel?.id) return
+
+        socket.emit("chat:join-room", selectedChannel.id)
+
+        return () => {
+            socket.emit("chat:leave-room", selectedChannel.id)
+        }
+    }, [selectedChannel, socket])
 
     useEffect(() => {
         const fetchMessages = async () => {
@@ -87,31 +147,10 @@ export default function ChatsPage() {
             try {
                 const res = await api.get(`/chat/${selectedChannel.id}/messages`)
 
-                console.log("raw messages response:", res.data.data)
-                console.log("first raw message:", res.data.data?.[0])
-
                 if (res.data?.success) {
-                    const normalizedMessages: ChatMessage[] = (res.data.data || []).map((msg: any) => ({
-                        id: msg.id || msg._id,
-                        channelId: msg.channelId,
-                        senderId: msg.senderId || msg.userId || msg.user?.id || msg.user?._id || "",
-                        senderName:
-                            msg.senderName ||
-                            msg.user?.name ||
-                            `${msg.user?.firstName || ""} ${msg.user?.lastName || ""}`.trim() ||
-                            "Unknown User",
-                        senderAvatar:
-                            msg.senderAvatar ||
-                            msg.user?.avatar ||
-                            msg.user?.profilePicture ||
-                            "",
-                        content: msg.content,
-                        fileUrl: msg.fileUrl,
-                        fileType: msg.fileType,
-                        createdAt: msg.createdAt || msg.timestamp || msg.updatedAt,
-                        pending: msg.status === "pending",
-                    }))
-
+                    const normalizedMessages: ChatMessage[] = (res.data.data || []).map((msg: any) =>
+                        normalizeMessage(msg)
+                    )
                     setMessages(normalizedMessages)
                 }
             } catch (err) {
@@ -120,10 +159,10 @@ export default function ChatsPage() {
         }
 
         fetchMessages()
-    }, [selectedChannel])
+    }, [selectedChannel, normalizeMessage])
 
     useEffect(() => {
-        if (!selectedChannel) return
+        if (!selectedChannel?.id) return
 
         const markAsRead = async () => {
             try {
@@ -143,21 +182,8 @@ export default function ChatsPage() {
     }, [selectedChannel])
 
     useEffect(() => {
-        const socket = getSocket()
-
-        socket.on("session-chat:created", (room) => {
-            const normalized: Channel = {
-                id: room.id || room._id,
-                name: room.name,
-                description: room.description,
-                status: room.status ?? "upcoming",
-                unreadCount: room.unreadCount ?? 0,
-                nextActiveDate: room.nextActiveDate ?? null,
-                closedAt: room.closedAt ?? null,
-                mentorId: room.mentorId,
-                menteeId: room.menteeId,
-                sessionRequestId: room.sessionRequestId,
-            }
+        const handleSessionChatCreated = (room: any) => {
+            const normalized = normalizeChannel(room)
 
             setChannels((prev) => {
                 const exists = prev.some((c) => c.id === normalized.id)
@@ -165,85 +191,130 @@ export default function ChatsPage() {
 
                 const next = [...prev, normalized]
 
-                if (!selectedChannel) setSelectedChannel(normalized)
+                if (!selectedChannel) {
+                    setSelectedChannel(normalized)
+                }
+
                 return next
             })
-        })
+        }
 
-        socket.on("chat:unread-update", ({ channelId, unreadCount }) => {
+        const handleUnreadUpdate = ({
+                                        channelId,
+                                        unreadCount,
+                                    }: {
+            channelId: string
+            unreadCount: number
+        }) => {
             setChannels((prev) =>
                 prev.map((c) => (c.id === channelId ? { ...c, unreadCount } : c))
             )
-        })
+        }
 
-        socket.on("session-chat:activated", ({ room }) => {
+        const handleActivated = ({ room }: any) => {
+            const roomId = room.id || room._id?.toString()
             setChannels((prev) =>
                 prev.map((c) =>
-                    c.id === room._id.toString()
+                    c.id === roomId
                         ? { ...c, status: "active", nextActiveDate: null }
                         : c
                 )
             )
-        })
+        }
 
-        socket.on("session-chat:closed", ({ room }) => {
+        const handleClosed = ({ room }: any) => {
+            const roomId = room.id || room._id?.toString()
             setChannels((prev) =>
                 prev.map((c) =>
-                    c.id === room._id.toString()
+                    c.id === roomId
                         ? { ...c, status: "closed", closedAt: room.closedAt }
                         : c
                 )
             )
-        })
+        }
 
-        socket.on("chat:messages-read", ({ channelId }) => {
+        const handleMessagesRead = ({ channelId }: { channelId: string }) => {
             setChannels((prev) =>
                 prev.map((c) =>
                     c.id === channelId ? { ...c, unreadCount: 0 } : c
                 )
             )
-        })
+        }
 
-        // Socket to check for new messages
-        socket.on("chat:new-message", (message: any) => {
-            const normalizedMessage: ChatMessage = {
-                id: message.id || message._id,
-                channelId: message.channelId,
-                senderId: message.senderId || message.userId || message.user?.id || message.user?._id || "",
-                senderName:
-                    message.senderName ||
-                    message.user?.name ||
-                    `${message.user?.firstName || ""} ${message.user?.lastName || ""}`.trim() ||
-                    "Unknown User",
-                senderAvatar:
-                    message.senderAvatar ||
-                    message.user?.avatar ||
-                    message.user?.profilePicture ||
-                    "",
-                content: message.content,
-                fileUrl: message.fileUrl,
-                fileType: message.fileType,
-                createdAt: message.createdAt || message.timestamp || message.updatedAt,
-                pending: message.status === "pending",
-            }
+        const handleNewMessage = (rawMessage: any) => {
+            const normalizedMessage = normalizeMessage(rawMessage)
 
-            if (normalizedMessage.channelId === selectedChannel?.id) {
-                setMessages((prev) => {
-                    const exists = prev.some((m) => m.id === normalizedMessage.id)
-                    return exists ? prev : [...prev, normalizedMessage]
-                })
-            }
-        })
+            setMessages((prev) => {
+                const alreadyExists = prev.some(
+                    (m) =>
+                        m.id === normalizedMessage.id ||
+                        (
+                            m.pending &&
+                            m.senderId === normalizedMessage.senderId &&
+                            m.channelId === normalizedMessage.channelId &&
+                            m.content === normalizedMessage.content
+                        )
+                )
+
+                if (alreadyExists) {
+                    return prev.map((m) =>
+                        m.pending &&
+                        m.senderId === normalizedMessage.senderId &&
+                        m.channelId === normalizedMessage.channelId &&
+                        m.content === normalizedMessage.content
+                            ? normalizedMessage
+                            : m
+                    )
+                }
+
+                return normalizedMessage.channelId === selectedChannel?.id
+                    ? [...prev, normalizedMessage]
+                    : prev
+            })
+        }
+
+        socket.on("session-chat:created", handleSessionChatCreated)
+        socket.on("chat:unread-update", handleUnreadUpdate)
+        socket.on("chat:activated", handleActivated)
+        socket.on("chat:closed", handleClosed)
+        socket.on("chat:messages-read", handleMessagesRead)
+        socket.on("chat:new-message", handleNewMessage)
 
         return () => {
-            socket.off("session-chat:created")
-            socket.off("chat:unread-update")
-            socket.off("session-chat:activated")
-            socket.off("session-chat:closed")
-            socket.off("chat:messages-read")
-            socket.off("chat:new-message")
+            socket.off("session-chat:created", handleSessionChatCreated)
+            socket.off("chat:unread-update", handleUnreadUpdate)
+            socket.off("chat:activated", handleActivated)
+            socket.off("chat:closed", handleClosed)
+            socket.off("chat:messages-read", handleMessagesRead)
+            socket.off("chat:new-message", handleNewMessage)
         }
-    }, [selectedChannel])
+    }, [socket, selectedChannel, normalizeChannel, normalizeMessage])
+
+    useEffect(() => {
+        const syncMessages = async () => {
+            if (!selectedChannel?.id) return
+
+            try {
+                const res = await api.get(`/chat/${selectedChannel.id}/messages`)
+
+                if (res.data?.success) {
+                    const normalizedMessages: ChatMessage[] = (res.data.data || []).map((msg: any) =>
+                        normalizeMessage(msg)
+                    )
+
+                    setMessages(normalizedMessages)
+                }
+            } catch (err) {
+                console.error("Message sync failed:", err)
+            }
+        }
+
+        socket.on("connect", syncMessages)
+
+        return () => {
+            socket.off("connect", syncMessages)
+        }
+    }, [selectedChannel, socket, normalizeMessage])
 
     const handleSendMessage = async (content: string, fileUrl?: string, fileType?: string) => {
         if (!selectedChannel || !currentUser || isSending) return
@@ -277,18 +348,7 @@ export default function ChatsPage() {
             })
 
             if (res.data?.success && res.data.data) {
-                const saved: ChatMessage = {
-                    id: res.data.data.id || res.data.data._id,
-                    channelId: res.data.data.channelId,
-                    senderId: res.data.data.senderId,
-                    senderName: res.data.data.senderName,
-                    senderAvatar: res.data.data.senderAvatar,
-                    content: res.data.data.content,
-                    fileUrl: res.data.data.fileUrl,
-                    fileType: res.data.data.fileType,
-                    createdAt: res.data.data.createdAt,
-                    pending: false,
-                }
+                const saved = normalizeMessage(res.data.data)
 
                 setMessages((prev) =>
                     prev.map((m) => (m.id === tempMessage.id ? saved : m))
@@ -303,7 +363,7 @@ export default function ChatsPage() {
     }
 
     const shortenTitle = (title: string, limit = 25) => {
-        if (!title) return "untitled"
+        if (!title) return "Untitled session"
         return title.length > limit ? title.substring(0, limit) + "..." : title
     }
 
@@ -359,7 +419,10 @@ export default function ChatsPage() {
 
                 {isSidebarOpen && (
                     <div className="fixed inset-0 z-50 md:hidden">
-                        <div className="absolute inset-0 bg-black opacity-50" onClick={() => setIsSidebarOpen(false)} />
+                        <div
+                            className="absolute inset-0 bg-black opacity-50"
+                            onClick={() => setIsSidebarOpen(false)}
+                        />
                         <div className="relative w-64 bg-white h-full p-4 dashbg">
                             <button onClick={() => setIsSidebarOpen(false)} className="mb-4">
                                 <X className="h-6 w-6 dark:text-white absolute right-2" />
@@ -380,7 +443,7 @@ export default function ChatsPage() {
                     </div>
 
                     <div className="mt-24 md:mt-10 h-[calc(100vh-140px)]">
-                        {selectedChannel && currentUser && (
+                        {selectedChannel && currentUser ? (
                             <ChatInterface
                                 channelId={selectedChannel.id}
                                 currentUser={currentUser}
@@ -391,6 +454,10 @@ export default function ChatsPage() {
                                 nextActiveDate={selectedChannel.nextActiveDate}
                                 closedAt={selectedChannel.closedAt}
                             />
+                        ) : (
+                            <div className="flex items-center justify-center h-full text-gray-500">
+                                Select a session to chat
+                            </div>
                         )}
                     </div>
                 </div>
