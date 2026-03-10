@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ChatMessage, User } from "@/dashboard/Innovator/components/chat/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/dashboard/Innovator/components/ui/avatar";
 import { Clock, Check } from "lucide-react";
@@ -46,14 +46,29 @@ export function ChatMessageItem({
         });
     };
 
+    const resolvedFileUrl = useMemo(() => {
+        if (!message.fileUrl) return "";
+
+        if (
+            message.fileUrl.startsWith("http://") ||
+            message.fileUrl.startsWith("https://") ||
+            message.fileUrl.startsWith("blob:")
+        ) {
+            return message.fileUrl;
+        }
+
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+        return `${baseUrl}${message.fileUrl}`;
+    }, [message.fileUrl]);
+
     const renderFileContent = () => {
-        if (!message.fileType || !message.fileUrl) return null;
+        if (!message.fileType || !resolvedFileUrl) return null;
 
         switch (message.fileType) {
             case "image":
                 return (
                     <img
-                        src={message.fileUrl}
+                        src={resolvedFileUrl}
                         alt="Uploaded content"
                         className="mt-2 rounded-lg max-w-[280px] h-auto object-cover"
                     />
@@ -63,7 +78,7 @@ export function ChatMessageItem({
                 return (
                     <div className="mt-2">
                         <audio controls className="w-full max-w-[300px]">
-                            <source src={message.fileUrl} />
+                            <source src={resolvedFileUrl} />
                         </audio>
                     </div>
                 );
@@ -72,7 +87,7 @@ export function ChatMessageItem({
                 return (
                     <div className="mt-2 flex items-center gap-2 p-2 bg-gray-100 dark:bg-gray-800 rounded">
                         <a
-                            href={message.fileUrl}
+                            href={resolvedFileUrl}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-blue-500 hover:underline"
