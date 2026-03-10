@@ -1,13 +1,12 @@
-import { useState, useEffect, useRef } from "react";
-import { getSocket } from "@/lib/socket";
-import { encryptMessage } from "@/dashboard/Innovator/lib/encryption";
-import type { ChatMessage, User, ReplyReference } from "@/dashboard/Innovator/components/chat/types";
-import { ChatMessageItem } from "./chat-message-item";
-import { Button } from "@/dashboard/Innovator/components/ui/button";
-import { Input } from "@/dashboard/Innovator/components/ui/input";
-import { X, Paperclip, Send } from "lucide-react";
-import api from "@/utils/api"
-import { cn } from "@/dashboard/Innovator/lib/utils";
+import {useState, useEffect, useRef} from "react";
+import {getSocket} from "@/lib/socket";
+import api from "@/utils/api";
+import type {ChatMessage, User, ReplyReference} from "@/dashboard/Innovator/components/chat/types";
+import {ChatMessageItem} from "./chat-message-item";
+import {Button} from "@/dashboard/Innovator/components/ui/button";
+import {Input} from "@/dashboard/Innovator/components/ui/input";
+import {X, Paperclip, Send} from "lucide-react";
+import {cn} from "@/dashboard/Innovator/lib/utils";
 
 export interface ChatInterfaceProps {
     currentUser: User;
@@ -16,8 +15,7 @@ export interface ChatInterfaceProps {
     isSending?: boolean;
     onSendMessage: (
         content: string,
-        fileUrl?: string,
-        fileType?: string
+        file?: File
     ) => Promise<void> | void;
 
     status?: 'upcoming' | 'active' | 'closed';
@@ -26,15 +24,15 @@ export interface ChatInterfaceProps {
 }
 
 export function ChatInterface({
-   currentUser,
-    channelId,
-    messages,
-    isSending = false,
-    onSendMessage,
-    status,
-    nextActiveDate,
-    closedAt
-}: ChatInterfaceProps) {
+                                  currentUser,
+                                  channelId,
+                                  messages,
+                                  isSending = false,
+                                  onSendMessage,
+                                  status,
+                                  nextActiveDate,
+                                  closedAt
+                              }: ChatInterfaceProps) {
     const [newMessage, setNewMessage] = useState("");
     const [activeReply, setActiveReply] = useState<ReplyReference | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -78,10 +76,9 @@ export function ChatInterface({
     }, [sessionStatus, localNextActiveDate]);
 
 
-
     // Scroll to bottom when new messages arrive
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        messagesEndRef.current?.scrollIntoView({behavior: "smooth"});
     }, [messages])
 
     // 🔥 Real-time socket events (typing, edits, deletions)
@@ -111,7 +108,7 @@ export function ChatInterface({
         setNewMessage("");
         setActiveReply(null);
 
-        await onSendMessage(messageToSend, undefined, undefined);
+        await onSendMessage(messageToSend);
     };
 
     // 🧠 Typing indicator
@@ -138,14 +135,10 @@ export function ChatInterface({
     // 📎 File upload handler
     const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (!file || isSending) return;
-        const fileType = file.type.startsWith("image/")
-            ? "image"
-            : file.type.startsWith("audio/")
-                ? "audio"
-                : "document";
-        const fileUrl = URL.createObjectURL(file); // preview
-        await onSendMessage(`[${fileType} uploaded]`, fileUrl, fileType);
+        if (!file || isSending || sessionStatus !== "active") return;
+
+        setActiveReply(null);
+        await onSendMessage("", file);
         e.target.value = "";
     };
 
@@ -153,7 +146,8 @@ export function ChatInterface({
         <div className="flex flex-col h-full relative">
             {/* Status Banners */}
             {sessionStatus === 'upcoming' && (
-                <div className="absolute top-0 left-0 right-0 z-10 bg-yellow-50 border-b border-yellow-200 p-3 text-center shadow-sm">
+                <div
+                    className="absolute top-0 left-0 right-0 z-10 bg-yellow-50 border-b border-yellow-200 p-3 text-center shadow-sm">
                     <p className="text-yellow-800 text-sm font-medium">
                         Session starts in <span className="font-bold">{timeLeft}</span>
                     </p>
@@ -162,7 +156,8 @@ export function ChatInterface({
             )}
 
             {sessionStatus === 'closed' && (
-                <div className="absolute top-0 left-0 right-0 z-10 bg-gray-100 border-b border-gray-200 p-3 text-center shadow-sm">
+                <div
+                    className="absolute top-0 left-0 right-0 z-10 bg-gray-100 border-b border-gray-200 p-3 text-center shadow-sm">
                     <p className="text-gray-600 text-sm font-medium">This session has ended</p>
                     <p className="text-gray-500 text-xs mt-0.5">Chat is now read-only</p>
                 </div>
@@ -181,7 +176,7 @@ export function ChatInterface({
                         onAction={(action, data) => handleAction(action, message.id, data)}
                     />
                 ))}
-                <div ref={messagesEndRef} />
+                <div ref={messagesEndRef}/>
 
                 {isTyping && (
                     <div className="text-xs text-gray-400 pl-2 italic">
@@ -192,7 +187,8 @@ export function ChatInterface({
 
             {/* 🗨️ Reply Bar */}
             {activeReply && (
-                <div className="p-2 border-t border-gray-300 dark:border-gray-700 bg-muted/20 flex items-center justify-between">
+                <div
+                    className="p-2 border-t border-gray-300 dark:border-gray-700 bg-muted/20 flex items-center justify-between">
                     <div className="flex flex-col text-sm">
                         <span className="font-semibold">{activeReply.userName}</span>
                         <span className="text-xs truncate text-gray-500">
@@ -200,7 +196,7 @@ export function ChatInterface({
                         </span>
                     </div>
                     <Button variant="ghost" size="icon" onClick={() => setActiveReply(null)}>
-                        <X className="h-4 w-4" />
+                        <X className="h-4 w-4"/>
                     </Button>
                 </div>
             )}
@@ -210,7 +206,7 @@ export function ChatInterface({
                 onSubmit={handleSubmit}
                 className="border-t p-3 flex items-center gap-3 bg-white dark:bg-gray-900"
             >
-                <input type="file" id="fileInput" className="hidden" onChange={handleFileSelected} />
+                <input type="file" id="fileInput" className="hidden" onChange={handleFileSelected}/>
 
                 {/* 📎 Attach */}
                 <Button
@@ -221,7 +217,7 @@ export function ChatInterface({
                     onClick={() => document.getElementById("fileInput")?.click()}
                     className="rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50"
                 >
-                    <Paperclip className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+                    <Paperclip className="h-5 w-5 text-gray-600 dark:text-gray-300"/>
                 </Button>
 
                 {/* ✏️ Input */}
@@ -243,7 +239,7 @@ export function ChatInterface({
                     disabled={sessionStatus !== 'active' || !newMessage.trim() || isSending}
                     className="rounded-full bg-green-700 hover:bg-green-800 text-white p-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                    <Send className="h-5 w-5" />
+                    <Send className="h-5 w-5"/>
                 </Button>
             </form>
         </div>

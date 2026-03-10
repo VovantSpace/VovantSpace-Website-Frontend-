@@ -1,146 +1,199 @@
-import {useState, useEffect, useCallback} from "react"
-import {Search, Menu, X, Loader2} from "lucide-react"
-import {cn} from "@/dashboard/Innovator/lib/utils"
+import { useState, useEffect, useCallback } from "react";
+import { Search, Menu, X, Loader2 } from "lucide-react";
+import { cn } from "@/dashboard/Innovator/lib/utils";
 import api from "@/utils/api";
 
-import {Input} from "@/dashboard/Innovator/components/ui/input"
-import {Separator} from "@/dashboard/Innovator/components/ui/separator";
-import {MainLayout} from "../../components/layout/main-layout";
-import {ChatInterface} from "@/dashboard/Innovator/components/chat/chat-interface";
-import {ChatHeader} from "@/dashboard/Innovator/components/chat/chat-header";
-import {useAuth} from "@/context/AuthContext"
-import {getSocket} from "@/lib/socket";
+import { Input } from "@/dashboard/Innovator/components/ui/input";
+import { Separator } from "@/dashboard/Innovator/components/ui/separator";
+import { MainLayout } from "../../components/layout/main-layout";
+import { ChatInterface } from "@/dashboard/Innovator/components/chat/chat-interface";
+import { ChatHeader } from "@/dashboard/Innovator/components/chat/chat-header";
+import { useAuth } from "@/context/AuthContext";
+import { getSocket } from "@/lib/socket";
 import type { ChatMessage, Channel } from "@/dashboard/Innovator/components/chat/types";
-import {mapToChatUser} from "@/lib/mapToChatUser";
+import { mapToChatUser } from "@/lib/mapToChatUser";
 
 export default function ChatsPage() {
-    const {user: currentUser, authLoading} = useAuth()
-    const [rooms, setRooms] = useState<Channel[]>([])
-    const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null)
-    const [loading, setLoading] = useState(false)
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-    const [messages, setMessages] = useState<ChatMessage[]>([])
-    const [isSending, setIsSending] = useState(false)
-    const [isVideoCallOpen, setIsVideoCallOpen] = useState(false)
+    const { user: currentUser, authLoading } = useAuth();
+    const [rooms, setRooms] = useState<Channel[]>([]);
+    const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
+    const [loading, setLoading] = useState(false);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [messages, setMessages] = useState<ChatMessage[]>([]);
+    const [isSending, setIsSending] = useState(false);
+    const [isVideoCallOpen, setIsVideoCallOpen] = useState(false);
 
-    // Fetch chat rooms (Session Chats)
+    const socket = getSocket();
+
+    const normalizeChannel = useCallback((room: any): Channel => ({
+        id: room.id || room._id,
+        name: room.name || "Untitled session",
+        description: room.description ?? "",
+        mentorId: room.mentorId ?? "",
+        menteeId: room.menteeId ?? "",
+        sessionRequestId: room.sessionRequestId ?? "",
+        status: room.status ?? "upcoming",
+        nextActiveDate: room.nextActiveDate ?? null,
+        closedAt: room.closedAt ?? null,
+        unreadCount: room.unreadCount ?? 0,
+    }), []);
+
+    const normalizeMessage = useCallback((msg: any): ChatMessage => ({
+        id: msg.id || msg._id,
+        channelId: msg.channelId,
+        senderId:
+            msg.senderId ||
+            msg.userId ||
+            msg.sender?._id ||
+            msg.sender?.id ||
+            msg.user?._id ||
+            msg.user?.id ||
+            "",
+        senderName:
+            msg.senderName ||
+            msg.sender?.name ||
+            `${msg.sender?.firstName || ""} ${msg.sender?.lastName || ""}`.trim() ||
+            msg.user?.name ||
+            `${msg.user?.firstName || ""} ${msg.user?.lastName || ""}`.trim() ||
+            "Unknown User",
+        senderAvatar:
+            msg.senderAvatar ||
+            msg.sender?.avatar ||
+            msg.sender?.profilePicture ||
+            msg.user?.avatar ||
+            msg.user?.profilePicture ||
+            "",
+        content: msg.content,
+        fileUrl: msg.fileUrl,
+        fileType: msg.fileType,
+        createdAt: msg.createdAt || msg.timestamp || msg.updatedAt || new Date().toISOString(),
+        pending: msg.pending ?? msg.status === "pending",
+    }), []);
+
+    const chatUser = currentUser ? mapToChatUser(currentUser) : null;
+
     const fetchRooms = useCallback(async () => {
-        if (!currentUser?._id) return
-        try {
-            setLoading(true)
-            // Use the session-chats endpoint to get timing info
-            const res = await api.get(`/chat/rooms`)
-            if (res.data?.success) {
-                const fetchedRooms = res.data.data.map((room: any) => ({
-                    id: room._id,
-                    name: room.name,
-                    unreadCount: 0
-                }))
+        if (!currentUser?._id) return;
 
-                setRooms(fetchedRooms)
+        try {
+            setLoading(true);
+            const res = await api.get("/chat/rooms");
+
+            if (res.data?.success) {
+                const fetchedRooms = (res.data.data || []).map((room: any) =>
+                    normalizeChannel(room)
+                );
+
+                setRooms(fetchedRooms);
 
                 if (!selectedChannel && fetchedRooms.length > 0) {
-                    setSelectedChannel(fetchedRooms[0])
+                    setSelectedChannel(fetchedRooms[0]);
                 }
             }
         } catch (err) {
-            console.error("❌ Error fetching chat rooms:", err)
+            console.error("❌ Error fetching chat rooms:", err);
         } finally {
-            setLoading(false)
+            setLoading(false);
         }
-    }, [currentUser, selectedChannel])
+    }, [currentUser, normalizeChannel, selectedChannel]);
 
-    // Initial load
     useEffect(() => {
-        fetchRooms()
-    }, [fetchRooms])
+        fetchRooms();
+    }, [fetchRooms]);
 
-    // Socket listeners for Session Status & Unread
     useEffect(() => {
-        const socket = getSocket()
+        const fetchMessages = async () => {
+            if (!selectedChannel?.id) return;
 
-        socket.on("chat:room-created", (room: any) => {
-            setRooms(prev => {
-                const roomId = room.id || room._id;
-                const exists = prev.some(r => r.id === roomId);
-                if (exists) return prev;
+            try {
+                const res = await api.get(`/chat/${selectedChannel.id}/messages`);
 
-                const newRoom: Channel = {
-                    id: roomId,
-                    name: room.name ?? "Untitled session",
-                    description: room.description ?? "",
-                    mentorId: room.mentorId ?? "",
-                    menteeId: room.menteeId ?? "",
-                    sessionRequestId: room.sessionRequestId ?? "",
-                    status: room.status ?? "upcoming",
-                    nextActiveDate: room.nextActiveDate ?? null,
-                    closedAt: room.closedAt ?? null,
-                    unreadCount: room.unreadCount ?? 0,
-                };
-
-                return [newRoom, ...prev];
-            });
-        });
-
-        useEffect(() => {
-            const fetchMessages = async () => {
-                if (!selectedChannel?.id) return
-
-                try {
-                    const res = await api.get(`/chat/${selectedChannel.id}/messages`)
-
-                    if (res.data?.success) {
-                        setMessages(res.data.data)
-                    }
-                } catch (err) {
-                    console.error("Error fetching messages:", err)
+                if (res.data?.success) {
+                    const normalizedMessages: ChatMessage[] = (res.data.data || []).map((msg: any) =>
+                        normalizeMessage(msg)
+                    );
+                    setMessages(normalizedMessages);
                 }
+            } catch (err) {
+                console.error("Error fetching messages:", err);
             }
+        };
 
-            fetchMessages()
-        }, [selectedChannel])
+        fetchMessages();
+    }, [selectedChannel, normalizeMessage]);
 
-        // Join Channel room when selected
-        if (selectedChannel?.id) {
-            socket.emit("chat:join-room", selectedChannel.id)
-        }
+    useEffect(() => {
+        if (!selectedChannel?.id) return;
 
-        // Listen for unread updates
-        socket.on("chat:unread-update", ({channelId, unreadCount}) => {
-            setRooms(prev =>
-                prev.map(ch =>
-                    ch.id === channelId ? {...ch, unreadCount} : ch
-                )
-            )
-        })
-
-        socket.on("chat:new-message", (message: ChatMessage) => {
-            if (message.channelId === selectedChannel?.id) {
-                setMessages(prev => {
-                    const exists = prev.some(m => m.id === message.id)
-                    return exists ? prev : [...prev, message]
-                })
-            }
-        })
+        socket.emit("chat:join-room", selectedChannel.id);
 
         return () => {
-            socket.off("chat:unread-update")
+            socket.emit("chat:leave-room", selectedChannel.id);
+        };
+    }, [selectedChannel, socket]);
 
-            if (selectedChannel?.id) {
-                socket.emit("chat:leave-room", selectedChannel.id)
+    useEffect(() => {
+        const handleRoomCreated = (room: any) => {
+            const newRoom = normalizeChannel(room);
+
+            setRooms((prev) => {
+                const exists = prev.some((r) => r.id === newRoom.id);
+                if (exists) return prev;
+                return [newRoom, ...prev];
+            });
+        };
+
+        const handleUnreadUpdate = ({
+                                        channelId,
+                                        unreadCount,
+                                    }: {
+            channelId: string;
+            unreadCount: number;
+        }) => {
+            setRooms((prev) =>
+                prev.map((room) =>
+                    room.id === channelId ? { ...room, unreadCount } : room
+                )
+            );
+        };
+
+        const handleNewMessage = (rawMessage: any) => {
+            const message = normalizeMessage(rawMessage);
+
+            if (message.channelId === selectedChannel?.id) {
+                setMessages((prev) => {
+                    const exists = prev.some((m) => m.id === message.id);
+                    return exists ? prev : [...prev, message];
+                });
             }
-        }
-    }, [selectedChannel])
+        };
 
+        socket.on("chat:room-created", handleRoomCreated);
+        socket.on("chat:unread-update", handleUnreadUpdate);
+        socket.on("chat:new-message", handleNewMessage);
 
-    // Handle sending message
-    const handleSendMessage = async (content: string, fileUrl?: string, fileType?: string) => {
-        if (!selectedChannel?.id || isSending) return
+        return () => {
+            socket.off("chat:room-created", handleRoomCreated);
+            socket.off("chat:unread-update", handleUnreadUpdate);
+            socket.off("chat:new-message", handleNewMessage);
+        };
+    }, [socket, selectedChannel, normalizeChannel, normalizeMessage]);
 
-        const trimmedContent = content.trim()
-        if (!trimmedContent && !fileUrl) return
+    const handleSendMessage = async (content: string, file?: File) => {
+        if (!selectedChannel || !chatUser || isSending) return;
 
-        setIsSending(true)
+        const trimmedContent = content.trim();
+        if (!trimmedContent && !file) return;
+
+        setIsSending(true);
+
+        const inferredFileType = file
+            ? file.type.startsWith("image/")
+                ? "image"
+                : file.type.startsWith("audio/")
+                    ? "audio"
+                    : "document"
+            : undefined;
 
         const tempMessage: ChatMessage = {
             id: `temp-${Date.now()}`,
@@ -148,44 +201,69 @@ export default function ChatsPage() {
             senderId: chatUser.id,
             senderName: chatUser.name,
             senderAvatar: chatUser.avatar,
-            content: trimmedContent,
-            fileUrl,
-            fileType,
+            content: file
+                ? `Sending ${inferredFileType || "file"}: ${file.name}`
+                : trimmedContent,
+            fileUrl: file ? URL.createObjectURL(file) : undefined,
+            fileType: inferredFileType,
             createdAt: new Date().toISOString(),
             pending: true,
-        }
+        };
 
-        setMessages(prev => [...prev, tempMessage])
+        setMessages((prev) => [...prev, tempMessage]);
 
         try {
-            const res = await api.post("/chat/send", {
-                channelId: selectedChannel.id,
-                content: trimmedContent,
-                fileUrl,
-                fileType,
-            })
+            let saved: ChatMessage | null = null;
 
-            if (res.data?.success && res.data.data) {
-                const saved = res.data.data
+            if (file) {
+                const formData = new FormData();
+                formData.append("file", file);
+                formData.append("channelId", selectedChannel.id);
+                formData.append("uploadType", "chat");
 
-                setMessages(prev =>
-                    prev.map(msg => (msg.id === tempMessage.id ? saved : msg))
-                )
+                const res = await api.post("/chat/upload?uploadType=chat", formData, {
+                    headers: {
+                        "Content-Type": "multipart/form-data",
+                    },
+                });
+
+                if (res.data?.success && res.data.data) {
+                    saved = normalizeMessage(res.data.data);
+                }
+            } else {
+                const res = await api.post("/chat/send", {
+                    channelId: selectedChannel.id,
+                    content: trimmedContent,
+                });
+
+                if (res.data?.success && res.data.data) {
+                    saved = normalizeMessage(res.data.data);
+                }
+            }
+
+            if (saved) {
+                setMessages((prev) =>
+                    prev.map((m) => (m.id === tempMessage.id ? saved : m))
+                );
+            } else {
+                setMessages((prev) => prev.filter((m) => m.id !== tempMessage.id));
             }
         } catch (err) {
-            setMessages(prev => prev.filter(msg => msg.id !== tempMessage.id))
-            console.error("Error sending message:", err)
+            setMessages((prev) => prev.filter((m) => m.id !== tempMessage.id));
+            console.error("Failed to send message:", err);
         } finally {
-            setIsSending(false)
+            if (file && tempMessage.fileUrl?.startsWith("blob:")) {
+                URL.revokeObjectURL(tempMessage.fileUrl);
+            }
+            setIsSending(false);
         }
-    }
+    };
 
-    // Sidebar content (desktop + mobile)
     const SidebarContent = () => (
         <div className="fixed md:relative w-[240px]">
             <div className="p-4">
                 <div className="relative">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 dashtext"/>
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 dashtext" />
                     <Input
                         placeholder="Search Session"
                         className="secondbg pl-9 border dashborder dashtext focus:outline-none text-sm"
@@ -193,7 +271,7 @@ export default function ChatsPage() {
                 </div>
             </div>
 
-            <Separator className="my-2 secondbg"/>
+            <Separator className="my-2 secondbg" />
 
             <div className="px-4 py-2">
                 <h2 className="mb-2 text-xs font-semibold uppercase text-gray-400">
@@ -202,7 +280,7 @@ export default function ChatsPage() {
 
                 {loading ? (
                     <div className="flex justify-center py-6">
-                        <Loader2 className="h-5 w-5 animate-spin text-gray-400"/>
+                        <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
                     </div>
                 ) : rooms.length === 0 ? (
                     <p className="text-sm text-gray-500 py-6">No active sessions yet.</p>
@@ -217,8 +295,8 @@ export default function ChatsPage() {
                                     : "text-black dark:text-white hover:secondbg hover:dashtext"
                             )}
                             onClick={() => {
-                                setSelectedChannel(room)
-                                setIsSidebarOpen(false)
+                                setSelectedChannel(room);
+                                setIsSidebarOpen(false);
                             }}
                         >
                             <span className="truncate max-w-[180px]">{room.name}</span>
@@ -232,29 +310,25 @@ export default function ChatsPage() {
                 )}
             </div>
         </div>
-    )
+    );
 
-    if (authLoading || !currentUser) {
+    if (authLoading || !currentUser || !chatUser) {
         return (
             <MainLayout>
-                <div className={'flex items-center justify-center h-screen'}>
-                    <p className={'text-gray-500 text-sm'}>Loading user...</p>
+                <div className="flex items-center justify-center h-screen">
+                    <p className="text-gray-500 text-sm">Loading user...</p>
                 </div>
             </MainLayout>
-        )
+        );
     }
-
-    const chatUser = mapToChatUser(currentUser)
 
     return (
         <MainLayout>
             <div className="flex min-h-[93vh] dashbg rounded-xl overflow-hidden">
-                {/* Desktop Sidebar */}
                 <div className="hidden md:block w-[245px] pr-3 border-r dashborder secondbg rounded-l-xl">
-                    <SidebarContent/>
+                    <SidebarContent />
                 </div>
 
-                {/* Mobile Sidebar Overlay */}
                 {isSidebarOpen && (
                     <div className="fixed inset-0 z-50 md:hidden">
                         <div
@@ -266,20 +340,18 @@ export default function ChatsPage() {
                                 onClick={() => setIsSidebarOpen(false)}
                                 className="mb-4 absolute right-2 top-2"
                             >
-                                <X className="h-6 w-6 dark:text-white"/>
+                                <X className="h-6 w-6 dark:text-white" />
                             </button>
-                            <SidebarContent/>
+                            <SidebarContent />
                         </div>
                     </div>
                 )}
 
-                {/* Main Chat Content */}
                 <div className="flex-1 flex flex-col">
                     <div className="fixed w-full z-10">
-                        <div
-                            className="md:hidden w-full border-b dark:text-white border-[#2a3142] secondbg px-4 py-2 flex items-center">
+                        <div className="md:hidden w-full border-b dark:text-white border-[#2a3142] secondbg px-4 py-2 flex items-center">
                             <button className="mr-2" onClick={() => setIsSidebarOpen(true)}>
-                                <Menu className="h-4 w-4"/>
+                                <Menu className="h-4 w-4" />
                             </button>
                             <span className="font-medium text-sm">
                                 {selectedChannel?.name || "Sessions"}
@@ -291,13 +363,11 @@ export default function ChatsPage() {
                                 channel={selectedChannel}
                                 onVideoCall={() => setIsVideoCallOpen(true)}
                                 onScheduleCall={() => setIsVideoCallOpen(true)}
-                                onAudioCall={() => {
-                                }}
+                                onAudioCall={() => {}}
                             />
                         )}
                     </div>
 
-                    {/* Chat Interface */}
                     <div className="mt-24 md:mt-10 flex-1 h-[calc(100vh-140px)]">
                         {selectedChannel ? (
                             <ChatInterface
@@ -307,8 +377,9 @@ export default function ChatsPage() {
                                 status={selectedChannel.status}
                                 nextActiveDate={selectedChannel.nextActiveDate}
                                 currentUser={chatUser}
-                                closedAt={selectedChannel.nextActiveDate}
-                                onSendMessage={handleSendMessage}                       />
+                                closedAt={selectedChannel.closedAt}
+                                onSendMessage={handleSendMessage}
+                            />
                         ) : (
                             <div className="h-full flex items-center justify-center text-gray-500 text-sm">
                                 Select a session to start messaging
@@ -318,5 +389,5 @@ export default function ChatsPage() {
                 </div>
             </div>
         </MainLayout>
-    )
+    );
 }

@@ -272,13 +272,21 @@ export default function ChatsPage() {
 
     /* ---------------- SEND MESSAGE ---------------- */
 
-    const handleSendMessage = async (content: string, fileUrl?: string, fileType?: string) => {
-        if (!selectedChannel || !currentUser || isSending) return;
+    const handleSendMessage = async (content: string, file?: File) => {
+        if (!selectedChannel || !currentUser || isSending) return
 
-        const trimmedContent = content.trim();
-        if (!trimmedContent && !fileUrl) return;
+        const trimmedContent = content.trim()
+        if (!trimmedContent && !file) return
 
-        setIsSending(true);
+        setIsSending(true)
+
+        const inferredFileType = file
+            ? file.type.startsWith("image/")
+                ? "image"
+                : file.type.startsWith("audio/")
+                    ? "audio"
+                    : "document"
+            : undefined
 
         const tempMessage: ChatMessage = {
             id: `temp-${Date.now()}`,
@@ -286,35 +294,63 @@ export default function ChatsPage() {
             senderId: currentUser.id,
             senderName: currentUser.name,
             senderAvatar: currentUser.avatar,
-            content: trimmedContent,
-            fileUrl,
-            fileType,
+            content: file
+                ? `Sending ${inferredFileType || "file"}: ${file.name}`
+                : trimmedContent,
+            fileUrl: file ? URL.createObjectURL(file) : undefined,
+            fileType: inferredFileType,
             createdAt: new Date().toISOString(),
             pending: true,
-        };
+        }
 
-        setMessages((prev) => [...prev, tempMessage]);
+        setMessages((prev) => [...prev, tempMessage])
 
         try {
-            const res = await api.post("/chat/send", {
-                channelId: selectedChannel.id,
-                content: trimmedContent,
-                fileUrl,
-                fileType,
-            });
+            let saved: ChatMessage | null = null
 
-            const saved = normalizeMessage(res.data.data);
+            if (file) {
+                const formData = new FormData()
+                formData.append("file", file)
+                formData.append("channelId", selectedChannel.id)
+                formData.append("uploadType", "chat")
 
-            setMessages((prev) =>
-                prev.map((m) => (m.id === tempMessage.id ? saved : m))
-            );
+                const res = await api.post("/chat/upload?uploadType=chat", formData, {
+                    headers: {
+                        "Content-Type": "multipart/form-data",
+                    },
+                })
+
+                if (res.data?.success && res.data.data) {
+                    saved = normalizeMessage(res.data.data)
+                }
+            } else {
+                const res = await api.post("/chat/send", {
+                    channelId: selectedChannel.id,
+                    content: trimmedContent,
+                })
+
+                if (res.data?.success && res.data.data) {
+                    saved = normalizeMessage(res.data.data)
+                }
+            }
+
+            if (saved) {
+                setMessages((prev) =>
+                    prev.map((m) => (m.id === tempMessage.id ? saved : m))
+                )
+            } else {
+                setMessages((prev) => prev.filter((m) => m.id !== tempMessage.id))
+            }
         } catch (err) {
-            setMessages((prev) => prev.filter((m) => m.id !== tempMessage.id));
-            console.error("Message send failed:", err);
+            setMessages((prev) => prev.filter((m) => m.id !== tempMessage.id))
+            console.error("Failed to send message:", err)
         } finally {
-            setIsSending(false);
+            if (file && tempMessage.fileUrl?.startsWith("blob:")) {
+                URL.revokeObjectURL(tempMessage.fileUrl)
+            }
+            setIsSending(false)
         }
-    };
+    }
 
     /* ---------------- HELPERS ---------------- */
 

@@ -16,6 +16,7 @@ export interface Channel {
 }
 
 export interface ChatMessage {
+    isStarred: boolean;
     id: string;
     channelId: string;
     senderId: string;

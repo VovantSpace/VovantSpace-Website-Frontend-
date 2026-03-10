@@ -2,6 +2,8 @@ import {createContext, useContext, useEffect, useMemo, useState} from "react";
 import api from "@/utils/api";
 
 export interface User {
+    name: string;
+    avatar: string;
     _id: string;
 
     // Core identity
