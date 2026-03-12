@@ -123,7 +123,9 @@ export function useWallet() {
         loading,
         history,
         historyLoading,
-        refetch: fetchWallet,
+        refetch: async () => {
+            await Promise.all([fetchWallet(), fetchHistory(), fetchStripeStatus()]);
+        },
         refetchHistory: fetchHistory,
         transactions,
     };
