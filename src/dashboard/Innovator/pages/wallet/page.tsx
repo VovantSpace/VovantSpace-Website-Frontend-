@@ -44,7 +44,7 @@ export default function WalletPage() {
     const {
         wallet,
         history,
-        loading,
+        isLoading,
         historyLoading,
         refetch,
         refetchHistory,
@@ -65,6 +65,17 @@ export default function WalletPage() {
         const debits = history.filter((h) => h.type === "debit").length;
         return {total, credits, debits};
     }, [history]);
+
+    if (isLoading) {
+        return (
+            <MainLayout>
+                <div className={'flex min-h-[60vh] flex-col items-center justify-center gap-3'}>
+                    <RefreshCw className={'h-8 w-8 animate-spin text-[#00bf8f]'}/>
+                    <p className={'text-sm text-gray-400'}>Loading wallet...</p>
+                </div>
+            </MainLayout>
+        )
+    }
 
     return (
         <MainLayout>
@@ -94,7 +105,7 @@ export default function WalletPage() {
                         <div className="mb-2 text-sm text-gray-400">Available Balance</div>
                         <div className="flex items-center justify-between">
                             <div className="text-2xl font-bold dashtext">
-                                {loading ? "…" : formatMoneyMinor(available)}
+                                {isLoading ? "…" : formatMoneyMinor(available)}
                             </div>
                             <Button
                                 variant="ghost"
@@ -111,7 +122,7 @@ export default function WalletPage() {
                         <div className="mb-2 text-sm text-gray-400">Locked Balance</div>
                         <div className="flex items-center justify-between">
                             <div className="text-2xl font-bold dashtext">
-                                {loading ? "…" : formatMoneyMinor(locked)}
+                                {isLoading ? "…" : formatMoneyMinor(locked)}
                             </div>
                             <Button
                                 variant="ghost"
@@ -287,7 +298,7 @@ export default function WalletPage() {
                             >
                                 <RefreshCw
                                     className={`h-4 w-4 ${
-                                        loading || historyLoading ? "animate-spin" : ""
+                                        isLoading || historyLoading ? "animate-spin" : ""
                                     }`}
                                 />
                             </button>
