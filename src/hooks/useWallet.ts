@@ -28,7 +28,7 @@ export type WalletLedgerEntry = {
 export function useWallet() {
     const [wallet, setWallet] = useState<Wallet | null>(null);
     const [stats, setStats] = useState<WalletStats | null>(null);
-    const [isloading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
     const [history, setHistory] = useState<WalletLedgerEntry[]>([]);
     const [transactions, setTransactions] = useState<any[]>([]);
     const [historyLoading, setHistoryLoading] = useState(false);

@@ -137,7 +137,7 @@ export default function WalletPage() {
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const [selectedPeriod, setSelectedPeriod] = useState("All Time");
 
-    const { wallet, refetch: refetchWallet } = useWallet();
+    const { wallet, refetch: refetchWallet, isLoading } = useWallet();
     const { transactions, refetch: refetchTransactions } = useTransactions();
 
     // ✅ stable refetch function
@@ -169,6 +169,17 @@ export default function WalletPage() {
     }, [txs]);
 
     if (!wallet) return null;
+
+    if (isLoading) {
+        return (
+            <MainLayout>
+                <div className={'flex min-h-[60vh] flex-col items-center justify-center gap-3'}>
+                    <RefreshCw className={'h-8 w-8 animate-spin text-[#00bf8f]'}/>
+                    <p className={'text-sm text-gray-400'}>Loading wallet...</p>
+                </div>
+            </MainLayout>
+        )
+    }
 
     return (
         <MainLayout>
