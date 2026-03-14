@@ -28,10 +28,11 @@ export type WalletLedgerEntry = {
 export function useWallet() {
     const [wallet, setWallet] = useState<Wallet | null>(null);
     const [stats, setStats] = useState<WalletStats | null>(null);
-    const [loading, setLoading] = useState(false);
+    const [isloading, setIsLoading] = useState(false);
     const [history, setHistory] = useState<WalletLedgerEntry[]>([]);
     const [transactions, setTransactions] = useState<any[]>([]);
     const [historyLoading, setHistoryLoading] = useState(false);
+    const [error, setError] = useState("")
 
     const [stripeStatus, setStripeStatus] = useState<{
         payoutsEnabled: boolean;
@@ -55,7 +56,8 @@ export function useWallet() {
     ----------------------------- */
     const fetchWallet = useCallback(async () => {
         try {
-            setLoading(true);
+            setIsLoading(true);
+            setError("");
 
             const res = await api.get("/wallet");
             const payload = res.data?.data;
@@ -66,7 +68,7 @@ export function useWallet() {
         } catch (err) {
             console.error("Wallet fetch failed:", err);
         } finally {
-            setLoading(false);
+            setIsLoading(false);
         }
     }, []);
 
@@ -114,13 +116,13 @@ export function useWallet() {
         }
     }, [fetchWallet, fetchHistory])
 
-
     return {
         wallet,
         setWallet,
         stats,
         stripeStatus,
-        loading,
+        isLoading,
+        error,
         history,
         historyLoading,
         refetch: async () => {
