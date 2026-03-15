@@ -18,6 +18,7 @@ export interface ChatInterfaceProps {
         file?: File
     ) => Promise<void> | void;
 
+    chatType: "challenge" | "session";
     status?: 'upcoming' | 'active' | 'closed';
     nextActiveDate?: string | null;
     closedAt?: string | null;
@@ -31,7 +32,8 @@ export function ChatInterface({
                                   onSendMessage,
                                   status,
                                   nextActiveDate,
-                                  closedAt
+                                  closedAt,
+                                  chatType
                               }: ChatInterfaceProps) {
     const [newMessage, setNewMessage] = useState("");
     const [activeReply, setActiveReply] = useState<ReplyReference | null>(null);
@@ -40,13 +42,19 @@ export function ChatInterface({
     const [typingUser, setTypingUser] = useState<string | null>(null);
 
     // Session status state
-    const [sessionStatus, setSessionStatus] = useState<'upcoming' | 'active' | 'closed'>('active');
+    const [sessionStatus, setSessionStatus] = useState<'upcoming' | 'active' | 'closed'>(
+        chatType === "session" ? (status || "upcoming") : "active"
+    );
     const [timeLeft, setTimeLeft] = useState<string>("");
     const [localNextActiveDate, setLocalNextActiveDate] = useState<string | null | undefined>(nextActiveDate);
 
     useEffect(() => {
-        if (status) setSessionStatus(status);
-    }, [status]);
+       if (chatType === "session" && status) {
+           setSessionStatus(status)
+       } else if (chatType === "challenge") {
+           setSessionStatus("active")
+       }
+    }, [status, chatType]);
 
     useEffect(() => {
         setLocalNextActiveDate(nextActiveDate);
@@ -54,7 +62,7 @@ export function ChatInterface({
 
     // Countdown timer logic
     useEffect(() => {
-        if (sessionStatus !== 'upcoming' || !localNextActiveDate) return;
+        if (chatType !== "session" || sessionStatus !== 'upcoming' || !localNextActiveDate) return;
 
         const interval = setInterval(() => {
             const now = new Date().getTime();
@@ -145,7 +153,7 @@ export function ChatInterface({
     return (
         <div className="flex flex-col h-full relative">
             {/* Status Banners */}
-            {sessionStatus === 'upcoming' && (
+            {chatType === 'session' &&  sessionStatus === 'upcoming' && (
                 <div
                     className="absolute top-0 left-0 right-0 z-10 bg-yellow-50 border-b border-yellow-200 p-3 text-center shadow-sm">
                     <p className="text-yellow-800 text-sm font-medium">
@@ -155,7 +163,7 @@ export function ChatInterface({
                 </div>
             )}
 
-            {sessionStatus === 'closed' && (
+            {chatType === 'session' && sessionStatus === 'closed' && (
                 <div
                     className="absolute top-0 left-0 right-0 z-10 bg-gray-100 border-b border-gray-200 p-3 text-center shadow-sm">
                     <p className="text-gray-600 text-sm font-medium">This session has ended</p>

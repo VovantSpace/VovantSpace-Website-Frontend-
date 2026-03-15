@@ -145,6 +145,7 @@ export interface ChatChannel {
     status?: "upcoming" | "active" | "closed"
     nextActiveDate?: string | null;
     closedAt?: string | null;
+    chatType: "challenge" | "session";
 }
 
 export interface Notification {

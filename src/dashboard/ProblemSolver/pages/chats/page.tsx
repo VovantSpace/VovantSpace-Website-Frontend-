@@ -11,7 +11,6 @@ import { ChatInterface } from "@/dashboard/Innovator/components/chat/chat-interf
 import { ChatHeader } from "@/dashboard/Innovator/components/chat/chat-header";
 import type { Channel, ChatMessage } from "@/dashboard/Innovator/components/chat/types";
 import { getSocket } from "@/lib/socket";
-import { mapToChatUser } from "@/lib/mapToChatUser";
 import type { User } from "@/dashboard/Innovator/types";
 
 export default function ChatsPage() {
@@ -35,7 +34,8 @@ export default function ChatsPage() {
         mentorId: channel.mentorId ?? "",
         menteeId: channel.menteeId ?? "",
         sessionRequestId: channel.sessionRequestId ?? "",
-        status: channel.status ?? "active",
+        chatType: channel.chatType ?? "challenge",
+        status: channel.status ?? undefined,
         nextActiveDate: channel.nextActiveDate ?? null,
         closedAt: channel.closedAt ?? null,
     }), []);
@@ -213,6 +213,29 @@ export default function ChatsPage() {
             socket.emit("chat:leave-room", selectedChannel.id);
         };
     }, [selectedChannel, socket]);
+
+    useEffect(() => {
+        const handleRoomCreated = async () => {
+            try {
+                const res = await api.get("/problem-solver/chats");
+                if (res.data?.success) {
+                    const normalizedChannels = (res.data.data || []).map((channel: any) =>
+                        normalizeChannel(channel)
+                    );
+                    setChannels(normalizedChannels);
+                    setSelectedChannel((prev) => prev ?? normalizedChannels[0] ?? null);
+                }
+            } catch (err) {
+                console.error("Error refreshing chats after room creation:", err);
+            }
+        };
+
+        socket.on("chat:room-created", handleRoomCreated);
+
+        return () => {
+            socket.off("chat:room-created", handleRoomCreated);
+        };
+    }, [socket, normalizeChannel]);
 
     useEffect(() => {
         const handleNewMessage = (rawMsg: any) => {
@@ -483,6 +506,7 @@ export default function ChatsPage() {
                                 messages={messages}
                                 isSending={isSending}
                                 onSendMessage={handleSendMessage}
+                                chatType={selectedChannel.chatType}
                                 status={selectedChannel.status}
                                 nextActiveDate={selectedChannel.nextActiveDate}
                                 closedAt={selectedChannel.closedAt}

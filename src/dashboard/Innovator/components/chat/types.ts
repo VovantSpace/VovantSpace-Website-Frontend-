@@ -9,10 +9,13 @@ export interface Channel {
     mentorId?: string;
     menteeId?: string;
     sessionRequestId?: string;
-    status?: SessionStatus;
+    unreadCount: number;
+
+    chatType: "challenge" | "session";
+
+    status?: "upcoming" | "active" | "closed";
     nextActiveDate?: string | null;
     closedAt?: string | null;
-    unreadCount: number;
 }
 
 export interface ChatMessage {

@@ -88,11 +88,11 @@ export function ChatHeader({
                 )}
 
                 {/* STATUS BANNERS */}
-                {channel.status === "active" && (
+                {channel.chatType === "session" && channel.status === "active" && (
                     <p className="text-xs text-green-500 mt-1">Session is active</p>
                 )}
 
-                {channel.status === "upcoming" && (
+                {channel.chatType === "session" && channel.status === "upcoming" && (
                     <p className="text-xs text-yellow-500 mt-1">
                         Session locked — unlocks at{" "}
                         {channel.nextActiveDate
@@ -102,7 +102,7 @@ export function ChatHeader({
                     </p>
                 )}
 
-                {channel.status === "closed" && (
+                {channel.chatType === "session" && channel.status === "closed" && (
                     <p className="text-xs text-red-500 mt-1">
                         Session closed{channel.closedAt && (
                         <> at {format(new Date(channel.closedAt), "PPpp")}</>
