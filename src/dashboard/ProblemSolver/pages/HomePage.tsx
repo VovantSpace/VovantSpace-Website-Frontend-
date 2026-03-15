@@ -338,6 +338,7 @@ export default function HomePage() {
                         setIsSubmitPitchOpen(false);
                         setSelectedChallenge(null);
                     }}
+                    onSuccess={refetchChallenges}
                     challenge={selectedChallenge}
                 />
             )}

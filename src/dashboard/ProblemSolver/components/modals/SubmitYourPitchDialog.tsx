@@ -10,10 +10,12 @@ import RichTextEditor from "@/dashboard/Innovator/components/modals/RichTextEdit
 import {useProblemSolverProfile, useSubmitPitch} from "@/hooks/useProblemSolver"
 import {useFileUpload} from "@/hooks/useFileUpload"
 import {formatMoneyFromCents} from "@/utils/money";
+import {toast} from "react-toastify";
 
 interface SubmitPitchDialogProps {
     isOpen: boolean
     onClose: () => void
+    onSuccess?: () => void
     challenge: {
         id: string
         title: string
@@ -32,6 +34,7 @@ export function SubmitPitchDialog({
                                       isOpen,
                                       onClose,
                                       challenge,
+                                      onSuccess,
                                   }: SubmitPitchDialogProps) {
     const [attachments, setAttachments] = useState<UploadedAttachment[]>([])
     const [selectedSkill, setSelectedSkill] = useState<string>("")
@@ -105,12 +108,14 @@ export function SubmitPitchDialog({
 
     useEffect(() => {
         if (success) {
+            toast.success("Pitch submitted successfully")
             setAttachments([]);
             setSolutionSummary("");
             setSelectedSkill("");
 
             const timer = setTimeout(() => {
                 onClose()
+                onSuccess?.()
             }, 600);
             return () => clearTimeout(timer)
         }
@@ -197,7 +202,8 @@ export function SubmitPitchDialog({
                                 >
                                     {skill.name}
                                     {skill.budget > 0 && (
-                                        <span className={'ml-1 text-xs text-gray-300'}>${formatMoneyFromCents(skill.budget)}</span>
+                                        <span
+                                            className={'ml-1 text-xs text-gray-300'}>${formatMoneyFromCents(skill.budget)}</span>
                                     )}
                                 </Badge>
                             ))}

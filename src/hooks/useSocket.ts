@@ -18,14 +18,6 @@ export function useSocket() {
             socket.connect()
         }
 
-        console.log("Joining room:", roomName)
-
-        socket.on("connect", () => {
-                console.log(`✅ Socket connected: ${socket.id}`)
-                socket.emit('chat:join-room', roomName)
-            }
-        );
-
         socket.on("disconnect", (reason) =>
             console.log("⚠️ Socket disconnected:", reason)
         );

@@ -177,6 +177,25 @@ export default function ChatsPage() {
     }, [selectedChannel]);
 
     useEffect(() => {
+        const handleRoomCreated = (rawRoom: any) => {
+            const channel = normalizeChannel(rawRoom);
+
+            setChannels((prev) => {
+                const exists = prev.some((ch) => ch.id === channel.id);
+                return exists ? prev : [channel, ...prev];
+            });
+
+            setSelectedChannel((prev) => prev ?? channel);
+        };
+
+        socket.on("chat:room-created", handleRoomCreated);
+
+        return () => {
+            socket.off("chat:room-created", handleRoomCreated);
+        };
+    }, [socket, normalizeChannel]);
+
+    useEffect(() => {
         if (!selectedChannel?.id) return;
 
         const joinRoom = () => {
