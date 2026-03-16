@@ -1,17 +1,14 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { Button } from "@/dashboard/Innovator/components/ui/button";
 import { Card } from "@/dashboard/Innovator/components/ui/card";
 import { MainLayout } from "@/dashboard/Client/components/layout/main-layout";
 import { SendFundSettingsDialog } from "@/dashboard/Innovator/components/modals/SendFundSettingsDialog";
 import { ArrowDownRight, ArrowUpRight, RefreshCw } from "lucide-react";
 import { FundWalletDialog } from "@/dashboard/Innovator/components/modals/fund-wallet-dialog";
-import { useWalletSocket } from "@/hooks/useWalletSocket";
 import { useWallet } from "@/hooks/useWallet";
-import { useTransactions } from "@/hooks/useTransaction";
 
 // ---- helpers ----
 function formatMoney(amountInMinor: number, currency = "USD") {
-    // assuming minor units (cents)
     const value = (amountInMinor ?? 0) / 100;
     return new Intl.NumberFormat(undefined, {
         style: "currency",
@@ -23,7 +20,11 @@ function formatMoney(amountInMinor: number, currency = "USD") {
 function formatDate(dateStr: string) {
     const d = new Date(dateStr);
     if (Number.isNaN(d.getTime())) return dateStr;
-    return d.toLocaleDateString(undefined, { day: "2-digit", month: "2-digit", year: "numeric" });
+    return d.toLocaleDateString(undefined, {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+    });
 }
 
 function getTxLabel(type?: string) {
@@ -48,11 +49,6 @@ function getTxLabel(type?: string) {
 }
 
 function getTxDirection(type?: string) {
-    // NOTE: direction is from the current user's perspective.
-    // Here we keep it simple:
-    // - TOPUP increases wallet
-    // - PAYOUT decreases wallet
-    // - LOCK/RELEASE can be neutral depending on side; we’ll show them as outgoing for lock and incoming for release.
     if (type === "WALLET_TOPUP") return "+";
     if (type === "PAYOUT") return "-";
     if (type?.includes("LOCK")) return "-";
@@ -65,7 +61,7 @@ type TxLike = {
     _id: string;
     amount: number;
     type?: string;
-    status?: string; // "pending" | "completed" | "failed" | "cancelled"
+    status?: string;
     currency?: string;
     createdAt: string;
 };
@@ -76,6 +72,7 @@ function TransactionRow({ tx }: { tx: TxLike }) {
     const date = formatDate(tx.createdAt);
 
     const isPositive = direction === "+";
+
     const amountText =
         direction === "+"
             ? `+${formatMoney(tx.amount, (tx.currency || "USD").toUpperCase())}`
@@ -114,15 +111,19 @@ function TransactionRow({ tx }: { tx: TxLike }) {
                                                         : "bg-gray-800 text-gray-300",
                                         ].join(" ")}
                                     >
-                    {status}
-                  </span>
+                                        {status}
+                                    </span>
                                 )}
                             </h3>
                             <p className="text-sm text-gray-400">{date}</p>
                         </div>
                     </div>
 
-                    <div className={`text-lg font-semibold ${isPositive ? "text-[#00bf8f]" : "text-red-600"}`}>
+                    <div
+                        className={`text-lg font-semibold ${
+                            isPositive ? "text-[#00bf8f]" : "text-red-600"
+                        }`}
+                    >
                         {amountText}
                     </div>
                 </div>
@@ -136,49 +137,82 @@ export default function WalletPage() {
     const [isFundWalletDialogOpen, setIsFundWalletDialogOpen] = useState(false);
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const [selectedPeriod, setSelectedPeriod] = useState("All Time");
+    const [refreshing, setRefreshing] = useState(false);
 
-    const { wallet, refetch: refetchWallet, isLoading } = useWallet();
-    const { transactions, refetch: refetchTransactions } = useTransactions();
+    const { wallet, transactions, refetch, isLoading } = useWallet();
 
-    // ✅ stable refetch function
     const refreshAll = useCallback(async () => {
-        await Promise.all([refetchWallet(), refetchTransactions()]);
-    }, [refetchWallet, refetchTransactions]);
+        if (refreshing) return;
 
-    // ✅ initial fetch ONCE
-    useEffect(() => {
-        refreshAll();
-    }, [refreshAll]);
-
-    // ✅ socket triggers refresh
-    useWalletSocket(() => {
-        refreshAll();
-    });
+        try {
+            setRefreshing(true);
+            await refetch();
+        } finally {
+            setRefreshing(false);
+        }
+    }, [refetch, refreshing]);
 
     const txs: TxLike[] = useMemo(() => {
         const list = Array.isArray(transactions) ? transactions : [];
-        // optional: sort newest first
-        return [...list].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        return [...list].sort(
+            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
     }, [transactions]);
 
-    const stats = useMemo(() => {
-        const total = txs.length;
-        const pending = txs.filter((t) => (t.status || "").toLowerCase() === "pending").length;
-        const successful = txs.filter((t) => (t.status || "").toLowerCase() === "completed").length;
-        return { total, pending, successful };
-    }, [txs]);
+    const filteredTxs = useMemo(() => {
+        const now = new Date();
 
-    if (!wallet) return null;
+        if (selectedPeriod === "This Month") {
+            return txs.filter((tx) => {
+                const d = new Date(tx.createdAt);
+                return (
+                    d.getMonth() === now.getMonth() &&
+                    d.getFullYear() === now.getFullYear()
+                );
+            });
+        }
+
+        if (selectedPeriod === "This Week") {
+            const oneWeekAgo = new Date();
+            oneWeekAgo.setDate(now.getDate() - 7);
+
+            return txs.filter((tx) => new Date(tx.createdAt) >= oneWeekAgo);
+        }
+
+        return txs;
+    }, [txs, selectedPeriod]);
+
+    const stats = useMemo(() => {
+        const total = filteredTxs.length;
+        const pending = filteredTxs.filter(
+            (t) => (t.status || "").toLowerCase() === "pending"
+        ).length;
+        const successful = filteredTxs.filter(
+            (t) => (t.status || "").toLowerCase() === "completed"
+        ).length;
+
+        return { total, pending, successful };
+    }, [filteredTxs]);
 
     if (isLoading) {
         return (
             <MainLayout>
-                <div className={'flex min-h-[60vh] flex-col items-center justify-center gap-3'}>
-                    <RefreshCw className={'h-8 w-8 animate-spin text-[#00bf8f]'}/>
-                    <p className={'text-sm text-gray-400'}>Loading wallet...</p>
+                <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3">
+                    <RefreshCw className="h-8 w-8 animate-spin text-[#00bf8f]" />
+                    <p className="text-sm text-gray-400">Loading wallet...</p>
                 </div>
             </MainLayout>
-        )
+        );
+    }
+
+    if (!wallet) {
+        return (
+            <MainLayout>
+                <div className="flex min-h-[60vh] items-center justify-center">
+                    <p className="text-sm text-gray-400">Wallet data unavailable.</p>
+                </div>
+            </MainLayout>
+        );
     }
 
     return (
@@ -187,9 +221,15 @@ export default function WalletPage() {
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <h1 className="text-2xl font-bold dashtext">Wallet</h1>
-                        <p className="text-sm text-gray-400">Manage your wallet and transactions</p>
+                        <p className="text-sm text-gray-400">
+                            Manage your wallet and transactions
+                        </p>
                     </div>
-                    <Button className="dashbutton" onClick={() => setIsSendFundsSettingsOpen(true)}>
+
+                    <Button
+                        className="dashbutton"
+                        onClick={() => setIsSendFundsSettingsOpen(true)}
+                    >
                         Wallet Settings
                     </Button>
                 </div>
@@ -201,7 +241,11 @@ export default function WalletPage() {
                             <div className="text-2xl font-bold dashtext">
                                 {formatMoney(wallet.availableBalance, "USD")}
                             </div>
-                            <Button variant="ghost" size="icon" className="rounded-full text-[#00bf8f]">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="rounded-full text-[#00bf8f]"
+                            >
                                 <ArrowUpRight className="h-6 w-6" />
                             </Button>
                         </div>
@@ -211,7 +255,11 @@ export default function WalletPage() {
                         <div className="mb-2 text-sm text-gray-400">Total Transactions</div>
                         <div className="flex items-center">
                             <div className="text-2xl font-bold dashtext">{stats.total}</div>
-                            <Button variant="ghost" size="icon" className="rounded-full text-[#00bf8f]">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="rounded-full text-[#00bf8f]"
+                            >
                                 <ArrowUpRight className="h-6 w-6" />
                             </Button>
                         </div>
@@ -221,7 +269,11 @@ export default function WalletPage() {
                         <div className="mb-2 text-sm text-gray-400">Pending Payments</div>
                         <div className="flex items-center">
                             <div className="text-2xl font-bold dashtext">{stats.pending}</div>
-                            <Button variant="ghost" size="icon" className="rounded-full text-[#00bf8f]">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="rounded-full text-[#00bf8f]"
+                            >
                                 <ArrowUpRight className="h-6 w-6" />
                             </Button>
                         </div>
@@ -231,7 +283,11 @@ export default function WalletPage() {
                         <div className="mb-2 text-sm text-gray-400">Successful Payments</div>
                         <div className="flex items-center">
                             <div className="text-2xl font-bold dashtext">{stats.successful}</div>
-                            <Button variant="ghost" size="icon" className="rounded-full text-[#00bf8f]">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="rounded-full text-[#00bf8f]"
+                            >
                                 <ArrowUpRight className="h-6 w-6" />
                             </Button>
                         </div>
@@ -260,13 +316,11 @@ export default function WalletPage() {
                         <h2 className="text-xl font-bold dashtext">Transactions History</h2>
 
                         <div className="flex items-center gap-2">
-                            {/* Dropdown Menu */}
                             <div className="relative inline-block text-left">
                                 <button
                                     type="button"
                                     onClick={() => setDropdownOpen(!dropdownOpen)}
                                     className="inline-flex items-center justify-center rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700"
-                                    id="options-menu"
                                     aria-haspopup="true"
                                     aria-expanded={dropdownOpen ? "true" : "false"}
                                 >
@@ -289,10 +343,9 @@ export default function WalletPage() {
 
                                 {dropdownOpen && (
                                     <div className="origin-top-right absolute right-0 mt-2 w-36 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
-                                        <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
+                                        <div className="py-1">
                                             <button
                                                 className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                                role="menuitem"
                                                 onClick={() => {
                                                     setSelectedPeriod("All Time");
                                                     setDropdownOpen(false);
@@ -302,7 +355,6 @@ export default function WalletPage() {
                                             </button>
                                             <button
                                                 className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                                role="menuitem"
                                                 onClick={() => {
                                                     setSelectedPeriod("This Month");
                                                     setDropdownOpen(false);
@@ -312,7 +364,6 @@ export default function WalletPage() {
                                             </button>
                                             <button
                                                 className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                                role="menuitem"
                                                 onClick={() => {
                                                     setSelectedPeriod("This Week");
                                                     setDropdownOpen(false);
@@ -325,29 +376,36 @@ export default function WalletPage() {
                                 )}
                             </div>
 
-                            {/* Refresh Button */}
                             <button
                                 type="button"
                                 onClick={refreshAll}
                                 className="p-2 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
                             >
-                                <RefreshCw className="h-4 w-4" />
+                                <RefreshCw
+                                    className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
+                                />
                             </button>
                         </div>
                     </div>
 
-                    {txs.length === 0 ? (
+                    {filteredTxs.length === 0 ? (
                         <Card className="secondbg p-4">
                             <p className="text-sm text-gray-400">No transactions yet.</p>
                         </Card>
                     ) : (
-                        txs.map((tx) => <TransactionRow key={tx._id} tx={tx} />)
+                        filteredTxs.map((tx) => <TransactionRow key={tx._id} tx={tx} />)
                     )}
                 </div>
 
-                <FundWalletDialog isOpen={isFundWalletDialogOpen} onClose={() => setIsFundWalletDialogOpen(false)} />
+                <FundWalletDialog
+                    isOpen={isFundWalletDialogOpen}
+                    onClose={() => setIsFundWalletDialogOpen(false)}
+                />
 
-                <SendFundSettingsDialog isOpen={isSendFundsSettingsOpen} onClose={() => setIsSendFundsSettingsOpen(false)} />
+                <SendFundSettingsDialog
+                    isOpen={isSendFundsSettingsOpen}
+                    onClose={() => setIsSendFundsSettingsOpen(false)}
+                />
             </div>
         </MainLayout>
     );

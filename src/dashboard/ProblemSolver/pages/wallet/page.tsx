@@ -27,6 +27,7 @@ export default function WalletPage() {
         refetchHistory,
         stats,
         stripeStatus,
+        isLoading
     } = useWallet();
 
     /* ----------------------------
@@ -128,6 +129,17 @@ export default function WalletPage() {
                 </div>
             </MainLayout>
         );
+    }
+
+    if (isLoading) {
+        return (
+            <MainLayout>
+                <div className={'flex min-h-[60vh] flex-col items-center justify-center gap-3'}>
+                    <RefreshCw className={'h-8 w-8 animate-spin text-[#00bf8f]'}/>
+                    <p className={'text-sm text-gray-400'}>Loading wallet...</p>
+                </div>
+            </MainLayout>
+        )
     }
 
     return (
